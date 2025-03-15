@@ -5,7 +5,10 @@ const cookieParser = require('cookie-parser');
 const { sequelize } = require('./src/models');
 const userRoutes = require('./src/routes/userRoutes');
 const locationRoutes = require('./src/routes/locationRoutes');
-const adminRoutes = require('./src/routes/adminRoutes');
+// const adminRoutes = require('./src/routes/adminRoutes');
+const authRoutes = require('./src/routes/auth');
+const dashboardRoutes = require('./src/routes/dashboard');
+const session = require('express-session');
 
 require("dotenv").config();
 
@@ -22,10 +25,55 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'src', 'public')));
 
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+
+// Authentication middleware
+const requireAuth = (req, res, next) => {
+  if (!req.session.user) {
+      return res.redirect('/auth/login');
+  }
+  next();
+};
+
+// Admin middleware
+const requireAdmin = (req, res, next) => {
+  if (!req.session.user || req.session.user.user_type !== 'admin') {
+      return res.render('error', {
+          message: 'Access denied. Admin only.',
+          title: 'Error - Vertex Admin'
+      });
+  }
+  next();
+};
+
+// Routes
+app.get('/', (req, res) => {
+  if (req.session.user) {
+      res.redirect('/dashboard');
+  } else {
+      res.redirect('/auth/login');
+  }
+});
+
+// Apply authentication middleware to protected routes
+app.use('/auth', authRoutes);
+app.use('/dashboard', requireAuth, requireAdmin, dashboardRoutes);
+app.use('/members', requireAuth, requireAdmin, userRoutes);
+
 // Routes
 app.use('/', userRoutes);
 app.use('/', locationRoutes);
-app.use('/', adminRoutes);
+// app.use('/', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

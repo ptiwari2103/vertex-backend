@@ -1,0 +1,68 @@
+<%- contentFor('style') %>
+<style>
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 250px;
+        background: #343a40;
+        padding: 20px;
+        color: white;
+    }
+    .nav-link {
+        color: rgba(255,255,255,.75);
+        padding: 10px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .nav-link:hover {
+        color: white;
+    }
+    .nav-link i {
+        font-size: 20px;
+    }
+    .user-info {
+        margin-top: 20px;
+        padding: 15px;
+        border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .user-info p {
+        margin: 0;
+        font-size: 14px;
+        color: rgba(255,255,255,.75);
+    }
+    .logout-btn {
+        margin-top: 10px;
+        width: 100%;
+        background-color: #dc3545;
+        border: none;
+        padding: 8px;
+    }
+    .logout-btn:hover {
+        background-color: #bb2d3b;
+    }
+</style>
+
+<div class="sidebar">
+    <h3 class="mb-4">Vertex Admin</h3>
+    <div class="user-info">
+        <p>Welcome, <%= user.name %></p>
+        <p class="text-muted mb-2">ID: <%= user.user_id %></p>
+        <form action="/auth/logout" method="GET">
+            <button type="submit" class="btn btn-danger logout-btn">
+                <i class='bx bxs-log-out'></i> Logout
+            </button>
+        </form>
+    </div>
+
+    <nav class="nav flex-column">
+        <a class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">
+            <i class='bx bxs-dashboard'></i> Dashboard
+        </a>
+        <a class="nav-link <%= currentPage === 'members' ? 'active' : '' %>" href="/members">
+            <i class='bx bxs-user'></i> Members
+        </a>
+    </nav>
+</div>

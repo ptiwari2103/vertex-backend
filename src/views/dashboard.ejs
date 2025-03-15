@@ -1,16 +1,64 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-    <h1>Admin Dashboard</h1>
-    <ul>
-        <li><a href="/calculator">Calculator</a></li>
-        <li><a href="/members">Member List</a></li>
-        <li><a href="/accounts">Account List</a></li>
-        <li><a href="/loans">Loan Types</a></li>
-    </ul>
-</body>
-</html>
+<%- contentFor('title') %>Dashboard - Vertex Admin
+
+<%- contentFor('style') %>
+<style>
+    .main-content {
+        margin-left: 250px;
+        padding: 20px;
+    }
+    .welcome-section {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .card {
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        border: none;
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+</style>
+
+<%- contentFor('body') %>
+<%- include('partials/sidebar', { currentPage: 'dashboard' }); %>
+
+<div class="main-content">
+    <div class="welcome-section">
+        <h2>Welcome, <%= user.name %>!</h2>
+        <p class="text-muted">Here's your dashboard overview</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Members</h5>
+                    <p class="card-text">Total registered members in the system</p>
+                    <h3 class="text-primary"><%= counts.users %></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">States</h5>
+                    <p class="card-text">Total states registered</p>
+                    <h3 class="text-success"><%= counts.states %></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Districts</h5>
+                    <p class="card-text">Total districts registered</p>
+                    <h3 class="text-info"><%= counts.districts %></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

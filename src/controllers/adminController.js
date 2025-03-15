@@ -1,60 +1,98 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { User, Profile } = require("../models");
+// const bcrypt = require('bcryptjs');
+const { User } = require("../models/index.js");
 
-const renderLoginPage = (req, res) => {
-    res.render('login', { error: null });
-};
-
-const adminLogin = async (req, res) => {
+const login = async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { user_id, password } = req.body;
 
-        if (!username || !password) {
-            return res.render('login', { error: 'User_id and password are required' });
-        }        
-        
-        // Find admin user
-        const admin = await User.findOne({
-            where: { 
-                user_type: 'admin',
-                user_id: username 
-            }
+        // Find user
+        const user = await User.findOne({
+            where: {
+                user_id,
+                status: 'Active',
+                user_type: 'admin'
+            },
+            attributes: ['id', 'name', 'password', 'user_type', 'user_id', 'status']
         });
 
-
-        //Check if user exists and verify password
-        if (!admin || !(await bcrypt.compare(password, admin.password))) {
-            return res.render('login', { error: 'Invalid credentials' });
+        if (!user) {
+            return res.render('login', { 
+                error: 'Invalid credentials or account not active',
+                title: 'Login - Vertex Admin'
+            });
         }
 
-        // Generate JWT token
+        // Validate password
+        const isValidPassword = await user.validatePassword(password);
+        if (!isValidPassword) {
+            return res.render('login', { 
+                error: 'Invalid credentials',
+                title: 'Login - Vertex Admin'
+            });
+        }
+
+        // Generate token
         const token = jwt.sign(
-            { userId: admin.user_id },
+            { 
+                id: user.id,
+                user_id: user.user_id, 
+                user_type: user.user_type,
+                name: user.name
+            },
             process.env.JWT_SECRET,
             { expiresIn: '24h' }
         );
 
-        // Set token in cookie or session
-        res.cookie('token', token, { 
+        // Set session and cookie
+        req.session.token = token;
+        req.session.user = {
+            id: user.id,
+            user_id: user.user_id,
+            name: user.name,
+            user_type: user.user_type
+        };
+
+        res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             maxAge: 24 * 60 * 60 * 1000 // 24 hours
         });
 
-        res.redirect('/dashboard');
+        return res.redirect('/dashboard');
     } catch (error) {
         console.error('Login error:', error);
-        res.render('login', { error: 'An error occurred during login '+error });
+        return res.render('login', { 
+            error: 'An error occurred during login',
+            title: 'Login - Vertex Admin'
+        });
     }
 };
 
-const renderDashboard = (req, res) => {
-    res.render('dashboard');
+const logout = (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Logout error:', err);
+        }
+        res.clearCookie('token');
+        res.redirect('/auth/login');
+    });
 };
 
+const showLoginForm = (req, res) => {
+    if (req.session.user) {
+        return res.redirect('/dashboard');
+    }
+    res.render('login', { 
+        error: undefined,
+        title: 'Login - Vertex Admin'
+    });
+};
+
+
+
 module.exports = {
-    renderLoginPage,
-    adminLogin,
-    renderDashboard
+    showLoginForm,
+    logout,
+    login
 };

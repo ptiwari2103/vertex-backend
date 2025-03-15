@@ -1,0 +1,42 @@
+<%- contentFor('title') %>Error - Vertex Admin
+
+<%- contentFor('style') %>
+<style>
+    body {
+        background-color: #f8f9fa;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .error-container {
+        max-width: 500px;
+        padding: 30px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .error-icon {
+        font-size: 48px;
+        color: #dc3545;
+        margin-bottom: 20px;
+    }
+    .error-message {
+        color: #2c3e50;
+        margin-bottom: 20px;
+    }
+    .back-btn {
+        padding: 12px 30px;
+        font-weight: 500;
+    }
+</style>
+
+<%- contentFor('body') %>
+<div class="error-container">
+    <div class="error-icon">
+        <i class='bx bx-error-circle'></i>
+    </div>
+    <h2 class="error-message"><%= message %></h2>
+    <a href="/" class="btn btn-primary back-btn">Go Back Home</a>
+</div>
