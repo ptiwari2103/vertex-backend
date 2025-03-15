@@ -1,0 +1,47 @@
+{
+  "development": {
+    "username": "root",
+    "password": "",
+    "database": "aditya_bank",
+    "host": "127.0.0.1",
+    "dialect": "mysql",
+    "port": 3306,
+    "dialectOptions": {
+      "version": "5.2.1",
+      "decimalNumbers": true
+    },
+    "logging": false,
+    "pool": {
+      "max": 5,
+      "min": 0,
+      "acquire": 30000,
+      "idle": 10000
+    }
+  },
+  "test": {
+    "username": "root",
+    "password": "",
+    "database": "aditya_bank_test",
+    "host": "127.0.0.1",
+    "dialect": "mysql",
+    "port": 3306,
+    "dialectOptions": {
+      "version": "5.2.1",
+      "decimalNumbers": true
+    },
+    "logging": false
+  },
+  "production": {
+    "username": "root",
+    "password": "",
+    "database": "aditya_bank_production",
+    "host": "127.0.0.1",
+    "dialect": "mysql",
+    "port": 3306,
+    "dialectOptions": {
+      "version": "5.2.1",
+      "decimalNumbers": true
+    },
+    "logging": false
+  }
+}
