@@ -1,0 +1,103 @@
+<%- contentFor('body') %>
+
+<div class="row g-4">
+    <!-- Account Summary -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Account Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>
+                        <div class="text-muted">Account Number</div>
+                        <div class="h5"><%= user.account_number %></div>
+                    </div>
+                    <div>
+                        <div class="text-muted">Status</div>
+                        <div class="badge bg-<%= user.status === 'Active' ? 'success' : 'warning' %>">
+                            <%= user.status %>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="text-muted">Member Since</div>
+                        <div><%= user.created_at.toLocaleDateString() %></div>
+                    </div>
+                    <div>
+                        <div class="text-muted">Last Login</div>
+                        <div><%= user.last_login.toLocaleDateString() %></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="/profile/edit" class="list-group-item list-group-item-action">
+                        <i class="bi bi-person-gear me-2"></i> Update Profile
+                    </a>
+                    <a href="/documents/upload" class="list-group-item list-group-item-action">
+                        <i class="bi bi-upload me-2"></i> Upload Documents
+                    </a>
+                    <a href="/loans/apply" class="list-group-item list-group-item-action">
+                        <i class="bi bi-cash-coin me-2"></i> Apply for Loan
+                    </a>
+                    <a href="/support" class="list-group-item list-group-item-action">
+                        <i class="bi bi-headset me-2"></i> Contact Support
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recent Transactions</h5>
+                <a href="/transactions" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Transaction ID</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% transactions.forEach(function(transaction) { %>
+                            <tr>
+                                <td><%= transaction.date %></td>
+                                <td><%= transaction.id %></td>
+                                <td><%= transaction.type %></td>
+                                <td class="<%= transaction.amount >= 0 ? 'text-success' : 'text-danger' %>">
+                                    <%= transaction.amount >= 0 ? '+' : '' %><%= transaction.amount %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= transaction.status === 'Completed' ? 'success' : 'warning' %>">
+                                        <%= transaction.status %>
+                                    </span>
+                                </td>
+                            </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
