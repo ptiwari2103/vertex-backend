@@ -2,13 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const expressLayouts = require('express-ejs-layouts');
 const { sequelize } = require('./src/models');
 const userRoutes = require('./src/routes/userRoutes');
 const locationRoutes = require('./src/routes/locationRoutes');
-// const adminRoutes = require('./src/routes/adminRoutes');
 const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
-const session = require('express-session');
 
 require("dotenv").config();
 
@@ -17,114 +17,109 @@ const app = express();
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src', 'views'));
+app.set('layout', 'layout');
+app.use(expressLayouts);
 
-// Middleware
-app.use(cors());
+// Security middleware
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production' ? process.env.ALLOWED_ORIGIN : true,
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET || 'your-cookie-secret'));
+
+// Static files
 app.use(express.static(path.join(__dirname, 'src', 'public')));
 
 // Session configuration
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+    secret: process.env.SESSION_SECRET || 'your-session-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'strict'
+    }
 }));
 
-
-// Authentication middleware
-const requireAuth = (req, res, next) => {
-  if (!req.session.user) {
-      return res.redirect('/auth/login');
-  }
-  next();
-};
-
-// Admin middleware
-const requireAdmin = (req, res, next) => {
-  if (!req.session.user || req.session.user.user_type !== 'admin') {
-      return res.render('error', {
-          message: 'Access denied. Admin only.',
-          title: 'Error - Vertex Admin'
-      });
-  }
-  next();
-};
+// Pass user to all views
+app.use((req, res, next) => {
+    res.locals.user = req.session.user || null;
+    next();
+});
 
 // Routes
 app.get('/', (req, res) => {
-  if (req.session.user) {
-      res.redirect('/dashboard');
-  } else {
-      res.redirect('/auth/login');
-  }
+    if (req.session.user) {
+        res.redirect('/dashboard');
+    } else {
+        res.redirect('/auth/login');
+    }
 });
 
-// Apply authentication middleware to protected routes
+// Auth routes (public)
 app.use('/auth', authRoutes);
-app.use('/dashboard', requireAuth, requireAdmin, dashboardRoutes);
-app.use('/members', requireAuth, requireAdmin, userRoutes);
 
-// Routes
-app.use('/', userRoutes);
-app.use('/', locationRoutes);
-// app.use('/', adminRoutes);
+// Protected routes
+app.use('/dashboard', dashboardRoutes);
+app.use('/members', userRoutes);
+app.use('/locations', locationRoutes);
 
 // Error handling middleware
+app.use((req, res, next) => {
+    res.status(404).render('error', {
+        title: 'Error - Page Not Found',
+        message: 'The page you are looking for does not exist.',
+        error: 'Please check the URL or go back to the dashboard.'
+    });
+});
+
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
+    console.error('Error:', err);
+    res.status(err.status || 500).render('error', {
+        title: 'Error - Server Error',
+        message: 'An error occurred while processing your request.',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Please try again later.'
+    });
 });
 
 // Initialize database and start server
 const PORT = process.env.PORT || 5001;
-const BACKUP_PORT = 5002; // Backup port if primary is in use
 
 const startServer = async () => {
-  try {
-    // Test database connection
-    await sequelize.authenticate();
-    console.log('Database connection established successfully.');
-
-    // Sync models with database
-    await sequelize.sync();
-    console.log('Database models synchronized successfully.');
-
-    // Try primary port first
     try {
-      app.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-      });
+        // Test database connection
+        await sequelize.authenticate();
+        console.log('Database connection established successfully.');
+
+        // Sync models with database
+        await sequelize.sync();
+        console.log('Database models synchronized successfully.');
+
+        // Start server
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
     } catch (error) {
-      // If primary port fails, try backup port
-      console.log(`Port ${PORT} is in use, trying backup port ${BACKUP_PORT}`);
-      app.listen(BACKUP_PORT, () => {
-        console.log(`Server is running on backup port ${BACKUP_PORT}`);
-      });
+        console.error('Unable to start server:', error);
+        process.exit(1);
     }
-  } catch (error) {
-    console.error('Unable to start server:', error.message);
-    process.exit(1);
-  }
 };
 
 // Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.info('SIGTERM signal received.');
-  process.exit(0);
+process.on('SIGTERM', async () => {
+    console.info('SIGTERM signal received.');
+    await sequelize.close();
+    process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.info('SIGINT signal received.');
-  process.exit(0);
+process.on('SIGINT', async () => {
+    console.info('SIGINT signal received.');
+    await sequelize.close();
+    process.exit(0);
 });
 
 startServer();

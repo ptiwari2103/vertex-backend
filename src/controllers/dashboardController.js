@@ -12,34 +12,34 @@ const getDashboard = async (req, res) => {
         // Get current user details
         const userDetails = await User.findOne({
             where: { id: req.session.user.id },
-            include: [
-                {
-                    model: State,
-                    attributes: ['name']
-                },
-                {
-                    model: District,
-                    attributes: ['name']
-                }
-            ]
+            attributes: ['id', 'name', 'user_id', 'user_type', 'status']
         });
 
         res.render('dashboard', {
+            title: 'Dashboard - Vertex Admin',
+            style: '',
+            script: '',
+            currentPage: 'dashboard',
             user: userDetails,
             counts: {
                 users: userCount,
                 states: stateCount,
                 districts: districtCount
-            },
-            title: 'Dashboard - Vertex Admin'
+            }
         });
     } catch (error) {
         console.error('Dashboard error:', error);
         res.render('error', { 
+            title: 'Error - Vertex Admin',
             message: 'Error loading dashboard',
-            title: 'Error - Vertex Admin'
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while loading the dashboard.',
+            style: '',
+            script: '',
+            user: null
         });
     }
 };
 
-module.exports = getDashboard;
+module.exports = {
+    getDashboard
+};

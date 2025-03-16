@@ -1,64 +1,138 @@
-<%- contentFor('title') %>Dashboard - Vertex Admin
+<%- contentFor('title') %>Vertex Admin - Dashboard
 
 <%- contentFor('style') %>
 <style>
-    .main-content {
-        margin-left: 250px;
-        padding: 20px;
-    }
-    .welcome-section {
+    .stats-card {
         background: white;
-        padding: 20px;
         border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        padding: 20px;
         margin-bottom: 20px;
-    }
-    .card {
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         transition: transform 0.2s;
     }
-    .card:hover {
+    .stats-card:hover {
         transform: translateY(-5px);
+    }
+    .stats-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+    }
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    .welcome-card {
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        color: white;
+        padding: 25px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+    }
+    .welcome-title {
+        font-size: 1.8rem;
+        margin-bottom: 10px;
+    }
+    .welcome-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
     }
 </style>
 
 <%- contentFor('body') %>
-<%- include('partials/sidebar', { currentPage: 'dashboard' }); %>
-
-<div class="main-content">
-    <div class="welcome-section">
-        <h2>Welcome, <%= user.name %>!</h2>
-        <p class="text-muted">Here's your dashboard overview</p>
+<div class="container-fluid">
+    <!-- Welcome Section -->
+    <div class="welcome-card">
+        <h1 class="welcome-title">Welcome back, <%= user.name %>!</h1>
+        <p class="welcome-subtitle">Here's your dashboard overview</p>
     </div>
 
+    <!-- Stats Grid -->
     <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Members</h5>
-                    <p class="card-text">Total registered members in the system</p>
-                    <h3 class="text-primary"><%= counts.users %></h3>
+        <!-- Total Members -->
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon text-primary">
+                    <i class="bx bx-user-circle"></i>
+                </div>
+                <div class="stats-number text-primary">
+                    <%= counts.users || 0 %>
+                </div>
+                <div class="stats-label">
+                    Total Members
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">States</h5>
-                    <p class="card-text">Total states registered</p>
-                    <h3 class="text-success"><%= counts.states %></h3>
+
+        <!-- Total States -->
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon text-success">
+                    <i class="bx bx-map-alt"></i>
+                </div>
+                <div class="stats-number text-success">
+                    <%= counts.states || 0 %>
+                </div>
+                <div class="stats-label">
+                    Registered States
                 </div>
             </div>
         </div>
-        <div class="col-md-4 mb-4">
+
+        <!-- Total Districts -->
+        <div class="col-md-4">
+            <div class="stats-card">
+                <div class="stats-icon text-info">
+                    <i class="bx bx-buildings"></i>
+                </div>
+                <div class="stats-number text-info">
+                    <%= counts.districts || 0 %>
+                </div>
+                <div class="stats-label">
+                    Registered Districts
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Section -->
+    <div class="row mt-4">
+        <div class="col-12">
             <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Activity</h5>
+                </div>
                 <div class="card-body">
-                    <h5 class="card-title">Districts</h5>
-                    <p class="card-text">Total districts registered</p>
-                    <h3 class="text-info"><%= counts.districts %></h3>
+                    <% if (typeof recentActivity !== 'undefined' && recentActivity.length > 0) { %>
+                        <div class="list-group">
+                            <% recentActivity.forEach(activity => { %>
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1"><%= activity.title %></h6>
+                                        <small><%= activity.time %></small>
+                                    </div>
+                                    <p class="mb-1"><%= activity.description %></p>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <p class="text-muted mb-0">No recent activity to display</p>
+                    <% } %>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<%- contentFor('script') %>
+<script>
+    // Dashboard specific scripts
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize any dashboard widgets or charts here
+        console.log('Dashboard loaded');
+    });
+</script>
