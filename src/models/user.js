@@ -33,12 +33,36 @@ User.init({
             notEmpty: true
         }
     },
+    // password: {
+    //     type: DataTypes.STRING(255),
+    //     allowNull: false,
+    //     validate: {
+    //         len: [8, 50],
+    //         is: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    //     }
+    // },
     password: {
         type: DataTypes.STRING(255),
         allowNull: false,
         validate: {
-            len: [8, 50],
-            is: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+            notEmpty: true,
+            customValidation(value) {
+                const strengthChecks = {
+                    length: value.length >= 8,
+                    uppercase: /[A-Z]/.test(value),
+                    lowercase: /[a-z]/.test(value),
+                    number: /[0-9]/.test(value),
+                    special: /[!@#$%^&*(),.?":{}|<>]/.test(value)
+                };
+    
+                const failedChecks = Object.entries(strengthChecks)
+                    .filter(([_, passed]) => !passed)
+                    .map(([key]) => key);
+    
+                if (failedChecks.length) {
+                    throw new Error(`Password must include: ${failedChecks.join(', ')}`);
+                }
+            }
         }
     },
     user_type: {
@@ -53,7 +77,7 @@ User.init({
         allowNull: false,
         unique: true,
         validate: {
-            is: /^\d{6}$/i, // SSDDXY format validation
+            is: /^\d{6}$/i, // DDVXYZ format validation
             notEmpty: true
         }
     },
@@ -71,10 +95,10 @@ User.init({
         allowNull: true
     },
     gender: {
-        type: DataTypes.ENUM('male', 'female', 'transgender'),
+        type: DataTypes.ENUM('Male', 'Female', 'Transgender'),
         allowNull: true,
         validate: {
-            isIn: [['male', 'female', 'transgender']]
+            isIn: [['Male', 'Female', 'Transgender']]
         }
     },
     mobile_number: {
@@ -114,7 +138,7 @@ User.init({
     },
     status: {
         type: DataTypes.ENUM('Active', 'Inactive', 'Pending', 'Blocked'),
-        defaultValue: 'Active',
+        defaultValue: 'Pending',
         validate: {
             isIn: [['Active', 'Inactive', 'Pending', 'Blocked']]
         }

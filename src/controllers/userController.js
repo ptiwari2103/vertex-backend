@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs');
 const { User, Profile } = require("../models");
 
 
-const generateUserId = async (districtId, db) => {
+const generateUserId = async (districtId) => {
     const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
 
     let userId;
@@ -10,8 +10,6 @@ const generateUserId = async (districtId, db) => {
 
     while (!isUnique) {
         const randomPart = String(Math.floor(1000 + Math.random() * 9000)); // Always 4 digits
-        
-        //userId = parseInt(`${DD}${randomPart}`, 10); // Convert to integer
         userId = `${DD}${randomPart}`;
         // Check if this userId already exists
         const existingUser = await User.findOne({ where: { user_id: userId } });        
@@ -77,14 +75,14 @@ const registerUser = async (req, res) => {
             date_of_birth,
             gender,
             mobile_number,
-            state,
-            district,
+            state_id,
+            district_id,
             terms_accepted
         } = req.body;
 
         // Validate required fields
         const requiredFields = ['name', 'guardian_name', 'password', 
-            'date_of_birth', 'gender', 'mobile_number', 'state', 'district'];
+            'date_of_birth', 'gender', 'mobile_number', 'state_id', 'district_id'];
         
         const missingFields = requiredFields.filter(field => !req.body[field]);
         if (missingFields.length > 0) {
@@ -95,7 +93,7 @@ const registerUser = async (req, res) => {
 
         // Generate account number and user ID
         const accountNumber = await generateAccountNumber();
-        const userId = await generateUserId(state, district, mobile_number);
+        const userId = await generateUserId(district_id);
 
         // Hash password
         const salt = await bcrypt.genSalt(10);
@@ -112,8 +110,8 @@ const registerUser = async (req, res) => {
             date_of_birth: formattedDOB,
             gender,
             mobile_number,
-            state,
-            district,
+            state_id,
+            district_id,
             terms_accepted,
             user_type: 'member',
             user_id: userId,

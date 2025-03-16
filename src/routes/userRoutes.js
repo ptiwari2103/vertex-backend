@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
 const { body, validationResult } = require('express-validator');
-const validateRequest = require('../middleware/validateRequest');
+//const validateRequest = require('../middleware/validateRequest');
 const { User, State, District } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -115,19 +115,19 @@ const registerValidation = [
         }),
 
     // Password validation
-    body('password')
-        .matches(passwordRegex)
-        .withMessage('Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)')
-        .custom((value) => {
-            // Additional password checks
-            if (value.length > 50) {
-                throw new Error('Password cannot exceed 50 characters');
-            }
-            if (/(.)\1{2,}/.test(value)) {
-                throw new Error('Password cannot contain repeating characters more than twice in a row');
-            }
-            return true;
-        }),
+    // body('password')
+    //     .matches(passwordRegex)
+    //     .withMessage('Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character (!@#$%^&*)')
+    //     .custom((value) => {
+    //         // Additional password checks
+    //         if (value.length > 50) {
+    //             throw new Error('Password cannot exceed 50 characters');
+    //         }
+    //         if (/(.)\1{2,}/.test(value)) {
+    //             throw new Error('Password cannot contain repeating characters more than twice in a row');
+    //         }
+    //         return true;
+    //     }),
 
     // Date of birth validation
     body('date_of_birth')
@@ -224,24 +224,26 @@ const registerValidation = [
             return true;
         }),
 
-    validateRequest
+    // validateRequest
 ];
 
+
 // Login validation middleware
-const loginValidation = [
-    body('user_id')
-        .notEmpty().withMessage('User ID is required')        
-        .custom(async (value) => {            
-            const user = await User.findOne({ where: { user_id: value, user_type: 'member' } }); 
-            if (!user) {
-                throw new Error('Invalid User ID or password');
-            }
-            return true;
-        }),
-    body('password')
-        .notEmpty().withMessage('Password is required'),
-    validateRequest
-];
+// const loginValidation = [
+//     body('user_id')
+//         .notEmpty().withMessage('User ID is required')        
+//         .custom(async (value) => {            
+//             const user = await User.findOne({ where: { user_id: value, user_type: 'member' } }); 
+//             if (!user) {
+//                 throw new Error('Invalid User ID or password1');
+//             }
+//             return true;
+//         }),
+//     body('password')
+//         .notEmpty().withMessage('Password is required'),
+//     //validateRequest
+// ];
+
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -314,29 +316,26 @@ const kycValidation = [
 ];
 
 // Login route
-router.post('/users/login', loginValidation, async (req, res) => {
+router.post('/login', async (req, res) => {
     try {
         const { user_id, password } = req.body;
-
-        // Find user by user_id (already converted to integer by validation)
-        // const user = await User.findOne({
-        //     where: { user_id },
-        //     include: [
-        //         { model: State, as: 'stateDetails' },
-        //         { model: District, as: 'districtDetails' }
-        //     ],
-        //     attributes: { 
-        //         exclude: ['terms_accepted', 'kyc_status']
-        //     }
-        // });
 
         const user = await User.findOne({ where: { user_id: user_id, user_type: 'member' } }); 
 
         // Check if user exists and verify password
-        if (!user || !(await bcrypt.compare(password, user.password))) {
+        if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid User ID or password'
+                message: 'Invalid User ID2'
+            });
+        }
+
+        // Validate password
+        const isValidPass = await user.validatePassword(password);
+        if (!isValidPass) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid password2'
             });
         }
 
@@ -389,7 +388,7 @@ router.post('/users/login', loginValidation, async (req, res) => {
 });
 
 // KYC form submission route
-router.post('/users/kyc',
+router.post('/kyc',
     verifyToken,
     (req, res, next) => {
         console.log('Token verification passed');
@@ -579,7 +578,8 @@ router.post('/users/kyc',
 );
 
 // Define routes
-router.get("/users", userController.getAllUsers);
-router.post("/users/register", registerValidation, userController.registerUser);
+router.get("/allmembers", userController.getAllUsers);
+// router.post("/register", registerValidation, userController.registerUser);
+router.post("/register", userController.registerUser);
 
 module.exports = router;
