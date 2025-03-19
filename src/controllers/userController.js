@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+
 const { User, Profile } = require("../models");
 
 
@@ -71,12 +72,13 @@ const registerUser = async (req, res) => {
         const {
             name,
             guardian_name,
-            password,
             date_of_birth,
             gender,
             mobile_number,
+            email_id,
             state_id,
             district_id,
+            password,
             terms_accepted
         } = req.body;
 
@@ -110,6 +112,7 @@ const registerUser = async (req, res) => {
             date_of_birth: formattedDOB,
             gender,
             mobile_number,
+            email_id,
             state_id,
             district_id,
             terms_accepted,
@@ -121,7 +124,21 @@ const registerUser = async (req, res) => {
 
         // Remove password from response
         const userResponse = user.toJSON();
-        delete userResponse.password;
+        delete userResponse.id;
+        delete userResponse.guardian_name;         
+        delete userResponse.user_type;        
+        delete userResponse.status;
+        delete userResponse.terms_accepted;
+        delete userResponse.date_of_birth;
+        delete userResponse.gender;
+        delete userResponse.mobile_number;
+        delete userResponse.email_id;
+        delete userResponse.state_id;
+        delete userResponse.district_id;
+        delete userResponse.kyc_status;
+        delete userResponse.created_date;
+        delete userResponse.updated_date;
+        userResponse.password=password;
 
         res.status(201).json({
             message: 'User registered successfully',

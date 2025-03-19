@@ -30,17 +30,32 @@ User.init({
         type: DataTypes.STRING(50),
         allowNull: false,
         validate: {
-            notEmpty: true
+            notEmpty: true,
+            customValidation(value) {
+                if (value.length > 50) {
+                    throw new Error("Maximum 50 characters allowed");
+                }
+                if (!/^[a-zA-Z\s]*$/.test(value)) {
+                    throw new Error("Only alphabets and spaces allowed");
+                }
+            }
         }
     },
-    // password: {
-    //     type: DataTypes.STRING(255),
-    //     allowNull: false,
-    //     validate: {
-    //         len: [8, 50],
-    //         is: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
-    //     }
-    // },
+    guardian_name: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        validate: {
+            customValidation(value) {
+                if (value && value.length > 50) {
+                    throw new Error("Maximum 50 characters allowed");
+                }
+                if (value && !/^[a-zA-Z\s]*$/.test(value)) {
+                    throw new Error("Only alphabets and spaces allowed");
+                }
+            }
+        }
+    },
+    
     password: {
         type: DataTypes.STRING(255),
         allowNull: false,
@@ -65,6 +80,32 @@ User.init({
             }
         }
     },
+      
+    
+    // password: {
+    //     type: DataTypes.STRING(255),
+    //     allowNull: false,
+    //     validate: {
+    //         notEmpty: true,
+    //         customValidation(value) {
+    //             const strengthChecks = {
+    //                 length: value.length >= 8,
+    //                 uppercase: /[A-Z]/.test(value),
+    //                 lowercase: /[a-z]/.test(value),
+    //                 number: /[0-9]/.test(value),
+    //                 special: /[!@#$%^&*(),.?":{}|<>]/.test(value)
+    //             };
+    
+    //             const failedChecks = Object.entries(strengthChecks)
+    //                 .filter(([_, passed]) => !passed)
+    //                 .map(([key]) => key);
+    
+    //             if (failedChecks.length) {
+    //                 throw new Error(`Password must include: ${failedChecks.join(', ')}`);
+    //             }
+    //         }
+    //     }
+    // },
     user_type: {
         type: DataTypes.ENUM('admin', 'subadmin', 'member'),
         defaultValue: 'member',
@@ -86,10 +127,7 @@ User.init({
         allowNull: true,
         unique: true
     },
-    guardian_name: {
-        type: DataTypes.STRING(255),
-        allowNull: true
-    },
+    
     date_of_birth: {
         type: DataTypes.DATE,
         allowNull: true
@@ -108,6 +146,10 @@ User.init({
         validate: {
             is: /^[0-9]{10}$/i
         }
+    },
+    email_id: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
     },
     state_id: {
         type: DataTypes.INTEGER,
