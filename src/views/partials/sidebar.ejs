@@ -76,15 +76,16 @@
         <a class="nav-link <%= locals.currentPage === 'members' ? 'active' : '' %>" href="/members/allmembers">
             <i class='bx bxs-user'></i> Members
         </a>
-        <a class="nav-link <%= locals.currentPage === 'settings' ? 'active' : '' %>" href="/settings">
+        <!-- <a class="nav-link <%= locals.currentPage === 'settings' ? 'active' : '' %>" href="/settings">
             <i class='bx bxs-cog'></i> Settings
-        </a>
+        </a> -->
     </nav>
     
 
     <div class="user-info">
-        <p>Welcome, <%= user.name %></p>
-        <p class="text-muted mb-2">ID: <%= user.user_id %></p>
+        <!-- <p>Welcome, <%= user.name %></p>
+        <p class="text-muted mb-2">ID: <%= user.user_id %></p> -->
+        <p>Welcome, Admin</p>
         <form action="/auth/logout" method="POST">
             <button type="submit" class="logout-btn">
                 <i class='bx bx-log-out'></i> Logout

@@ -139,15 +139,40 @@
     </div>
 </div>
 
-<!-- Member Details Modal -->
-<div class="modal fade member-details-modal" id="memberDetailsModal" tabindex="-1">
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusUpdateModal" tabindex="-1" aria-labelledby="statusUpdateModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Member Details</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+                <h5 class="modal-title" id="statusUpdateModalLabel">Update Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="statusSelect" class="form-label">Select Status</label>
+                    <select class="form-select" id="statusSelect">
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Blocked">Blocked</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmStatusUpdate()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Member Details Modal -->
+<div class="modal fade member-details-modal" id="memberDetailsModal" tabindex="-1" aria-labelledby="memberDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="memberDetailsModalLabel">Member Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <!-- Content will be dynamically loaded -->
@@ -158,31 +183,39 @@
 
 <%- contentFor('script') %>
 <script>
+    let currentMemberId = null;
+
     async function updateStatus(id, currentStatus) {
-        const statuses = ['Active', 'Pending', 'Inactive', 'Blocked'];
-        const currentIndex = statuses.indexOf(currentStatus);
-        const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+        currentMemberId = id;
+        const statusSelect = document.getElementById('statusSelect');
+        statusSelect.value = currentStatus;
+        const modal = new bootstrap.Modal(document.getElementById('statusUpdateModal'));
+        modal.show();
+    }
 
-        if (confirm(`Change status to ${nextStatus}?`)) {
-            try {
-                const response = await fetch(`/members/${id}/status`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ status: nextStatus })
-                });
+    async function confirmStatusUpdate() {
+        const newStatus = document.getElementById('statusSelect').value;
 
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    const data = await response.json();
-                    alert(data.message || 'Failed to update status');
-                }
-            } catch (error) {
-                console.error('Error updating status:', error);
-                alert('Failed to update status');
+        try {
+            const response = await fetch(`/members/${currentMemberId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('statusUpdateModal'));
+                modal.hide();
+                location.reload();
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Failed to update status');
             }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('Failed to update status');
         }
     }
 
@@ -212,7 +245,8 @@
                         <div>${new Date(member.created_date).toLocaleDateString()}</div>
                     </div>
                 `;
-                $('#memberDetailsModal').modal('show');
+                const modal = new bootstrap.Modal(document.getElementById('memberDetailsModal'));
+                modal.show();
             } else {
                 alert(data.message || 'Failed to fetch member details');
             }

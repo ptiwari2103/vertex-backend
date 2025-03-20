@@ -63,6 +63,9 @@ const getAllUsers = async (req, res) => {
 const registerUser = async (req, res) => {
     try {
         const {
+            parent_id= 12,
+            pay_key,
+            pay_type= 'pay_key',
             name,
             guardian_name,
             date_of_birth,
@@ -92,6 +95,9 @@ const registerUser = async (req, res) => {
 
         // Create user
         const user = await User.create({
+            parent_id,
+            pay_key,
+            pay_type: 'pay_key',
             name,
             guardian_name,
             password: password,

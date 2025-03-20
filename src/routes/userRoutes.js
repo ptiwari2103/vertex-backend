@@ -291,8 +291,8 @@ router.get('/allmembers', userController.getAllMembers);
 router.post("/register", userController.registerUser);
 router.post('/login', userController.login);
 router.post('/prelogin', userController.prelogin);
-router.put('/members/:id/status', userController.updateMemberStatus);
-router.get('/members/:id', userController.viewMember);
-router.delete('/members/:id', userController.deleteMember);
+router.put('/:id/status', userController.updateMemberStatus);
+router.get('/:id', userController.viewMember);
+router.delete('/:id', userController.deleteMember);
 
 module.exports = router;

@@ -28,6 +28,28 @@ User.init({
         primaryKey: true,
         autoIncrement: true
     },
+    parent_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        defaultValue: 12,
+        references: {
+            model: 'users',
+            key: 'id'
+        }
+    },
+    pay_key: {
+        type: DataTypes.STRING(8),
+        allowNull: true,
+        unique: true,
+        validate: {
+            notEmpty: true
+        }
+    },
+    pay_type: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        defaultValue: 'pay_key'
+    },
     name: {
         type: DataTypes.STRING(50),
         allowNull: false,
