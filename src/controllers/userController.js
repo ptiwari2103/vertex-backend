@@ -1,7 +1,5 @@
-const bcrypt = require('bcryptjs');
-
 const { User, Profile } = require("../models");
-
+const jwt = require('jsonwebtoken');
 
 const generateUserId = async (districtId) => {
     const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
@@ -43,11 +41,6 @@ const generateAccountNumber = async () => {
     return accountNumber;
 };
 
-// Convert date from dd-mm-yyyy to yyyy-mm-dd format
-const convertDateFormat = (dateStr) => {
-    const [day, month, year] = dateStr.split('-');
-    return `${year}-${month}-${day}`;
-};
 
 // Get all users
 const getAllUsers = async (req, res) => {
@@ -97,19 +90,12 @@ const registerUser = async (req, res) => {
         const accountNumber = await generateAccountNumber();
         const userId = await generateUserId(district_id);
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Format date of birth from dd-mm-yyyy to yyyy-mm-dd for database
-        const formattedDOB = convertDateFormat(date_of_birth);
-
         // Create user
         const user = await User.create({
             name,
             guardian_name,
-            password: hashedPassword,
-            date_of_birth: formattedDOB,
+            password: password,
+            date_of_birth: date_of_birth,
             gender,
             mobile_number,
             email_id,
@@ -157,7 +143,125 @@ const registerUser = async (req, res) => {
     }
 };
 
+
+const login = async (req, res) => {
+    try {
+        const { user_id, password } = req.body;
+
+        const user = await User.findOne({ where: { user_id: user_id, user_type: 'member' } });
+
+        // Check if user exists and verify password
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid User ID'
+            });
+        }
+
+        // Validate password
+        const isValidPass = await user.validatePassword(password);
+        if (!isValidPass) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid password'
+            });
+        }
+
+        // Check user status
+        if (user.status !== 'Active') {
+            return res.status(401).json({
+                success: false,
+                message: `Your account is currently ${user.status.toLowerCase()}. Please contact support.`
+            });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { 
+                user_id: user.user_id,
+                account_number: user.account_number,
+                user_type: user.user_type
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        // Remove password from response
+        const userResponse = user.toJSON();
+        delete userResponse.id;
+        delete userResponse.password;
+        delete userResponse.user_type;
+        delete userResponse.district;
+        delete userResponse.state;
+        delete userResponse.created_date;
+        delete userResponse.updated_date;
+        
+        // Return user details and token
+        res.json({
+            success: true,
+            data: {
+                user: userResponse,
+                token
+            }
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error
+        });
+    }
+};
+
+
+const prelogin = async (req, res) => {
+    try {
+        const { user_id } = req.body;
+
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const user = await User.findOne({ where: { user_id, user_type: 'member' } });
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid User ID'
+            });
+        }
+
+        if (user.status === 'Active') {
+            return res.status(200).json({
+                success: true,
+                message: `Hello ${user.name}, Your account is currently ${user.status.toLowerCase()}.`
+            });           
+        }else{
+            return res.status(401).json({
+                success: false,
+                message: `Hello ${user.name}, Your account is currently ${user.status.toLowerCase()}. Please contact support.`
+            });
+        }
+
+    } catch (error) {
+        console.error('Pre-login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
+
+
+
 module.exports = {
     getAllUsers,
-    registerUser
+    registerUser,
+    login,
+    prelogin
 };
