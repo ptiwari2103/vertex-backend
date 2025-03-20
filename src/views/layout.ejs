@@ -22,10 +22,15 @@
         
         /* Content area */
         .main-content {
-            margin-left: 250px;
+            /* margin-left: 250px; */
+            margin-left: 120px;
             padding: 20px;
             min-height: 100vh;
             transition: margin-left 0.3s ease;
+        }
+
+        .main-content.dashboard {
+            margin-left: 250px;
         }
 
         /* Responsive adjustments */
@@ -85,7 +90,7 @@
     <% } %>
 
     <!-- Main content -->
-    <div class="<%= typeof user !== 'undefined' && user ? 'main-content' : '' %>">
+    <div class="<%= typeof user !== 'undefined' && user ? 'main-content' : '' %> <%= locals.currentPage === 'dashboard' ? 'dashboard' : '' %>">
         <%- body %>
     </div>
 

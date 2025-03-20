@@ -226,7 +226,9 @@ const prelogin = async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ where: { user_id, user_type: 'member' } });
+        const user = await User.findOne({ 
+            where: { user_id, user_type: 'member' }
+        });
 
         if (!user) {
             return res.status(401).json({
@@ -260,26 +262,37 @@ const prelogin = async (req, res) => {
 
 const getAllMembers = async (req, res) => {
     try {
-        const members = await User.findAll({
+        const page = parseInt(req.query.page) || 1;
+        const limit = 10; // Items per page
+        const offset = (page - 1) * limit;
+
+        const { count, rows: members } = await User.findAndCountAll({
             attributes: { exclude: ['password'] },
-            where: { user_type: 'member' }
+            where: { user_type: 'member' },
+            limit,
+            offset,
+            order: [['created_date', 'DESC']]
         });
-        // res.json(users);
+
+        const totalPages = Math.ceil(count / limit);
+
         res.render('members/list', {
             title: 'Members - Vertex Admin',
             style: '',
             script: '',
             currentPage: 'members',
             user: members,
-            counts: {
-                users: members.length
+            pagination: {
+                current: page,
+                total: totalPages,
+                count: count
             }
         });
     } catch (error) {
         console.error('Members error:', error);
         res.render('error', { 
             title: 'Error - Vertex Admin',
-            message: 'Error loading dashboard',
+            message: 'Error loading members',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while loading the members.',
             style: '',
             script: '',
@@ -288,9 +301,100 @@ const getAllMembers = async (req, res) => {
     }
 };
 
+const updateMemberStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const member = await User.findOne({ 
+            where: { id, user_type: 'member' }
+        });
+
+        if (!member) {
+            return res.status(404).json({
+                success: false,
+                message: 'Member not found'
+            });
+        }
+
+        await member.update({ status });
+
+        res.json({
+            success: true,
+            message: 'Member status updated successfully'
+        });
+    } catch (error) {
+        console.error('Update member status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update member status'
+        });
+    }
+};
+
+const viewMember = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const member = await User.findOne({
+            where: { id, user_type: 'member' },
+            attributes: { exclude: ['password'] }
+        });
+
+        if (!member) {
+            return res.status(404).json({
+                success: false,
+                message: 'Member not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            member
+        });
+    } catch (error) {
+        console.error('View member error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch member details'
+        });
+    }
+};
+
+const deleteMember = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const member = await User.findOne({
+            where: { id, user_type: 'member' }
+        });
+
+        if (!member) {
+            return res.status(404).json({
+                success: false,
+                message: 'Member not found'
+            });
+        }
+
+        await member.destroy();
+
+        res.json({
+            success: true,
+            message: 'Member deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete member error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete member'
+        });
+    }
+};
+
 module.exports = {
     getAllMembers,
     registerUser,
     login,
-    prelogin
+    prelogin,
+    updateMemberStatus,
+    viewMember,
+    deleteMember
 };
