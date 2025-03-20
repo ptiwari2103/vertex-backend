@@ -19,8 +19,12 @@
         text-decoration: none;
         transition: color 0.2s ease;
     }
-    .nav-link:hover, .nav-link.active {
+    .nav-link:hover {
         color: white;
+    }
+    .nav-link.active {
+        color: white;
+        font-weight: bold;
     }
     .nav-link i {
         font-size: 20px;
@@ -69,13 +73,14 @@
         <a class="nav-link <%= locals.currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">
             <i class='bx bxs-dashboard'></i> Dashboard
         </a>
-        <a class="nav-link <%= locals.currentPage === 'members' ? 'active' : '' %>" href="/members">
+        <a class="nav-link <%= locals.currentPage === 'members' ? 'active' : '' %>" href="/members/allmembers">
             <i class='bx bxs-user'></i> Members
         </a>
         <a class="nav-link <%= locals.currentPage === 'settings' ? 'active' : '' %>" href="/settings">
             <i class='bx bxs-cog'></i> Settings
         </a>
     </nav>
+    
 
     <div class="user-info">
         <p>Welcome, <%= user.name %></p>

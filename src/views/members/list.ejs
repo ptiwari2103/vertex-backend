@@ -1,99 +1,96 @@
-<%- contentFor('title') %>Members - Vertex Admin
+<%- contentFor('title') %>Vertex Admin - Dashboard
 
 <%- contentFor('style') %>
 <style>
-    .main-content {
-        margin-left: 250px;
-        padding: 20px;
-    }
-    .welcome-section {
+    .stats-card {
         background: white;
-        padding: 20px;
         border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        padding: 20px;
         margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
     }
-    .member-table {
-        background: white;
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    .stats-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+    }
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    .welcome-card {
+        background: linear-gradient(135deg, #2c3e50, #3498db);
+        color: white;
+        padding: 25px;
         border-radius: 10px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
     }
-    .member-table th {
-        background-color: #f8f9fa;
-        border: none;
+    .welcome-title {
+        font-size: 1.8rem;
+        margin-bottom: 10px;
     }
-    .member-table td {
-        vertical-align: middle;
-    }
-    .status-badge {
-        padding: 5px 10px;
-        border-radius: 15px;
-        font-size: 12px;
-        font-weight: 500;
-    }
-    .status-active {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    .status-inactive {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    .action-btn {
-        padding: 5px 10px;
-        font-size: 14px;
+    .welcome-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
     }
 </style>
 
 <%- contentFor('body') %>
-<%- include('../partials/sidebar', { currentPage: 'members' }); %>
-
-<div class="main-content">
-    <div class="welcome-section">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Members Management</h2>
-            <a href="/members/add" class="btn btn-primary">
-                <i class="bx bx-plus"></i> Add Member
-            </a>
+<div class="container-fluid">    
+    <div class="main-content">
+        <div class="welcome-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">Members Management</h2>
+                <a href="/members/add" class="btn btn-primary">
+                    <i class="bx bx-plus"></i> Add Member
+                </a>
+            </div>
         </div>
-    </div>
-
-    <div class="card member-table">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th>Created At</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% members.forEach(member => { %>
-                            <tr>
-                                <td><%= member.user_id %></td>
-                                <td><%= member.name %></td>
-                                <td>
-                                    <span class="status-badge <%= member.status === 'Active' ? 'status-active' : 'status-inactive' %>">
-                                        <%= member.status %>
-                                    </span>
-                                </td>
-                                <td><%= new Date(member.created_date).toLocaleDateString() %></td>
-                                <td>
-                                    <a href="/members/<%= member.id %>" class="btn btn-sm btn-info action-btn">
-                                        <i class="bx bx-show"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-danger action-btn" onclick="deleteMember('<%= member.id %>')">
-                                        <i class="bx bx-trash"></i>
-                                    </button>
-                                </td>
+        <div class="card member-table">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr> 
+                                <th>ID</th> 
+                                <th>Name</th> 
+                                <th>Status</th> 
+                                <th>Created At</th> 
+                                <th>Actions</th>
                             </tr>
-                        <% }); %>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <% user.forEach(member => { %>
+                                <tr>
+                                    <td><%= member.user_id %></td>
+                                    <td><%= member.name %></td>
+                                    <td>
+                                        <span class="status-badge <%= member.status === 'Active' ? 'status-active' : 'status-inactive' %>">
+                                            <%= member.status %>
+                                        </span>
+                                    </td>   
+                                    <td><%= new Date(member.created_date).toLocaleDateString() %></td>
+                                    <td>
+                                        <a href="/members/<%= member.id %>" class="btn btn-sm btn-info action-btn">
+                                            <i class="bx bx-show"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-danger action-btn" onclick="deleteMember('<%= member.id %>')">
+                                            <i class="bx bx-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -101,25 +98,22 @@
 
 <%- contentFor('script') %>
 <script>
-    async function deleteMember(id) {
-        if (!confirm('Are you sure you want to delete this member?')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/members/${id}`, {
+    function deleteMember(id) {
+        if (confirm('Are you sure you want to delete this member?')) {
+            fetch(`/members/${id}`, {
                 method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    alert('Failed to delete member');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting member:', error);
+                alert('Failed to delete member');
             });
-
-            const result = await response.json();
-            if (result.success) {
-                location.reload();
-            } else {
-                alert(result.message);
-            }
-        } catch (error) {
-            console.error('Error deleting member:', error);
-            alert('Error deleting member');
         }
     }
 </script>

@@ -258,9 +258,38 @@ const prelogin = async (req, res) => {
 };
 
 
+const getAllMembers = async (req, res) => {
+    try {
+        const members = await User.findAll({
+            attributes: { exclude: ['password'] },
+            where: { user_type: 'member' }
+        });
+        // res.json(users);
+        res.render('members/list', {
+            title: 'Members - Vertex Admin',
+            style: '',
+            script: '',
+            currentPage: 'members',
+            user: members,
+            counts: {
+                users: members.length
+            }
+        });
+    } catch (error) {
+        console.error('Members error:', error);
+        res.render('error', { 
+            title: 'Error - Vertex Admin',
+            message: 'Error loading dashboard',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while loading the members.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+};
 
 module.exports = {
-    getAllUsers,
+    getAllMembers,
     registerUser,
     login,
     prelogin

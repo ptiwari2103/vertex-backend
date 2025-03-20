@@ -287,10 +287,11 @@ router.post('/kyc',
 );
 
 // Define routes
-router.get("/allmembers", userController.getAllUsers);
+// router.get("/allmembers", userController.getAllUsers);
 // router.post("/register", registerValidation, userController.registerUser);
 router.post("/register", userController.registerUser);
 router.post('/login', userController.login);
 router.post('/prelogin', userController.prelogin);
+router.get('/allmembers', userController.getAllMembers);
 
 module.exports = router;
