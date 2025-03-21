@@ -5,7 +5,7 @@ const sequelize = new Sequelize({
   host: 'localhost',
   username: 'root',
   password: '',
-  database: 'aditya_bank',
+  database: 'vertexkcbank',
   logging: false,
   pool: {
     max: 5,

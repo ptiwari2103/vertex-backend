@@ -14,7 +14,7 @@ District.init({
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: 'states',
+            model: State,
             key: 'id'
         }
     },
@@ -26,14 +26,16 @@ District.init({
     sequelize,
     modelName: 'District',
     tableName: 'districts',
-    timestamps: false,
-    indexes: [
-        {
-            unique: true,
-            fields: ['name', 'state_id'],
-            name: 'districts_name_state_id'
-        }
-    ]
+    timestamps: true,
+    createdAt: 'created_date',
+    updatedAt: 'updated_date',
+    // indexes: [
+    //     {
+    //         unique: true,
+    //         fields: ['name', 'state_id'],
+    //         name: 'districts_name_state_id'
+    //     }
+    // ]
 });
 
 module.exports = District;

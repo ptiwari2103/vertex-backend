@@ -2,12 +2,16 @@ const sequelize = require('../config/database');
 const User = require('./user');
 const State = require('./state');
 const District = require('./district');
+const Profile = require('./profile');
+const UserBank = require('./userBank');
 
 // Initialize models
 const models = {
   User,
   State,
-  District
+  District,
+  Profile,
+  UserBank,
 };
 
 // Run associations if they exist

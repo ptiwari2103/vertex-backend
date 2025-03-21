@@ -18,7 +18,9 @@ State.init({
     sequelize,
     modelName: 'State',
     tableName: 'states',
-    timestamps: false
+    timestamps: true,
+    createdAt: 'created_date',
+    updatedAt: 'updated_date'
 });
 
 module.exports = State;

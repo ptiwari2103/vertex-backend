@@ -1,0 +1,126 @@
+-- 1. Create `states` table
+CREATE TABLE `states` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL UNIQUE,
+    `created_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Create `districts` table
+CREATE TABLE `districts` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `state_id` INT NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `created_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`state_id`) REFERENCES `states`(`id`) ON DELETE CASCADE,
+    UNIQUE KEY `districts_name_state_id` (`name`, `state_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Create `users` table
+CREATE TABLE `users` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `parent_id` INT DEFAULT 12,
+    `pay_key` VARCHAR(8) UNIQUE,
+    `pay_type` VARCHAR(255) DEFAULT 'pay_key',
+    `name` VARCHAR(50) NOT NULL,
+    `email_id` VARCHAR(255) UNIQUE,
+    `is_email_verified` BOOLEAN DEFAULT FALSE,
+    `password` VARCHAR(255) NOT NULL,
+    `user_type` ENUM('admin', 'subadmin', 'member') DEFAULT 'member',
+    `user_id` VARCHAR(8) NOT NULL UNIQUE,
+    `account_number` VARCHAR(10) UNIQUE,
+    `guardian_name` VARCHAR(255),
+    `date_of_birth` DATE,
+    `gender` ENUM('Male', 'Female', 'Transgender'),
+    `mobile_number` VARCHAR(15) UNIQUE,
+    `is_mobile_verified` BOOLEAN DEFAULT FALSE,
+    `state_id` INT,
+    `district_id` INT,
+    `terms_accepted` BOOLEAN DEFAULT FALSE,
+    `kyc_status` ENUM('Pending', 'Submitted', 'Approved', 'Rejected') DEFAULT 'Pending',
+    `status` ENUM('Active', 'Inactive', 'Pending', 'Blocked') DEFAULT 'Pending',
+    `created_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`parent_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`state_id`) REFERENCES `states`(`id`) ON DELETE SET NULL,
+    FOREIGN KEY (`district_id`) REFERENCES `districts`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 4. Create `profiles` table
+CREATE TABLE `profiles` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `nominee_name` VARCHAR(100) NULL,
+    `nominee_relation` VARCHAR(100) NULL,
+    `nominee_contact` VARCHAR(15) NULL,
+    `nominee_email` VARCHAR(255) NULL,
+    `permanent_address` TEXT NOT NULL,
+    `permanent_state` VARCHAR(100) NOT NULL,
+    `permanent_district` VARCHAR(100) NOT NULL,
+    `permanent_pincode` VARCHAR(10) NOT NULL,
+    `correspondence_address` TEXT NOT NULL,
+    `correspondence_state` VARCHAR(100) NOT NULL,
+    `correspondence_district` VARCHAR(100) NOT NULL,
+    `correspondence_pincode` VARCHAR(10) NOT NULL,
+    `is_divyang` BOOLEAN NOT NULL DEFAULT FALSE,
+    `is_senior_citizen` BOOLEAN NOT NULL DEFAULT FALSE,
+    `profile_image` VARCHAR(255) NOT NULL,
+    `pan_number` VARCHAR(12) NOT NULL UNIQUE,
+    `pan_number_image` VARCHAR(255) NOT NULL,
+    `aadhar_number` VARCHAR(12) NOT NULL UNIQUE,
+    `aadhar_number_image_front` VARCHAR(255) NOT NULL,
+    `aadhar_number_image_back` VARCHAR(255) NOT NULL,
+    `created_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 5. Create `user_banks` table
+CREATE TABLE `user_banks` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT NOT NULL,
+    `account_holder` VARCHAR(255) NOT NULL,
+    `account_no` BIGINT(20) NOT NULL UNIQUE,
+    `bank_name` VARCHAR(255) NOT NULL,
+    `ifsc_number` VARCHAR(11) NOT NULL,
+    `status` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+INSERT INTO `states` (`id`, `name`) VALUES
+(1, 'Delhi'),
+(2, 'Uttar Pradesh'),
+(3, 'Haryana'),
+(4, 'Rajasthan');
+
+INSERT INTO `districts` (`id`, `state_id`, `name`) VALUES
+(24, 4, 'Alwar'),
+(16, 2, 'Baghpat'),
+(25, 4, 'Bharatpur'),
+(14, 2, 'Bulandshahr'),
+(1, 1, 'Central Delhi'),
+(2, 1, 'East Delhi'),
+(18, 3, 'Faridabad'),
+(11, 2, 'Gautam Buddha Nagar (Noida)'),
+(12, 2, 'Ghaziabad'),
+(17, 3, 'Gurgaon'),
+(15, 2, 'Hapur'),
+(20, 3, 'Jhajjar'),
+(13, 2, 'Meerut'),
+(3, 1, 'New Delhi'),
+(4, 1, 'North Delhi'),
+(5, 1, 'North East Delhi'),
+(6, 1, 'North West Delhi'),
+(21, 3, 'Palwal'),
+(23, 3, 'Rewari'),
+(22, 3, 'Rohtak'),
+(19, 3, 'Sonipat'),
+(7, 1, 'South Delhi'),
+(8, 1, 'South East Delhi'),
+(9, 1, 'South West Delhi'),
+(10, 1, 'West Delhi');
+

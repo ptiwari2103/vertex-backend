@@ -46,19 +46,14 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 1
     },
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
-    },
-    updated_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
-    }
+    
   }, {
     sequelize,
     modelName: 'UserBank',
     tableName: 'user_banks',
-    timestamps: false
+    timestamps: true,
+    createdAt: 'created_date',
+    updatedAt: 'updated_date'
   });
 
   return UserBank;

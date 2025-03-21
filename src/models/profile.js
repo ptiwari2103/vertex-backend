@@ -1,7 +1,7 @@
-const { Model } = require('sequelize');
+const { DataTypes, Model } = require('sequelize');
+const sequelize = require('../config/database');
 
-module.exports = (sequelize, DataTypes) => {
-  class Profile extends Model {
+class Profile extends Model {
     static associate(models) {
       Profile.belongsTo(models.User, {
         foreignKey: 'user_id',
@@ -24,71 +24,107 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
-    email_id: {
+    nominee_name: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    nominee_relation: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    nominee_contact: {
+      type: DataTypes.STRING(15),
+      allowNull: true,
+    },
+    nominee_email: {
       type: DataTypes.STRING(255),
-      allowNull: false,
-      unique: true
+      allowNull: true,
     },
-    state: {
-      type: DataTypes.STRING(100),
-      allowNull: false
-    },
-    district: {
-      type: DataTypes.STRING(100),
-      allowNull: false
-    },
-    address: {
+    permanent_address: {
       type: DataTypes.TEXT,
-      allowNull: false
+      allowNull: true
     },
-    pincode: {
+    permanent_state: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    permanent_district: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    permanent_pincode: {
       type: DataTypes.STRING(10),
-      allowNull: false
+      allowNull: true
     },
-    pan_no: {
-      type: DataTypes.STRING(12),
+
+    correspondence_address: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    correspondence_state: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    correspondence_district: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    correspondence_pincode: {
+      type: DataTypes.STRING(10),
+      allowNull: true
+    },
+    is_divyang: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
-      unique: true
+      defaultValue: false
     },
-    pan_front_image: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    pan_back_image: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    aadhar_no: {
-      type: DataTypes.STRING(12),
+    is_senior_citizen: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
-      unique: true
-    },
-    aadhar_front_image: {
-      type: DataTypes.STRING(255),
-      allowNull: false
-    },
-    aadhar_back_image: {
-      type: DataTypes.STRING(255),
-      allowNull: false
+      defaultValue: false
     },
     profile_image: {
       type: DataTypes.STRING(255),
-      allowNull: false
+      allowNull: true
     },
-    created_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
+    
+    pan_number: {
+      type: DataTypes.STRING(12),
+      allowNull: false,
+      unique: true
     },
-    updated_at: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW
-    }
+    pan_number_image: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    aadhar_number: {
+      type: DataTypes.STRING(12),
+      allowNull: true,
+      unique: true
+    },
+    aadhar_number_image_front: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    aadhar_number_image_back: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    kyc_status: {
+        type: DataTypes.ENUM('Pending', 'Submitted', 'Approved', 'Rejected'),
+        defaultValue: 'Pending',
+        validate: {
+            isIn: [['Pending', 'Submitted', 'Approved', 'Rejected']]
+        }
+    }    
   }, {
     sequelize,
     modelName: 'Profile',
-    tableName: 'Profile',
-    timestamps: false
+    tableName: 'profiles',
+    timestamps: true,
+    createdAt: 'created_date',
+    updatedAt: 'updated_date'
   });
 
-  return Profile;
-};
+  
+module.exports = Profile;

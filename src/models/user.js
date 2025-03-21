@@ -1,7 +1,6 @@
 const { DataTypes, Model } = require('sequelize');
 // const bcryptjs = require('bcryptjs');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const sequelize = require('../config/database');
 
 class User extends Model {
@@ -31,7 +30,7 @@ User.init({
     parent_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        defaultValue: 12,
+        defaultValue: null,
         references: {
             model: 'users',
             key: 'id'
@@ -56,6 +55,19 @@ User.init({
         validate: {
             notEmpty: true
         }
+    },
+    email_id: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+        unique: true,
+        validate: {
+            isEmail: true
+        }
+    },
+    is_email_verified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false
     },
     password: {
         type: DataTypes.STRING(255),
@@ -124,6 +136,11 @@ User.init({
         validate: {
             is: /^[0-9]{10}$/i
         }
+    },
+    is_mobile_verified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: true,
+        defaultValue: false
     },
     state_id: {
         type: DataTypes.INTEGER,

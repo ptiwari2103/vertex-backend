@@ -1,6 +1,5 @@
 const { User, Profile } = require("../models");
 const jwt = require('jsonwebtoken');
-const multer = require('multer');
 
 const generateUserId = async (districtId) => {
     const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
@@ -425,90 +424,29 @@ const verifyToken = (req, res, next) => {
 
 const kycform = async (req, res) => {
     try {
-        const { user_id, pan_number, aadhar_number } = req.body;
-        const { pan_number_image, aadhar_number_image_front, aadhar_number_image_back } = req.files;
-        // console.log(pan_number_image, aadhar_number_image_front, aadhar_number_image_back);
-        // console.log(req.files);
-        console.log(req.body);
-        // Validate input
-        if (!user_id || !pan_number || !aadhar_number) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required fields'
-            });
-        }
-
-        // Check if user exists
-        const user = await User.findOne({ where: { user_id } });
+        const { user_id } = req.body;
+        const user = await User.findOne({
+            where: { user_id },
+            include: [Profile]
+        });
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found in my records.'
+                message: 'User not found'
             });
         }
-
-        // Ensure files are uploaded
-        if (!pan_number_image || !aadhar_number_image_front || !aadhar_number_image_back) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required image files'
-            });
-        }
-
-        // Get uploaded file paths
-        const panImagePath = pan_number_image[0]?.path || null;
-        const aadharFrontPath = aadhar_number_image_front[0]?.path || null;
-        const aadharBackPath = aadhar_number_image_back[0]?.path || null;
-
-        console.log("image paths:");
-        console.log(panImagePath, aadharFrontPath, aadharBackPath);
-
-        // Update or create profile with KYC details
-        const profile = await Profile.findOne({ where: { user_id } });
-
-        if (profile) {
-            // Update existing profile
-            await profile.update({
-                pan_number,
-                aadhar_number,
-                pan_number_image: panImagePath,
-                aadhar_number_image_front: aadharFrontPath,
-                aadhar_number_image_back: aadharBackPath,
-                kyc_status: 'Submitted'
-            });
-        } else {            
-            // Create new profile
-            await Profile.create({
-                user_id,
-                pan_number,
-                aadhar_number,
-                pan_number_image: panImagePath,
-                aadhar_number_image_front: aadharFrontPath,
-                aadhar_number_image_back: aadharBackPath,
-                kyc_status: 'Submitted'
-            });
-        }
-
         res.json({
             success: true,
-            message: 'KYC details saved successfully',
-            data: {
-                user_id,
-                pan_number,
-                aadhar_number
-            }
+            user
         });
-        
     } catch (error) {
-        console.error('KYC form error:', error);
+        console.error('Kyc form error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to save KYC details',
-            error: error.message
+            message: 'Failed to fetch kyc form'
         });
     }
 };
-
 
 
 module.exports = {
