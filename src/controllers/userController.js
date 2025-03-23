@@ -1,4 +1,4 @@
-const { User, Profile } = require("../models");
+const { User, Profile, UserBank } = require("../models");
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
 
@@ -119,6 +119,22 @@ const registerUser = async (req, res) => {
             status: 'Pending'
         });
 
+        // Create profile
+        await Profile.create({
+            user_id: user.id,
+            kyc_status: 'Pending',            
+        });
+
+        // Create user bank
+        // await UserBank.create({
+        //     user_id: user.id,
+        //     account_number: accountNumber,
+        //     bank_name: 'ICICI',
+        //     branch_name: 'ICICI',
+        //     ifsc_code: 'ICICI',
+        //     account_type: 'Saving'
+        // });
+
         // Remove password from response
         const userResponse = user.toJSON();
         delete userResponse.id;
@@ -159,13 +175,26 @@ const login = async (req, res) => {
     try {
         const { user_id, password } = req.body;
 
-        const user = await User.findOne({ where: { user_id: user_id, user_type: 'member' } });
-
+        // const user = await User.findOne({ where: { user_id: user_id, user_type: 'member' } });
+        const user = await User.findOne({
+            where: { user_id: user_id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'  
+                }
+            ]
+        });
+        // console.log(user);
         // Check if user exists and verify password
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid User ID'
+                message: 'Your user id is invalid.'
             });
         }
 
@@ -174,7 +203,7 @@ const login = async (req, res) => {
         if (!isValidPass) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid password'
+                message: 'Your password is invalid.'
             });
         }
 
@@ -194,18 +223,21 @@ const login = async (req, res) => {
                 user_type: user.user_type
             },
             process.env.JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: '1h' }
         );
 
         // Remove password from response
         const userResponse = user.toJSON();
         delete userResponse.id;
+        // delete userResponse.parent_id;
+        // delete userResponse.pay_key;
+        // delete userResponse.pay_type;
         delete userResponse.password;
         delete userResponse.user_type;
-        delete userResponse.district;
-        delete userResponse.state;
-        delete userResponse.created_date;
-        delete userResponse.updated_date;
+        //delete userResponse.userBank.id;
+        //delete userResponse.userBank.user_id;        
+        delete userResponse.profile.id;
+        delete userResponse.profile.user_id;        
         
         // Return user details and token
         res.json({
@@ -279,6 +311,18 @@ const getAllMembers = async (req, res) => {
 
         const { count, rows: members } = await User.findAndCountAll({
             attributes: { exclude: ['password'] },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile',
+                    attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status']
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank',
+                    attributes: ['id']
+                }
+            ],
             where: { user_type: 'member' },
             limit,
             offset,
@@ -342,6 +386,37 @@ const updateMemberStatus = async (req, res) => {
         });
     }
 };
+
+const updatekycStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { kyc_status } = req.body;
+
+        const profile = await Profile.findOne({ 
+            where: { id }
+        });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Profile not found in my database.'
+            });
+        }
+
+        await profile.update({ kyc_status });
+
+        res.json({
+            success: true,
+            message: 'Profile kyc status updated successfully'
+        });
+    } catch (error) {
+        console.error('Update profile kyc status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update profile kyc status'
+        });
+    }
+};  
 
 const viewMember = async (req, res) => {
     try {
@@ -427,9 +502,11 @@ const kycform = async (req, res) => {
     try {
         const { user_id, pan_number, aadhar_number } = req.body;
         const { pan_number_image, aadhar_number_image_front, aadhar_number_image_back } = req.files;
-        // console.log(pan_number_image, aadhar_number_image_front, aadhar_number_image_back);
-        // console.log(req.files);
-        console.log(req.body);
+        console.log(pan_number_image, aadhar_number_image_front, aadhar_number_image_back);
+        console.log("==========================");
+        console.log(req.files);
+        console.log("-----------------------------------");
+        // console.log(req.body);
         // Validate input
         if (!user_id || !pan_number || !aadhar_number) {
             return res.status(400).json({
@@ -439,7 +516,22 @@ const kycform = async (req, res) => {
         }
 
         // Check if user exists
-        const user = await User.findOne({ where: { user_id } });
+        // const user = await User.findOne({ where: { user_id } });
+
+        const user = await User.findOne({
+            where: { user_id: user_id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'  
+                }
+            ]
+        });
+
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -460,15 +552,11 @@ const kycform = async (req, res) => {
         const aadharFrontPath = aadhar_number_image_front[0]?.path || null;
         const aadharBackPath = aadhar_number_image_back[0]?.path || null;
 
-        console.log("image paths:");
         console.log(panImagePath, aadharFrontPath, aadharBackPath);
-
         // Update or create profile with KYC details
-        const profile = await Profile.findOne({ where: { user_id } });
-
-        if (profile) {
+        if (user?.profile?.id) {
             // Update existing profile
-            await profile.update({
+            const updatedProfile = await user.profile.update({
                 pan_number,
                 aadhar_number,
                 pan_number_image: panImagePath,
@@ -476,28 +564,80 @@ const kycform = async (req, res) => {
                 aadhar_number_image_back: aadharBackPath,
                 kyc_status: 'Submitted'
             });
+            
+            const message = 'KYC details updated successfully';
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            // delete userResponse.userBank.id;
+            // delete userResponse.userBank.user_id;        
+            // delete userResponse.profile.id;
+            // delete userResponse.profile.user_id; 
+            
+            return res.json({
+                success: true,
+                message: "KYC details updated successfully",
+                data: userResponse
+            });
+        
         } else {            
             // Create new profile
-            await Profile.create({
-                user_id,
+            const newProfile = await Profile.create({
+                user_id: user.id,
                 pan_number,
                 aadhar_number,
                 pan_number_image: panImagePath,
                 aadhar_number_image_front: aadharFrontPath,
                 aadhar_number_image_back: aadharBackPath,
                 kyc_status: 'Submitted'
+            });
+            
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            // delete userResponse.userBank.id;
+            // delete userResponse.userBank.user_id;        
+            // delete userResponse.profile.id;
+            // delete userResponse.profile.user_id; 
+            
+            return res.json({
+                success: true,
+                message: "KYC details added successfully",
+                data: userResponse
             });
         }
 
-        res.json({
-            success: true,
-            message: 'KYC details saved successfully',
-            data: {
-                user_id,
-                pan_number,
-                aadhar_number
-            }
-        });
+        
         
     } catch (error) {
         console.error('KYC form error:', error);
@@ -517,6 +657,7 @@ module.exports = {
     login,
     prelogin,
     updateMemberStatus,
+    updatekycStatus,
     viewMember,
     deleteMember,
     kycform

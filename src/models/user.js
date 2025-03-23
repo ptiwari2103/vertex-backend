@@ -4,6 +4,14 @@ const bcrypt = require('bcryptjs');
 const sequelize = require('../config/database');
 
 class User extends Model {
+
+    static associate(models) {
+        // One User has One Profile
+        User.hasOne(models.Profile, { foreignKey: 'user_id', as: 'profile' });
+        // One User has One UserBank
+        User.hasOne(models.UserBank, { foreignKey: 'user_id', as: 'userBank' });
+    }
+
     // Instance method for password validation
     async validatePassword(password) {
         try {
@@ -36,6 +44,22 @@ User.init({
             key: 'id'
         }
     },
+    address_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'user_addresses',
+            key: 'id'
+        }
+    },
+    bank_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'user_banks',
+            key: 'id'
+        }
+    },
     pay_key: {
         type: DataTypes.STRING(8),
         allowNull: true,
@@ -58,11 +82,7 @@ User.init({
     },
     email_id: {
         type: DataTypes.STRING(255),
-        allowNull: true,
-        unique: true,
-        validate: {
-            isEmail: true
-        }
+        allowNull: true        
     },
     is_email_verified: {
         type: DataTypes.BOOLEAN,
@@ -82,11 +102,11 @@ User.init({
                     number: /[0-9]/.test(value),
                     special: /[!@#$%^&*(),.?":{}|<>]/.test(value)
                 };
-    
+
                 const failedChecks = Object.entries(strengthChecks)
                     .filter(([_, passed]) => !passed)
                     .map(([key]) => key);
-    
+
                 if (failedChecks.length) {
                     throw new Error(`Password must include: ${failedChecks.join(', ')}`);
                 }
@@ -116,6 +136,10 @@ User.init({
     },
     guardian_name: {
         type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    guardian_relation: {
+        type: DataTypes.ENUM('Father', 'Mother', 'Guardian', 'Husband', 'Other'),
         allowNull: true
     },
     date_of_birth: {
@@ -162,18 +186,23 @@ User.init({
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
-    kyc_status: {
-        type: DataTypes.ENUM('Pending', 'Submitted', 'Approved', 'Rejected'),
-        defaultValue: 'Pending',
-        validate: {
-            isIn: [['Pending', 'Submitted', 'Approved', 'Rejected']]
-        }
-    },
     status: {
         type: DataTypes.ENUM('Active', 'Inactive', 'Pending', 'Blocked'),
         defaultValue: 'Pending',
         validate: {
             isIn: [['Active', 'Inactive', 'Pending', 'Blocked']]
+        }
+    },
+    deleted_date: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    deleted_by: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'users',
+            key: 'id'
         }
     }
 }, {

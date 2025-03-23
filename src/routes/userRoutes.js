@@ -41,22 +41,6 @@ const upload = multer({
 ]);
 
 
-// Calculate age from date
-const calculateAge = (birthDate) => {
-    const [day, month, year] = birthDate.split('-');
-    const today = new Date();
-    const birth = new Date(year, month - 1, day);
-    
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-        age--;
-    }    
-    return age;
-};
-
-
 
 // KYC form submission route
 router.post('/kyc', upload, userController.kycform);
@@ -66,6 +50,7 @@ router.post("/register", userController.registerUser);
 router.post('/login', userController.login);
 router.post('/prelogin', userController.prelogin);
 router.put('/:id/status', userController.updateMemberStatus);
+router.put('/:id/kycstatus', userController.updatekycStatus);
 router.get('/:id', userController.viewMember);
 router.delete('/:id', userController.deleteMember);
 

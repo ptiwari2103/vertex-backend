@@ -30,7 +30,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET || 'your-cookie-secret'));
 
 // Static files
-app.use(express.static(path.join(__dirname, 'src', 'public')));
+// app.use(express.static(path.join(__dirname, 'src', 'public')));
+app.use('/uploads', express.static('uploads'));
+
 
 // Session configuration
 app.use(session({

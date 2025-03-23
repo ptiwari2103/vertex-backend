@@ -4,6 +4,7 @@ const State = require('./state');
 const District = require('./district');
 const Profile = require('./profile');
 const UserBank = require('./userBank');
+const UserAddress = require('./userAddress');
 
 // Initialize models
 const models = {
@@ -12,6 +13,7 @@ const models = {
   District,
   Profile,
   UserBank,
+  UserAddress
 };
 
 // Run associations if they exist
