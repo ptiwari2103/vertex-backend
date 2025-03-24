@@ -1,5 +1,6 @@
-const { User, Profile } = require("../models");
+const { User, Profile, UserBank, UserAddress } = require("../models");
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 
 const generateUserId = async (districtId) => {
     const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
@@ -118,6 +119,22 @@ const registerUser = async (req, res) => {
             status: 'Pending'
         });
 
+        // Create profile
+        await Profile.create({
+            user_id: user.id,
+            kyc_status: 'Pending',            
+        });
+
+        // Create user bank
+        // await UserBank.create({
+        //     user_id: user.id,
+        //     account_number: accountNumber,
+        //     bank_name: 'ICICI',
+        //     branch_name: 'ICICI',
+        //     ifsc_code: 'ICICI',
+        //     account_type: 'Saving'
+        // });
+
         // Remove password from response
         const userResponse = user.toJSON();
         delete userResponse.id;
@@ -158,13 +175,30 @@ const login = async (req, res) => {
     try {
         const { user_id, password } = req.body;
 
-        const user = await User.findOne({ where: { user_id: user_id, user_type: 'member' } });
-
+        // const user = await User.findOne({ where: { user_id: user_id, user_type: 'member' } });
+        const user = await User.findOne({
+            where: { user_id: user_id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'  
+                },
+                {
+                    model: UserAddress,
+                    as: 'userAddress'
+                }
+            ]
+        });
+        // console.log(user);
         // Check if user exists and verify password
         if (!user) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid User ID'
+                message: 'Your user id is invalid.'
             });
         }
 
@@ -173,12 +207,12 @@ const login = async (req, res) => {
         if (!isValidPass) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid password'
+                message: 'Your password is invalid.'
             });
         }
 
         // Check user status
-        if (user.status !== 'Active') {
+        if (!['Active', 'Approved'].includes(user.status)) {
             return res.status(401).json({
                 success: false,
                 message: `Your account is currently ${user.status.toLowerCase()}. Please contact support.`
@@ -193,18 +227,21 @@ const login = async (req, res) => {
                 user_type: user.user_type
             },
             process.env.JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: '1h' }
         );
 
         // Remove password from response
         const userResponse = user.toJSON();
         delete userResponse.id;
+        // delete userResponse.parent_id;
+        // delete userResponse.pay_key;
+        // delete userResponse.pay_type;
         delete userResponse.password;
         delete userResponse.user_type;
-        delete userResponse.district;
-        delete userResponse.state;
-        delete userResponse.created_date;
-        delete userResponse.updated_date;
+        //delete userResponse.userBank.id;
+        //delete userResponse.userBank.user_id;        
+        delete userResponse.profile.id;
+        delete userResponse.profile.user_id;        
         
         // Return user details and token
         res.json({
@@ -247,7 +284,7 @@ const prelogin = async (req, res) => {
             });
         }
 
-        if (user.status === 'Active') {
+        if (user.status === 'Active' || user.status === 'Approved') {
             return res.status(200).json({
                 success: true,
                 message: `Hello ${user.name}, Your account is currently ${user.status.toLowerCase()}.`
@@ -278,6 +315,18 @@ const getAllMembers = async (req, res) => {
 
         const { count, rows: members } = await User.findAndCountAll({
             attributes: { exclude: ['password'] },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile',
+                    attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status']
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank',
+                    attributes: ['id']
+                }
+            ],
             where: { user_type: 'member' },
             limit,
             offset,
@@ -341,6 +390,37 @@ const updateMemberStatus = async (req, res) => {
         });
     }
 };
+
+const updatekycStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { kyc_status } = req.body;
+
+        const profile = await Profile.findOne({ 
+            where: { id }
+        });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Profile not found in my database.'
+            });
+        }
+
+        await profile.update({ kyc_status });
+
+        res.json({
+            success: true,
+            message: 'Profile kyc status updated successfully'
+        });
+    } catch (error) {
+        console.error('Update profile kyc status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update profile kyc status'
+        });
+    }
+};  
 
 const viewMember = async (req, res) => {
     try {
@@ -424,26 +504,490 @@ const verifyToken = (req, res, next) => {
 
 const kycform = async (req, res) => {
     try {
-        const { user_id } = req.body;
+        const { user_id, pan_number, aadhar_number } = req.body;
+        const { pan_number_image, aadhar_number_image_front, aadhar_number_image_back } = req.files;
+        console.log(pan_number_image, aadhar_number_image_front, aadhar_number_image_back);
+        console.log("==========================");
+        console.log(req.files);
+        console.log("-----------------------------------");
+        // console.log(req.body);
+        // Validate input
+        if (!user_id || !pan_number || !aadhar_number) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
+        // Check if user exists
         const user = await User.findOne({
-            where: { user_id },
-            include: [Profile]
+            where: { user_id: user_id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'  
+                },
+                {
+                    model: UserAddress,
+                    as: 'userAddress'
+                }
+            ]
         });
+
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: 'User not found in my records.'
             });
         }
-        res.json({
-            success: true,
-            user
-        });
+
+        // Ensure files are uploaded
+        // if (!pan_number_image || !aadhar_number_image_front || !aadhar_number_image_back) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Missing required image files'
+        //     });
+        // }
+
+        // Get uploaded file paths
+        // const panImagePath = pan_number_image[0]?.path || null;
+        // const aadharFrontPath = aadhar_number_image_front[0]?.path || null;
+        // const aadharBackPath = aadhar_number_image_back[0]?.path || null;
+
+
+        const panImagePath = Array.isArray(pan_number_image) && pan_number_image.length > 0 
+            ? pan_number_image[0]?.path 
+            : user?.profile?.pan_number_image || null;
+        const aadharFrontPath = Array.isArray(aadhar_number_image_front) && aadhar_number_image_front.length > 0 
+            ? aadhar_number_image_front[0]?.path 
+            : user?.profile?.aadhar_number_image_front || null;
+        const aadharBackPath = Array.isArray(aadhar_number_image_back) && aadhar_number_image_back.length > 0 
+            ? aadhar_number_image_back[0]?.path 
+            : user?.profile?.aadhar_number_image_back || null;
+
+        if (!panImagePath || !aadharFrontPath || !aadharBackPath) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required image files'
+            });
+        } 
+
+        console.log(panImagePath, aadharFrontPath, aadharBackPath);
+        // Update or create profile with KYC details
+        if (user?.profile?.id) {
+            // Update existing profile
+            const updatedProfile = await user.profile.update({
+                pan_number,
+                aadhar_number,
+                pan_number_image: panImagePath,
+                aadhar_number_image_front: aadharFrontPath,
+                aadhar_number_image_back: aadharBackPath,
+                kyc_status: 'Submitted'
+            });
+            
+            const message = 'KYC details updated successfully';
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    },
+                    {
+                        model: UserAddress,
+                        as: 'userAddress'
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            // delete userResponse.userBank.id;
+            // delete userResponse.userBank.user_id;        
+            // delete userResponse.profile.id;
+            // delete userResponse.profile.user_id; 
+            
+            return res.json({
+                success: true,
+                message: "KYC details updated successfully",
+                data: userResponse
+            });
+        
+        } else {            
+            // Create new profile
+            const newProfile = await Profile.create({
+                user_id: user.id,
+                pan_number,
+                aadhar_number,
+                pan_number_image: panImagePath,
+                aadhar_number_image_front: aadharFrontPath,
+                aadhar_number_image_back: aadharBackPath,
+                kyc_status: 'Submitted'
+            });
+            
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            // delete userResponse.userBank.id;
+            // delete userResponse.userBank.user_id;        
+            // delete userResponse.profile.id;
+            // delete userResponse.profile.user_id; 
+            
+            return res.json({
+                success: true,
+                message: "KYC details added successfully",
+                data: userResponse
+            });
+        }
+
+        
+        
     } catch (error) {
-        console.error('Kyc form error:', error);
+        console.error('KYC form error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch kyc form'
+            message: 'Failed to save KYC details',
+            error: error.message
+        });
+    }
+};
+
+
+
+const profileform = async (req, res) => {
+    try {
+        const { user_id, email, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, guardian_relation } = req.body;
+        const { profile_image, divyang_certificate } = req.files;
+        console.log(profile_image, divyang_certificate);
+        console.log("==========================");
+        console.log(req.files);
+        console.log("-----------------------------------");
+        // console.log(req.body);
+        // Validate input
+        if (!user_id || !nominee_name || !nominee_relation || !guardian_relation) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
+        // Check if user exists
+        const user = await User.findOne({
+            where: { user_id: user_id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'  
+                },
+                {
+                    model: UserAddress,
+                    as: 'userAddress'
+                }
+            ]
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found in my records.'
+            });
+        }
+
+        
+        // Get uploaded file paths
+        const profileImagePath = Array.isArray(profile_image) && profile_image.length > 0 
+            ? profile_image[0]?.path 
+            : user?.profile?.profile_image || null;
+
+        const divyangCertificatePath = Array.isArray(divyang_certificate) && divyang_certificate.length > 0 
+            ? divyang_certificate[0]?.path 
+            : user?.profile?.divyang_certificate || null;
+
+        console.log(profileImagePath, divyangCertificatePath);
+
+        // Ensure files are uploaded
+        if (!profileImagePath) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required profile image.'
+            });
+        }
+
+        if((email && email !== user.email_id) || (guardian_relation && guardian_relation !== user.guardian_relation)) {
+            user.email_id = email;
+            user.guardian_relation = guardian_relation;
+            await user.save();
+        }
+        // Update or create profile with KYC details
+        if (user?.profile?.id) {
+            // Update existing profile
+            const updatedProfile = await user.profile.update({
+                profile_image: profileImagePath,
+                divyang_certificate: divyangCertificatePath,
+                nominee_name,
+                nominee_relation,
+                nominee_contact,
+                nominee_email,
+                is_divyang,
+                is_senior_citizen,
+                guardian_relation
+            });
+            
+            const message = 'Profile details updated successfully';
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    },
+                    {
+                        model: UserAddress,
+                        as: 'userAddress'
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            
+            return res.json({
+                success: true,
+                message: "Profile details updated successfully",
+                data: userResponse
+            });
+        
+        } else {            
+            // Create new profile
+            const newProfile = await Profile.create({
+                user_id: user.id,
+                profile_image: profileImagePath,
+                divyang_certificate: divyangCertificatePath,
+                nominee_name,
+                nominee_relation,
+                nominee_contact,
+                nominee_email,
+                is_divyang,
+                is_senior_citizen,
+                guardian_relation
+            });
+            
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    },
+                    {
+                        model: UserAddress,
+                        as: 'userAddress'
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            
+            return res.json({
+                success: true,
+                message: "Profile details added successfully",
+                data: userResponse
+            });
+        }
+
+        
+        
+    } catch (error) {
+        console.error('Profile form error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to save profile details',
+            error: error.message
+        });
+    }
+};
+
+
+const addAddress = async (req, res) => {
+    try {
+        const { user_id, correspondence_address,correspondence_city,correspondence_district,correspondence_state,correspondence_pincode,permanent_address,permanent_city,permanent_district,permanent_state,permanent_pincode } = req.body;
+        
+        // Validate input
+        if (!user_id || !correspondence_address || !correspondence_city || !correspondence_district || !correspondence_state || !correspondence_pincode || !permanent_address || !permanent_city || !permanent_district || !permanent_state || !permanent_pincode) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields.'
+            });
+        }
+
+        // Check if user exists
+        const user = await User.findOne({
+            where: { user_id: user_id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'  
+                },
+                {
+                    model: UserAddress,
+                    as: 'userAddress'
+                }
+            ]
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found in my records.'
+            });
+        }
+
+       
+        // Update or create profile with KYC details
+        if (user?.userAddress?.id) {
+            // Update existing profile
+            const updatedProfile = await user.userAddress.update({
+                correspondence_address,
+                correspondence_city,
+                correspondence_district,
+                correspondence_state,
+                correspondence_pincode,
+                permanent_address,
+                permanent_city,
+                permanent_district,
+                permanent_state,
+                permanent_pincode
+            });
+            
+            const message = 'Profile details updated successfully';
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    },
+                    {
+                        model: UserAddress,
+                        as: 'userAddress'
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            
+            return res.json({
+                success: true,
+                message: "Profile details updated successfully",
+                data: userResponse
+            });
+        
+        } else {            
+            // Create new profile
+            const newProfile = await UserAddress.create({
+                user_id: user.id,
+                correspondence_address,
+                correspondence_city,
+                correspondence_district,
+                correspondence_state,
+                correspondence_pincode,
+                permanent_address,
+                permanent_city,
+                permanent_district,
+                permanent_state,
+                permanent_pincode
+            });
+            
+            const userdetails = await User.findOne({
+                where: { user_id: user_id, user_type: 'member' },
+                include: [
+                    {
+                        model: Profile,
+                        as: 'profile'
+                    },
+                    {
+                        model: UserBank,
+                        as: 'userBank'  
+                    },
+                    {
+                        model: UserAddress,
+                        as: 'userAddress'
+                    }
+                ]
+            });
+    
+            const userResponse = userdetails.toJSON();
+            delete userResponse.id;
+            delete userResponse.password;
+            delete userResponse.user_type;
+            
+            return res.json({
+                success: true,
+                message: "Profile details added successfully",
+                data: userResponse
+            });
+        }
+        
+        
+    } catch (error) {
+        console.error('Profile form error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to save profile details',
+            error: error.message
         });
     }
 };
@@ -455,7 +999,10 @@ module.exports = {
     login,
     prelogin,
     updateMemberStatus,
+    updatekycStatus,
     viewMember,
     deleteMember,
-    kycform
+    kycform,
+    profileform,
+    addAddress
 };

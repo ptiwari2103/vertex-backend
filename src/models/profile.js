@@ -29,8 +29,11 @@ Profile.init({
     allowNull: true,
   },
   nominee_relation: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.ENUM('Father', 'Mother', 'Brother', 'Sister','Wife', 'Husband', 'Son', 'Daughter'),
     allowNull: true,
+    validate: {
+      isIn: [['Father', 'Mother', 'Brother', 'Sister','Wife', 'Husband', 'Son', 'Daughter']]
+    }
   },
   nominee_contact: {
     type: DataTypes.STRING(15),
@@ -45,6 +48,10 @@ Profile.init({
     allowNull: false,
     defaultValue: false
   },
+  divyang_certificate: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   is_senior_citizen: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
@@ -54,7 +61,6 @@ Profile.init({
     type: DataTypes.STRING(255),
     allowNull: true
   },
-
   pan_number: {
     type: DataTypes.STRING(12),
     allowNull: true

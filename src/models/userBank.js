@@ -26,20 +26,24 @@ UserBank.init({
   },
   account_holder: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: true
   },
-  account_no: {
+  account_number: {
     type: DataTypes.BIGINT(20),
-    allowNull: false,
+    allowNull: true,
     unique: true
   },
   bank_name: {
     type: DataTypes.STRING(255),
-    allowNull: false
+    allowNull: true
+  },
+  branch_name: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
   ifsc_number: {
     type: DataTypes.STRING(11),
-    allowNull: false
+    allowNull: true
   },
   status: {
     type: DataTypes.ENUM('Inactive', 'Active'),

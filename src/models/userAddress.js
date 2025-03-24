@@ -3,7 +3,7 @@ const sequelize = require('../config/database');
 
 class UserAddress extends Model {
   static associate(models) {
-    UserBank.belongsTo(models.User, {
+    UserAddress.belongsTo(models.User, {
       foreignKey: 'user_id',
       as: 'user'
     });
@@ -28,12 +28,16 @@ UserAddress.init({
     type: DataTypes.TEXT,
     allowNull: true
   },
+  permanent_city: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   permanent_state: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   permanent_district: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   permanent_pincode: {
@@ -45,17 +49,25 @@ UserAddress.init({
     type: DataTypes.TEXT,
     allowNull: true
   },
+  correspondence_city: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   correspondence_state: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   correspondence_district: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   correspondence_pincode: {
     type: DataTypes.STRING(10),
     allowNull: true
+  },
+  is_same_address: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   },
   status: {
     type: DataTypes.ENUM('Inactive', 'Active'),

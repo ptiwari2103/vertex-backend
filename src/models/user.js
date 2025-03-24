@@ -9,7 +9,9 @@ class User extends Model {
         // One User has One Profile
         User.hasOne(models.Profile, { foreignKey: 'user_id', as: 'profile' });
         // One User has One UserBank
-        User.hasOne(models.UserBank, { foreignKey: 'user_id', as: 'userBank' });
+        User.hasMany(models.UserBank, { foreignKey: 'user_id', as: 'userBank' });
+        // One User has One UserAddress
+        User.hasMany(models.UserAddress, { foreignKey: 'user_id', as: 'userAddress' });
     }
 
     // Instance method for password validation
@@ -41,22 +43,6 @@ User.init({
         defaultValue: null,
         references: {
             model: 'users',
-            key: 'id'
-        }
-    },
-    address_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'user_addresses',
-            key: 'id'
-        }
-    },
-    bank_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'user_banks',
             key: 'id'
         }
     },
@@ -139,8 +125,11 @@ User.init({
         allowNull: true
     },
     guardian_relation: {
-        type: DataTypes.ENUM('Father', 'Mother', 'Guardian', 'Husband', 'Other'),
-        allowNull: true
+        type: DataTypes.ENUM('Father', 'Mother', 'Brother', 'Sister','Wife', 'Husband', 'Son', 'Daughter'),
+        allowNull: true,
+        validate: {
+          isIn: [['Father', 'Mother', 'Brother', 'Sister','Wife', 'Husband', 'Son', 'Daughter']]
+        }
     },
     date_of_birth: {
         type: DataTypes.DATE,
@@ -187,22 +176,10 @@ User.init({
         defaultValue: false
     },
     status: {
-        type: DataTypes.ENUM('Active', 'Inactive', 'Pending', 'Blocked'),
+        type: DataTypes.ENUM('Pending', 'Active', 'Inactive', 'Blocked', 'Approved', 'Deleted'),
         defaultValue: 'Pending',
         validate: {
-            isIn: [['Active', 'Inactive', 'Pending', 'Blocked']]
-        }
-    },
-    deleted_date: {
-        type: DataTypes.DATE,
-        allowNull: true
-    },
-    deleted_by: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: {
-            model: 'users',
-            key: 'id'
+            isIn: [['Pending', 'Active', 'Inactive', 'Blocked', 'Approved', 'Deleted']]
         }
     }
 }, {

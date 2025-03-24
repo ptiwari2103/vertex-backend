@@ -37,13 +37,19 @@ const upload = multer({
 }).fields([
     { name: 'pan_number_image', maxCount: 1 },
     { name: 'aadhar_number_image_front', maxCount: 1 },
-    { name: 'aadhar_number_image_back', maxCount: 1 }
+    { name: 'aadhar_number_image_back', maxCount: 1 },
+    { name: 'profile_image', maxCount: 1 },
+    { name: 'divyang_certificate', maxCount: 1 }
 ]);
 
 
 
 // KYC form submission route
 router.post('/kyc', upload, userController.kycform);
+router.post('/profile', upload, userController.profileform);
+router.post('/addupdateaddress', userController.addUpdateAddress);
+router.post('/addupdatebank', userController.addUpdateBank);
+
 // Define routes
 router.get('/allmembers', userController.getAllMembers);
 router.post("/register", userController.registerUser);
