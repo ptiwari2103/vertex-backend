@@ -305,13 +305,15 @@ const getAllMembers = async (req, res) => {
         });
 
         const totalPages = Math.ceil(count / limit);
-
+        const user = JSON.stringify(req.session.user, null, 2);
+        // console.log('User details on getAllMembers:', user);
         res.render('members/list', {
             title: 'Members - Vertex Admin',
             style: '',
             script: '',
             currentPage: 'members',
-            user: members,
+            members: members,
+            user: user,
             pagination: {
                 current: page,
                 total: totalPages,
@@ -700,176 +702,119 @@ const profileform = async (req, res) => {
 
 const addUpdateAddress = async (req, res) => {
     try {
-        const { user_id, correspondence_address,correspondence_city,correspondence_district,correspondence_state,correspondence_pincode,permanent_address,permanent_city,permanent_district,permanent_state,permanent_pincode, is_same_address } = req.body;
+        const { user_id, address_id, ...addressData } = req.body;
         
-        // Validate input
-        if (!user_id || !correspondence_address || !correspondence_city || !correspondence_district || !correspondence_state || !correspondence_pincode || !permanent_address || !permanent_city || !permanent_district || !permanent_state || !permanent_pincode) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required fields.'
-            });
+        if (address_id) {
+            // Update existing address
+            const address = await UserAddress.findByPk(address_id);
+            if (!address) {
+                return res.status(404).json({ success: false, message: 'Address not found' });
+            }
+            await address.update(addressData);
+            res.json({ success: true, message: 'Address updated successfully' });
+        } else {
+            // Create new address
+            await UserAddress.create({ user_id, ...addressData });
+            res.json({ success: true, message: 'Address added successfully' });
         }
-
-        // Check if user exists
-        const user = await User.findOne({
-            where: { user_id: user_id, user_type: 'member' }
-        });
-        
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found in my records.'
-            });
-        }
-
-        // Fetch the latest inactive address separately
-        const userAddress = await UserAddress.findOne({
-            where: { user_id: user.id, status: 'Inactive' },
-            order: [['updated_date', 'DESC']]
-        });
-
-        // Update or create profile with KYC details
-        if (userAddress) {
-            // Update existing profile
-            const updatedProfile = await userAddress.update({
-                correspondence_address,
-                correspondence_city,
-                correspondence_district,
-                correspondence_state,
-                correspondence_pincode,
-                permanent_address,
-                permanent_city,
-                permanent_district,
-                permanent_state,
-                permanent_pincode,
-                is_same_address
-            });
-            
-            const userdetails = await getUserDetails(user_id);
-    
-            return res.json({
-                success: true,
-                message: "Address details updated successfully",
-                data: userdetails
-            });
-        
-        } else {            
-            // Create new profile
-            const newProfile = await UserAddress.create({
-                user_id: user.id,
-                correspondence_address,
-                correspondence_city,
-                correspondence_district,
-                correspondence_state,
-                correspondence_pincode,
-                permanent_address,
-                permanent_city,
-                permanent_district,
-                permanent_state,
-                permanent_pincode,
-                is_same_address
-            });
-            
-            const userdetails = await getUserDetails(user_id);
-    
-            return res.json({
-                success: true,
-                message: "Address details added successfully",
-                data: userdetails
-            });
-        }
-        
-        
     } catch (error) {
-        console.error('Profile form error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to save profile details',
-            error: error.message
-        });
+        console.error('Error in addUpdateAddress:', error);
+        res.status(500).json({ success: false, message: 'Failed to save address' });
     }
 };
 
+const updateAddressStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const address = await UserAddress.findByPk(id);
+        if (!address) {
+            return res.status(404).json({ success: false, message: 'Address not found' });
+        }
+
+        await address.update({ status });
+        res.json({ success: true, message: 'Address status updated successfully' });
+    } catch (error) {
+        console.error('Error in updateAddressStatus:', error);
+        res.status(500).json({ success: false, message: 'Failed to update address status' });
+    }
+};
+
+const deleteAddress = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const address = await UserAddress.findByPk(id);
+        
+        if (!address) {
+            return res.status(404).json({ success: false, message: 'Address not found' });
+        }
+
+        await address.destroy();
+        res.json({ success: true, message: 'Address deleted successfully' });
+    } catch (error) {
+        console.error('Error in deleteAddress:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete address' });
+    }
+};
 
 const addUpdateBank = async (req, res) => {
     try {
-        const { user_id, account_holder, account_number, bank_name, branch_name, ifsc_number } = req.body;
+        const { user_id, bank_id, ...bankData } = req.body;
         
-        console.log(req.body);
-        // Validate input
-        if (!user_id || !account_holder || !account_number || !bank_name || !branch_name || !ifsc_number) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required fields.'
-            });
+        if (bank_id) {
+            // Update existing bank
+            const bank = await UserBank.findByPk(bank_id);
+            if (!bank) {
+                return res.status(404).json({ success: false, message: 'Bank details not found' });
+            }
+            await bank.update(bankData);
+            res.json({ success: true, message: 'Bank details updated successfully' });
+        } else {
+            // Create new bank
+            await UserBank.create({ user_id, ...bankData });
+            res.json({ success: true, message: 'Bank details added successfully' });
         }
-
-        // Check if user exists
-        const user = await User.findOne({
-            where: { user_id: user_id, user_type: 'member' }
-        });
-        
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found in my records.'
-            });
-        }
-
-        // Fetch the latest inactive bank separately
-        const userBank = await UserBank.findOne({
-            where: { user_id: user.id, status: 'Inactive' },
-            order: [['updated_date', 'DESC']]
-        });
-
-        // Update or create profile with bank details
-        if (userBank) {
-            // Update existing profile
-            const updatedProfile = await userBank.update({
-                account_holder,
-                account_number,
-                bank_name,
-                branch_name,
-                ifsc_number
-            });
-            
-            const userdetails = await getUserDetails(user_id);
-    
-            return res.json({
-                success: true,
-                message: "Bank details updated successfully",
-                data: userdetails
-            });
-        } else {            
-            // Create new profile
-            const newProfile = await UserBank.create({
-                user_id: user.id,
-                account_holder,
-                account_number,
-                bank_name,
-                branch_name,
-                ifsc_number
-            });
-            
-            const userdetails = await getUserDetails(user_id);
-    
-            return res.json({
-                success: true,
-                message: "Bank details added successfully",
-                data: userdetails
-            });
-        }
-        
     } catch (error) {
-        console.error('Profile form error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to save profile details',
-            error: error.message
-        });
+        console.error('Error in addUpdateBank:', error);
+        res.status(500).json({ success: false, message: 'Failed to save bank details' });
     }
 };
 
+const updateBankStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const bank = await UserBank.findByPk(id);
+        if (!bank) {
+            return res.status(404).json({ success: false, message: 'Bank details not found' });
+        }
+
+        await bank.update({ status });
+        res.json({ success: true, message: 'Bank status updated successfully' });
+    } catch (error) {
+        console.error('Error in updateBankStatus:', error);
+        res.status(500).json({ success: false, message: 'Failed to update bank status' });
+    }
+};
+
+const deleteBank = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const bank = await UserBank.findByPk(id);
+        
+        if (!bank) {
+            return res.status(404).json({ success: false, message: 'Bank details not found' });
+        }
+
+        await bank.destroy();
+        res.json({ success: true, message: 'Bank details deleted successfully' });
+    } catch (error) {
+        console.error('Error in deleteBank:', error);
+        res.status(500).json({ success: false, message: 'Failed to delete bank details' });
+    }
+};
 
 // Utility function to fetch user details with associated models
 const getUserDetails = async (userId) => {
@@ -945,6 +890,114 @@ const getUserDetails = async (userId) => {
     return userResponse;
 };
 
+const viewMemberDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const member = await User.findOne({
+            where: { id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'
+                },
+                {
+                    model: UserAddress,
+                    as: 'userAddress'
+                }
+            ]
+        });
+
+        if (!member) {
+            return res.render('error', {
+                title: 'Error - Vertex Admin',
+                message: 'Member not found',
+                error: 'The requested member could not be found.',
+                style: '',
+                script: '',
+                user: null
+            });
+        }
+        const user = JSON.stringify(req.session.user, null, 2);
+        res.render('members/view', {
+            title: 'View Member - Vertex Admin',
+            style: '',
+            script: '',
+            currentPage: 'members',
+            member: member,
+            user: user
+        });
+    } catch (error) {
+        console.error('View member error:', error);
+        res.render('error', {
+            title: 'Error - Vertex Admin',
+            message: 'Error viewing member',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while viewing the member.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+};
+
+const editMember = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const member = await User.findOne({
+            where: { id, user_type: 'member' },
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                },
+                {
+                    model: UserBank,
+                    as: 'userBank'
+                },
+                {
+                    model: UserAddress,
+                    as: 'userAddress'
+                }
+            ]
+        });
+
+        if (!member) {
+            return res.render('error', {
+                title: 'Error - Vertex Admin',
+                message: 'Member not found',
+                error: 'The requested member could not be found.',
+                style: '',
+                script: '',
+                user: null
+            });
+        }
+
+        console.log('Member details on editMember:', member);
+
+        res.render('members/edit', {
+            title: 'Edit Member - Vertex Admin',
+            style: '',
+            script: '',
+            currentPage: 'members',
+            member: member,
+            user: JSON.stringify(req.session.user, null, 2)
+        });
+    } catch (error) {
+        console.error('Edit member error:', error);
+        res.render('error', {
+            title: 'Error - Vertex Admin',
+            message: 'Error editing member',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while editing the member.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+};
+
 module.exports = {
     getAllMembers,
     registerUser,
@@ -957,5 +1010,11 @@ module.exports = {
     kycform,
     profileform,
     addUpdateAddress,
-    addUpdateBank
+    updateAddressStatus,
+    deleteAddress,
+    addUpdateBank,
+    updateBankStatus,
+    deleteBank,
+    viewMemberDetails,
+    editMember
 };
