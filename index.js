@@ -5,10 +5,12 @@ const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const expressLayouts = require('express-ejs-layouts');
 const { sequelize } = require('./src/models');
+const { isAuthenticated } = require('./src/middleware/auth');
 const userRoutes = require('./src/routes/userRoutes');
 const locationRoutes = require('./src/routes/locationRoutes');
 const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
+const pinManagementRoutes = require('./src/routes/pinManagementRoutes');
 
 require("dotenv").config();
 
@@ -30,9 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET || 'your-cookie-secret'));
 
 // Static files
-// app.use(express.static(path.join(__dirname, 'src', 'public')));
 app.use('/uploads', express.static('uploads'));
-
 
 // Session configuration
 app.use(session({
@@ -66,9 +66,10 @@ app.get('/', (req, res) => {
 app.use('/auth', authRoutes);
 
 // Protected routes
-app.use('/dashboard', dashboardRoutes);
-app.use('/members', userRoutes);
-app.use('/locations', locationRoutes);
+app.use('/dashboard', isAuthenticated, dashboardRoutes);
+app.use('/members', isAuthenticated, userRoutes);
+app.use('/locations', isAuthenticated, locationRoutes);
+app.use('/pin-management', isAuthenticated, pinManagementRoutes);
 
 // Error handling middleware
 app.use((req, res, next) => {

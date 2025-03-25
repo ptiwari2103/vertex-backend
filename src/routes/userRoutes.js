@@ -9,8 +9,6 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-
-
 // Multer Storage Configuration
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -42,21 +40,33 @@ const upload = multer({
     { name: 'divyang_certificate', maxCount: 1 }
 ]);
 
-
-
 // KYC form submission route
 router.post('/kyc', upload, userController.kycform);
 router.post('/profile', upload, userController.profileform);
 router.post('/addupdateaddress', userController.addUpdateAddress);
 router.post('/addupdatebank', userController.addUpdateBank);
 
-// Define routes
+// Member management routes
 router.get('/allmembers', userController.getAllMembers);
+router.get('/edit/:id', userController.editMember); 
+router.get('/view/:id', userController.viewMemberDetails); 
+router.put('/:id/status', userController.updateMemberStatus);
+router.put('/:id/kyc-status', userController.updatekycStatus);
+
+// Member address management
+router.post('/members/addupdateaddress', userController.addUpdateAddress);
+router.put('/members/address/:id/status', userController.updateAddressStatus);
+router.delete('/members/address/:id', userController.deleteAddress);
+
+// Member bank management
+router.post('/members/addupdatebank', userController.addUpdateBank);
+router.put('/members/bank/:id/status', userController.updateBankStatus);
+router.delete('/members/bank/:id', userController.deleteBank);
+
+// Define routes
 router.post("/register", userController.registerUser);
 router.post('/login', userController.login);
 router.post('/prelogin', userController.prelogin);
-router.put('/:id/status', userController.updateMemberStatus);
-router.put('/:id/kycstatus', userController.updatekycStatus);
 router.get('/:id', userController.viewMember);
 router.delete('/:id', userController.deleteMember);
 

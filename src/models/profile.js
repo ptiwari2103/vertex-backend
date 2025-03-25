@@ -1,5 +1,5 @@
-const { DataTypes, Model } = require('sequelize');
-const sequelize = require('../config/database');
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
 
 class Profile extends Model {
   static associate(models) {
@@ -20,7 +20,7 @@ Profile.init({
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id'
     }
   },
@@ -62,7 +62,7 @@ Profile.init({
     allowNull: true
   },
   pan_number: {
-    type: DataTypes.STRING(12),
+    type: DataTypes.STRING,
     allowNull: true
   },
   pan_number_image: {
@@ -70,7 +70,7 @@ Profile.init({
     allowNull: true
   },
   aadhar_number: {
-    type: DataTypes.STRING(12),
+    type: DataTypes.STRING,
     allowNull: true
   },
   aadhar_number_image_front: {
@@ -96,6 +96,5 @@ Profile.init({
   createdAt: 'created_date',
   updatedAt: 'updated_date'
 });
-
 
 module.exports = Profile;

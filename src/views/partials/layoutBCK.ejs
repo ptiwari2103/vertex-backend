@@ -90,10 +90,12 @@
     <%- typeof style !== 'undefined' ? style : '' %>
 </head>
 <body>
-    <%- include('partials/sidebar', { currentPage: locals.currentPage }); %>
+    <% if (typeof user !== 'undefined' && user) { %>
+        <%- include('partials/sidebar', { user: user, currentPage: locals.currentPage }); %>
+    <% } %>
 
     <!-- Main content -->
-    <div class="main-content <%= locals.currentPage === 'dashboard' ? 'dashboard' : '' %>">
+    <div class="<%= typeof user !== 'undefined' && user ? 'main-content' : '' %> <%= locals.currentPage === 'dashboard' ? 'dashboard' : '' %>">
         <%- body %>
     </div>
 

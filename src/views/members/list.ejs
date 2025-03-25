@@ -120,12 +120,12 @@
 
                                 <td><%= new Date(member.created_date).toLocaleDateString() %></td>
                                 <td>
-                                    <button class="btn btn-sm btn-info action-btn" onclick="viewMember('<%= member.id %>')">
-                                        <i class="bx bx-show"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger action-btn" onclick="deleteMember('<%= member.id %>')">
-                                        <i class="bx bx-trash"></i>
-                                    </button>
+                                    <a href="/members/view/<%= member.id %>" class="btn btn-sm btn-info action-btn">
+                                        <i class="bx bx-show"></i> View
+                                    </a>
+                                    <a href="/members/edit/<%= member.id %>" class="btn btn-sm btn-primary action-btn">
+                                        <i class="bx bx-edit"></i> Edit
+                                    </a>
                                 </td>
                             </tr>
                         <% }); %>
@@ -138,7 +138,7 @@
                     <ul class="pagination">
                         <% for(let i = 1; i <= pagination.total; i++) { %>
                             <li class="page-item <%= pagination.current === i ? 'active' : '' %>">
-                                <a class="page-link" href="/members/allmembers?page=<%= i %>"><%= i %></a>
+                                <a class="page-link" href="/members?page=<%= i %>"><%= i %></a>
                             </li>
                         <% } %>
                     </ul>

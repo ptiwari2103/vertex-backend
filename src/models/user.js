@@ -1,7 +1,6 @@
 const { DataTypes, Model } = require('sequelize');
-// const bcryptjs = require('bcryptjs');
 const bcrypt = require('bcryptjs');
-const sequelize = require('../config/database');
+const { sequelize } = require('../config/database');
 
 class User extends Model {
 
@@ -12,7 +11,10 @@ class User extends Model {
         User.hasMany(models.UserBank, { foreignKey: 'user_id', as: 'userBank' });
         // One User has One UserAddress
         User.hasMany(models.UserAddress, { foreignKey: 'user_id', as: 'userAddress' });
-    }
+        // One User has Many Vertex Pins
+        User.hasMany(models.VertexPin, { foreignKey: 'assigned_to', as: 'assignedPins' });
+        User.hasMany(models.VertexPin, { foreignKey: 'used_by', as: 'usedPins' });
+    }   
 
     // Instance method for password validation
     async validatePassword(password) {

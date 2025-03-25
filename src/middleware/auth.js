@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const verifyToken = (req, res, next) => {
+const isAuthenticated = (req, res, next) => {
     try {
         // Check both session and token cookie
         if (!req.session.user || !req.cookies.token) {
@@ -49,18 +49,10 @@ const verifyToken = (req, res, next) => {
         req.user = req.session.user;
         next();
     } catch (err) {
-        console.error('Token verification error:', err);
-        req.session.destroy((error) => {
-            if (error) {
-                console.error('Session destruction error:', error);
-            }
-            res.clearCookie('token', {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict'
-            });
-            res.redirect('/auth/login');
-        });
+        console.error('Auth error:', err);
+        res.clearCookie('token');
+        req.session.destroy();
+        return res.redirect('/auth/login');
     }
 };
 
@@ -79,6 +71,6 @@ const isAdmin = (req, res, next) => {
 };
 
 module.exports = {
-    verifyToken,
+    isAuthenticated,
     isAdmin
 };
