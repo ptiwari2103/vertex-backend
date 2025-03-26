@@ -54,14 +54,12 @@ router.put('/:id/status', userController.updateMemberStatus);
 router.put('/:id/kyc-status', userController.updatekycStatus);
 
 // Member address management
-router.post('/members/addupdateaddress', userController.addUpdateAddress);
-router.put('/members/address/:id/status', userController.updateAddressStatus);
-router.delete('/members/address/:id', userController.deleteAddress);
+router.put('/address/:id/status', userController.updateAddressStatus);
+router.delete('/address/:id', userController.deleteAddress);
 
 // Member bank management
-router.post('/members/addupdatebank', userController.addUpdateBank);
-router.put('/members/bank/:id/status', userController.updateBankStatus);
-router.delete('/members/bank/:id', userController.deleteBank);
+router.put('/bank/:id/status', userController.updateBankStatus);
+router.delete('/bank/:id', userController.deleteBank);
 
 // Define routes
 router.post("/register", userController.registerUser);

@@ -724,11 +724,11 @@ const profileform = async (req, res) => {
 
 const addUpdateAddress = async (req, res) => {
     try {
-        const { user_id, address_id, ...addressData } = req.body;
+        const { user_id, id, ...addressData } = req.body;
         
-        if (address_id) {
+        if (id) {
             // Update existing address
-            const address = await UserAddress.findByPk(address_id);
+            const address = await UserAddress.findByPk(id);
             if (!address) {
                 return res.status(404).json({ success: false, message: 'Address not found' });
             }
@@ -782,11 +782,11 @@ const deleteAddress = async (req, res) => {
 
 const addUpdateBank = async (req, res) => {
     try {
-        const { user_id, bank_id, ...bankData } = req.body;
+        const { user_id, id, ...bankData } = req.body;
         
-        if (bank_id) {
+        if (id) {
             // Update existing bank
-            const bank = await UserBank.findByPk(bank_id);
+            const bank = await UserBank.findByPk(id);
             if (!bank) {
                 return res.status(404).json({ success: false, message: 'Bank details not found' });
             }

@@ -197,11 +197,11 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Name</label>
-                    <input type="text" class="form-control bg-light" name="name" value="<%= member.name %>">
+                    <input type="text" class="form-control" name="name" value="<%= member.name %>">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Mobile Number</label>
-                    <input type="text" class="form-control bg-light" name="mobile_number" value="<%= member.mobile_number %>">
+                    <input type="text" class="form-control" name="mobile_number" value="<%= member.mobile_number %>">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Email ID</label>
@@ -338,7 +338,7 @@
                 <div class="address-item mb-4 border rounded p-3">
                     <form class="addressForm" data-id="<%= address.id %>">
                         <input type="hidden" name="user_id" value="<%= member.user_id %>">
-                        <input type="hidden" name="address_id" value="<%= address.id %>">
+                        <input type="hidden" name="id" value="<%= address.id %>">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0">Address #<%= index + 1 %></h5>
                             <div>
@@ -423,7 +423,7 @@
                 <div class="bank-item mb-4 border rounded p-3">
                     <form class="bankForm" data-id="<%= bank.id %>">
                         <input type="hidden" name="user_id" value="<%= member.user_id %>">
-                        <input type="hidden" name="bank_id" value="<%= bank.id %>">
+                        <input type="hidden" name="id" value="<%= bank.id %>">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <h5 class="mb-0">Bank Account #<%= index + 1 %></h5>
                             <div>
@@ -438,13 +438,13 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Bank Name</label>
-                                    <input type="text" class="form-control" name="bank_name" value="<%= bank.bank_name %>">
+                                    <label class="form-label">Account Holder Name</label>
+                                    <input type="text" class="form-control" name="account_holder" value="<%= bank.account_holder %>">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Branch Name</label>
-                                    <input type="text" class="form-control" name="branch_name" value="<%= bank.branch_name %>">
-                                </div>
+                                    <label class="form-label">Bank Name</label>
+                                    <input type="text" class="form-control" name="bank_name" value="<%= bank.bank_name %>">
+                                </div>                                 
                                 <div class="mb-3">
                                     <label class="form-label">Account Number</label>
                                     <input type="text" class="form-control" name="account_number" value="<%= bank.account_number %>">
@@ -452,15 +452,12 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">IFSC Code</label>
-                                    <input type="text" class="form-control" name="ifsc_code" value="<%= bank.ifsc_code %>">
+                                    <label class="form-label">Branch Name</label>
+                                    <input type="text" class="form-control" name="branch_name" value="<%= bank.branch_name %>">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">Account Type</label>
-                                    <select class="form-control" name="account_type">
-                                        <option value="Saving" <%= bank.account_type === 'Saving' ? 'selected' : '' %>>Saving</option>
-                                        <option value="Current" <%= bank.account_type === 'Current' ? 'selected' : '' %>>Current</option>
-                                    </select>
+                                    <label class="form-label">IFSC Number</label>
+                                    <input type="text" class="form-control" name="ifsc_number" value="<%= bank.ifsc_number %>">
                                 </div>
                             </div>
                         </div>
@@ -473,6 +470,127 @@
                     </form>
                 </div>
             <% }); %>
+        </div>
+    </div>
+
+    <!-- Address Modal -->
+    <div class="modal fade" id="addressModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Address</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newAddressForm" class="needs-validation" novalidate>
+                        <input type="hidden" name="user_id" value="<%= member.id %>">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <h6>Permanent Address</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" name="permanent_address" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">City</label>
+                                    <input type="text" class="form-control" name="permanent_city" value="">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">District</label>
+                                    <input type="text" class="form-control" name="permanent_district" value="">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">State</label>
+                                    <input type="text" class="form-control" name="permanent_state" value="">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Pincode</label>
+                                    <input type="text" class="form-control" name="permanent_pincode" value="">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Correspondence Address</h6>
+                                <div class="mb-3">
+                                    <label class="form-label">Address</label>
+                                    <textarea class="form-control" name="correspondence_address" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">City</label>
+                                    <input type="text" class="form-control" name="correspondence_city" value="">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">District</label>
+                                    <input type="text" class="form-control" name="correspondence_district" value="">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">State</label>
+                                    <input type="text" class="form-control" name="correspondence_state" value="">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Pincode</label>
+                                    <input type="text" class="form-control" name="correspondence_pincode" value="">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="submitNewAddress()">Save Address</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bank Modal -->
+    <div class="modal fade" id="bankModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Bank Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="newBankForm" class="needs-validation" novalidate>
+                        <input type="hidden" name="user_id" value="<%= member.id %>">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Account Holder Name *</label>
+                                    <input type="text" class="form-control" name="account_holder" required>
+                                    <div class="invalid-feedback">Account Holder Name is required</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Bank Name *</label>
+                                    <input type="text" class="form-control" name="bank_name" required>
+                                    <div class="invalid-feedback">Bank Name is required</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Account Number *</label>
+                                    <input type="text" class="form-control" name="account_number" required pattern="[0-9]{9,18}">
+                                    <div class="invalid-feedback">Please enter a valid account number (9-18 digits)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Branch Name *</label>
+                                    <input type="text" class="form-control" name="branch_name" required>
+                                    <div class="invalid-feedback">Branch Name is required</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">IFSC Number *</label>
+                                    <input type="text" class="form-control" name="ifsc_number" required pattern="^[A-Z]{4}0[A-Z0-9]{6}$">
+                                    <div class="invalid-feedback">Please enter a valid IFSC code</div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="submitNewBank()">Save Bank Details</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -779,103 +897,80 @@
             alert('Failed to delete bank account');
         }
     }
+
+    // Initialize Bootstrap modals
+    const addressModal = new bootstrap.Modal(document.getElementById('addressModal'));
+    const bankModal = new bootstrap.Modal(document.getElementById('bankModal'));
+
+    function addNewAddress() {
+        document.getElementById('newAddressForm').reset();
+        addressModal.show();
+    }
+
+    function addNewBank() {
+        document.getElementById('newBankForm').reset();
+        bankModal.show();
+    }
+
+    async function submitNewAddress() {
+        const form = document.getElementById('newAddressForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/members/addupdateaddress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add address');
+            }
+
+            // Refresh the page to show new address
+            window.location.reload();
+        } catch (error) {
+            alert('Error adding address: ' + error.message);
+        }
+    }
+
+    async function submitNewBank() {
+        const form = document.getElementById('newBankForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/members/addupdatebank', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add bank account');
+            }
+
+            // Refresh the page to show new bank account
+            window.location.reload();
+        } catch (error) {
+            alert('Error adding bank account: ' + error.message);
+        }
+    }
     </script>
 
-    <!-- Address Information -->
-    <!-- <div class="section-card">
-        <h4 class="section-title">Address Information</h4>
-        <form id="addressForm" class="form-section">
-            <input type="hidden" name="user_id" value="<%= member.user_id %>">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5 class="mb-3">Permanent Address</h5>
-                    <% const permanentAddr = member.userAddress?.find(addr => addr.status === 'Active') || {}; %>
-                    <div class="mb-3">
-                        <label class="form-label">Address</label>
-                        <textarea class="form-control" name="permanent_address" rows="3"><%= permanentAddr.permanent_address || '' %></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">City</label>
-                        <input type="text" class="form-control" name="permanent_city" value="<%= permanentAddr.permanent_city || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">District</label>
-                        <input type="text" class="form-control" name="permanent_district" value="<%= permanentAddr.permanent_district || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">State</label>
-                        <input type="text" class="form-control" name="permanent_state" value="<%= permanentAddr.permanent_state || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Pincode</label>
-                        <input type="text" class="form-control" name="permanent_pincode" value="<%= permanentAddr.permanent_pincode || '' %>">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <h5 class="mb-3">Correspondence Address</h5>
-                    <div class="mb-3">
-                        <label class="form-label">Address</label>
-                        <textarea class="form-control" name="correspondence_address" rows="3"><%= permanentAddr.correspondence_address || '' %></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">City</label>
-                        <input type="text" class="form-control" name="correspondence_city" value="<%= permanentAddr.correspondence_city || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">District</label>
-                        <input type="text" class="form-control" name="correspondence_district" value="<%= permanentAddr.correspondence_district || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">State</label>
-                        <input type="text" class="form-control" name="correspondence_state" value="<%= permanentAddr.correspondence_state || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Pincode</label>
-                        <input type="text" class="form-control" name="correspondence_pincode" value="<%= permanentAddr.correspondence_pincode || '' %>">
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Update Address</button>
-        </form>
-    </div> -->
-
-    <!-- Bank Information -->
-    <!-- <div class="section-card">
-        <h4 class="section-title">Bank Information</h4>
-        <form id="bankForm" class="form-section">
-            <input type="hidden" name="user_id" value="<%= member.user_id %>">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Bank Name</label>
-                        <input type="text" class="form-control" name="bank_name" value="<%= member.userBank?.bank_name || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Branch Name</label>
-                        <input type="text" class="form-control" name="branch_name" value="<%= member.userBank?.branch_name || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Account Number</label>
-                        <input type="text" class="form-control" name="account_number" value="<%= member.userBank?.account_number || '' %>">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">IFSC Code</label>
-                        <input type="text" class="form-control" name="ifsc_code" value="<%= member.userBank?.ifsc_code || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Account Type</label>
-                        <select class="form-control" name="account_type">
-                            <option value="Saving" <%= member.userBank?.account_type === 'Saving' ? 'selected' : '' %>>Saving</option>
-                            <option value="Current" <%= member.userBank?.account_type === 'Current' ? 'selected' : '' %>>Current</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Update Bank Details</button>
-        </form>
-    </div> -->
-</div>
-
-<%- contentFor('script') %>
+    <%- contentFor('script') %>
