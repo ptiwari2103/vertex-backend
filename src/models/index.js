@@ -5,6 +5,7 @@ const District = require('./district');
 const Profile = require('./profile');
 const UserBank = require('./userBank');
 const UserAddress = require('./userAddress');
+const VertexPin = require('./vertexPin');
 
 // Initialize models
 const models = {
@@ -13,7 +14,8 @@ const models = {
   District,
   Profile,
   UserBank,
-  UserAddress
+  UserAddress,
+  VertexPin,
 };
 
 // Run associations if they exist
