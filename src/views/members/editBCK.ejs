@@ -182,47 +182,37 @@
     <!-- Profile Information -->
     <div class="section-card">
         <h4 class="section-title">Profile Information</h4>
-        <form id="profileForm" class="form-section" enctype="multipart/form-data">
+        <form id="profileForm" class="form-section">
             <input type="hidden" name="user_id" value="<%= member.user_id %>">
-            <input type="hidden" name="update_by" value="admin">
             <div class="row g-3">
                 <!-- Read-only fields -->
                 <div class="col-md-4">
                     <label class="form-label">User ID</label>
-                    <input type="text" class="form-control bg-light" value="<%= member.user_id %>" readonly disabled>
+                    <input type="text" class="form-control bg-light" value="<%= member.user_id %>" readonly>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Account Number</label>
-                    <input type="text" class="form-control bg-light" value="<%= member.account_number %>" readonly disabled>
+                    <input type="text" class="form-control bg-light" value="<%= member.account_number %>" readonly>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Name</label>
-                    <input type="text" class="form-control bg-light" name="name" value="<%= member.name %>">
+                    <input type="text" class="form-control bg-light" value="<%= member.name %>">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Mobile Number</label>
-                    <input type="text" class="form-control bg-light" name="mobile_number" value="<%= member.mobile_number %>">
+                    <input type="text" class="form-control bg-light" value="<%= member.mobile_number %>">
                 </div>
                 <div class="col-md-4">
-                    <label class="form-label">Email ID</label>
-                    <input type="email" name="email_id" class="form-control" value="<%= member.email_id || '' %>">
-                </div>  
-                <div class="col-md-4">
                     <label class="form-label">Gender</label>
-                    <select name="gender" class="form-control" required>
-                        <option value="">Select Gender</option>
-                        <% ['Male', 'Female', 'Transgender'].forEach(gender => { %>
-                            <option value="<%= gender %>" <%= member.gender === gender ? 'selected' : '' %>><%= gender %></option>
-                        <% }); %>
-                    </select>
+                    <input type="text" class="form-control bg-light" value="<%= member.gender %>">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Date of Birth</label>
-                    <input type="date" class="form-control bg-light" name="date_of_birth" value="<%= member.date_of_birth %>">
+                    <input type="date" class="form-control bg-light" value="<%= member.date_of_birth %>">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Guardian Name</label>
-                    <input type="text" class="form-control bg-light" name="guardian_name" value="<%= member.guardian_name %>">
+                    <input type="text" class="form-control bg-light" value="<%= member.guardian_name %>">
                 </div>
 
                 <!-- Required fields -->
@@ -234,6 +224,14 @@
                             <option value="<%= relation %>" <%= member.guardian_relation === relation ? 'selected' : '' %>><%= relation %></option>
                         <% }); %>
                     </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Profile Image*</label>
+                    <input type="file" name="profile_image" class="form-control" accept="image/*">
+                    <% if (member.profile?.profile_image) { %>
+                        <img src="/<%= member.profile.profile_image %>" class="mt-2 document-preview" alt="Profile Image">
+                    <% } %>
                 </div>
 
                 <div class="col-md-4">
@@ -251,7 +249,12 @@
                     </select>
                 </div>
 
-                
+                <!-- Optional fields -->
+                <div class="col-md-4">
+                    <label class="form-label">Email ID</label>
+                    <input type="email" name="email_id" class="form-control" value="<%= member.email_id || '' %>">
+                </div>
+
                 <div class="col-md-4">
                     <label class="form-label">Nominee Contact</label>
                     <input type="text" name="nominee_contact" class="form-control" value="<%= member.profile?.nominee_contact || '' %>" pattern="[0-9]{10}">
@@ -262,29 +265,14 @@
                     <input type="email" name="nominee_email" class="form-control" value="<%= member.profile?.nominee_email || '' %>">
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Profile Image*</label>
-                    <input type="file" name="profile_image" class="form-control" accept="image/*">
-                    <% if (member.profile?.profile_image) { %>
-                        <img src="/<%= member.profile.profile_image %>" class="mt-2 document-preview" alt="Profile Image">
-                    <% } %>
-                </div>
-
                 <!-- Checkbox fields -->
                 <div class="col-12">
                     <div class="form-check mb-2">
-                        <!-- Hidden input to send false when unchecked -->
-                        <input type="hidden" id="is_divyang_hidden" name="is_divyang" value="<%= member.profile?.is_divyang ? 'true' : 'false' %>">
-                    
-                        <!-- Checkbox -->
-                        <input type="checkbox" id="isDivyang" class="form-check-input" 
-                            <%= member.profile?.is_divyang ? 'checked' : '' %> 
-                            onchange="updateDivyangValue()">
-                    
-                        <label class="form-check-label">Are you Divyang? </label>
+                        <input type="checkbox" name="is_divyang" class="form-check-input" <%= member.profile?.is_divyang ? 'checked' : '' %>>
+                        <label class="form-check-label">Are you Divyang?</label>
                     </div>
-                    
-                    <div id="divyangCertificate" class="divyang-certificate <%= member.profile?.is_divyang ? '' : 'd-none' %>">
+
+                    <div class="divyang-certificate <%= member.profile?.is_divyang ? '' : 'd-none' %>">
                         <label class="form-label">Divyang Certificate*</label>
                         <input type="file" name="divyang_certificate" class="form-control" accept="image/*,.pdf">
                         <% if (member.profile?.divyang_certificate) { %>
@@ -293,29 +281,9 @@
                     </div>
 
                     <div class="form-check">
-                        <input type="hidden" id="is_senior_citizen_hidden" name="is_senior_citizen" value="<%= member.profile?.is_senior_citizen ? 'true' : 'false' %>">
-                        <input type="checkbox" id="is_senior_citizen" class="form-check-input" 
-                            <%= member.profile?.is_senior_citizen ? 'checked' : '' %> 
-                            onchange="updateSeniorCitizenValue()">
+                        <input type="checkbox" name="is_senior_citizen" class="form-check-input" <%= member.profile?.is_senior_citizen ? 'checked' : '' %>>
                         <label class="form-check-label">Are you a Senior Citizen?</label>
                     </div>
-
-                    <div class="form-check">
-                        <input type="hidden" id="is_agent_hidden" name="is_agent" value="<%= member.profile?.is_agent ? 'true' : 'false' %>">
-                        <input type="checkbox" id="is_agent" class="form-check-input" 
-                            <%= member.profile?.is_agent ? 'checked' : '' %> 
-                            onchange="updateAgentValue()">
-                        <label class="form-check-label">Are you an Agent?</label>
-                    </div>
-
-                    <div class="form-check">
-                        <input type="hidden" id="is_fanchise_hidden" name="is_fanchise" value="<%= member.profile?.is_fanchise ? 'true' : 'false' %>">
-                        <input type="checkbox" id="is_fanchise" class="form-check-input" 
-                            <%= member.profile?.is_fanchise ? 'checked' : '' %> 
-                            onchange="updateFanchiseValue()">
-                        <label class="form-check-label">Are you a Franchise?</label>
-                    </div>
-                    
                 </div>
             </div>
 
@@ -477,36 +445,6 @@
     </div>
 
     <script>
-    function updateDivyangValue() {
-        const checkbox = document.getElementById("isDivyang");
-        const hiddenInput = document.getElementById("is_divyang_hidden");
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-        const divyangDiv = document.getElementById("divyangCertificate");
-        if (checkbox.checked) {
-            divyangDiv.classList.remove("d-none");
-        } else {
-            divyangDiv.classList.add("d-none");
-        }
-    }
-
-    function updateSeniorCitizenValue() {
-        const checkbox = document.getElementById("is_senior_citizen");
-        const hiddenInput = document.getElementById("is_senior_citizen_hidden");        
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-    }
-
-    function updateAgentValue() {
-        const checkbox = document.getElementById("is_agent");
-        const hiddenInput = document.getElementById("is_agent_hidden");        
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-    }
-
-    function updateFanchiseValue() {
-        const checkbox = document.getElementById("is_fanchise");
-        const hiddenInput = document.getElementById("is_fanchise_hidden");        
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-    }
-
     // KYC Form Submission
     document.getElementById('kycForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -535,17 +473,12 @@
         e.preventDefault();
         const formData = new FormData(e.target);
         try {
-            // const response = await fetch('/members/profile', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify(Object.fromEntries(formData)),
-            // });
-
             const response = await fetch('/members/profile', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(Object.fromEntries(formData)),
             });
             
             const data = await response.json();

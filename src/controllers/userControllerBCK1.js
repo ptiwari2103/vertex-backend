@@ -1,6 +1,42 @@
 const { User, Profile, UserBank, UserAddress } = require("../models");
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer for file upload
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadPath = 'uploads/kyc';
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: function (req, file, cb) {
+        const allowedTypes = /jpeg|jpg|png/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+
+        if (extname && mimetype) {
+            return cb(null, true);
+        } else {
+            cb(new Error('Only .jpeg, .jpg and .png files are allowed!'));
+        }
+    }
+});
 
 const generateUserId = async (districtId) => {
     const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
@@ -305,14 +341,15 @@ const getAllMembers = async (req, res) => {
         });
 
         const totalPages = Math.ceil(count / limit);
-
+        const user = JSON.stringify(req.session.user, null, 2);
+        // console.log('User details on getAllMembers:', user);
         res.render('members/list', {
             title: 'Members - Vertex Admin',
             style: '',
             script: '',
             currentPage: 'members',
-            user: JSON.stringify(req.session.user, null, 2),
-            members:members,
+            members: members,
+            user: user,
             pagination: {
                 current: page,
                 total: totalPages,
@@ -477,60 +514,37 @@ const verifyToken = (req, res, next) => {
 const kycform = async (req, res) => {
     try {
         const { user_id, pan_number, aadhar_number } = req.body;
-        const { pan_number_image, aadhar_number_image_front, aadhar_number_image_back } = req.files;
-        console.log(pan_number_image, aadhar_number_image_front, aadhar_number_image_back);
-        console.log("==========================");
-        console.log(req.files);
-        console.log("-----------------------------------");
-        // console.log(req.body);
-        // Validate input
-        if (!user_id || !pan_number || !aadhar_number) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required fields'
-            });
-        }
 
-        // Check if user exists
+        // Find the user
         const user = await User.findOne({
-            where: { user_id: user_id, user_type: 'member' },
-            include: [
-                {
-                    model: Profile,
-                    as: 'profile'
-                }                
-            ]
+            where: { user_id },
+            include: [{ model: Profile, as: 'profile' }]
         });
 
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found in my records.'
+                message: 'User not found'
             });
         }
 
-        const panImagePath = Array.isArray(pan_number_image) && pan_number_image.length > 0 
-            ? pan_number_image[0]?.path 
+        // Get file paths if files were uploaded
+        const panImagePath = req.files?.pan_number_image 
+            ? req.files.pan_number_image[0].path 
             : user?.profile?.pan_number_image || null;
-        const aadharFrontPath = Array.isArray(aadhar_number_image_front) && aadhar_number_image_front.length > 0 
-            ? aadhar_number_image_front[0]?.path 
+
+        const aadharFrontPath = req.files?.aadhar_number_image_front 
+            ? req.files.aadhar_number_image_front[0].path 
             : user?.profile?.aadhar_number_image_front || null;
-        const aadharBackPath = Array.isArray(aadhar_number_image_back) && aadhar_number_image_back.length > 0 
-            ? aadhar_number_image_back[0]?.path 
+
+        const aadharBackPath = req.files?.aadhar_number_image_back 
+            ? req.files.aadhar_number_image_back[0].path 
             : user?.profile?.aadhar_number_image_back || null;
 
-        if (!panImagePath || !aadharFrontPath || !aadharBackPath) {
-            return res.status(400).json({
-                success: false,
-                message: 'Missing required image files'
-            });
-        } 
-
-        console.log(panImagePath, aadharFrontPath, aadharBackPath);
         // Update or create profile with KYC details
         if (user?.profile?.id) {
             // Update existing profile
-            const updatedProfile = await user.profile.update({
+            await user.profile.update({
                 pan_number,
                 aadhar_number,
                 pan_number_image: panImagePath,
@@ -538,18 +552,9 @@ const kycform = async (req, res) => {
                 aadhar_number_image_back: aadharBackPath,
                 kyc_status: 'Submitted'
             });
-            
-            const userdetails = await getUserDetails(user_id);
-    
-            return res.json({
-                success: true,
-                message: "KYC details updated successfully",
-                data: userdetails
-            });
-        
-        } else {            
+        } else {
             // Create new profile
-            const newProfile = await Profile.create({
+            await Profile.create({
                 user_id: user.id,
                 pan_number,
                 aadhar_number,
@@ -558,22 +563,20 @@ const kycform = async (req, res) => {
                 aadhar_number_image_back: aadharBackPath,
                 kyc_status: 'Submitted'
             });
-            
-            const userdetails = await getUserDetails(user_id);
-    
-            return res.json({
-                success: true,
-                message: "KYC details added successfully",
-                data: userdetails
-            });
         }
-        
+
+        const userdetails = await getUserDetails(user_id);
+        return res.json({
+            success: true,
+            message: 'KYC details updated successfully',
+            data: userdetails
+        });
+
     } catch (error) {
         console.error('KYC form error:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: 'Failed to save KYC details',
-            error: error.message
+            message: 'Failed to update KYC details'
         });
     }
 };
@@ -582,14 +585,12 @@ const kycform = async (req, res) => {
 
 const profileform = async (req, res) => {
     try {
-        const {update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise  } = req.body;
-        
-        console.log(req.body);
-        
+        const { user_id, email, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, guardian_relation } = req.body;
         const { profile_image, divyang_certificate } = req.files;
         console.log(profile_image, divyang_certificate);
         console.log("===========profile form==============");
-        
+        console.log(req.files);
+        console.log("-----------------------------------");
         // console.log(req.body);
         // Validate input
         if (!user_id || !nominee_name || !nominee_relation || !guardian_relation) {
@@ -623,17 +624,10 @@ const profileform = async (req, res) => {
             ? profile_image[0]?.path 
             : user?.profile?.profile_image || null;
 
-        // const divyangCertificatePath = Array.isArray(divyang_certificate) && divyang_certificate.length > 0 
-        //     ? divyang_certificate[0]?.path 
-        //     : user?.profile?.divyang_certificate || null;
+        const divyangCertificatePath = Array.isArray(divyang_certificate) && divyang_certificate.length > 0 
+            ? divyang_certificate[0]?.path 
+            : user?.profile?.divyang_certificate || null;
 
-        const divyangCertificatePath = is_divyang === 'true' 
-            ? (Array.isArray(divyang_certificate) && divyang_certificate.length > 0 
-                ? divyang_certificate[0]?.path 
-                : user?.profile?.divyang_certificate || null)
-            : null;
-        
-// console.log("is_divyang", is_divyang);
         console.log(profileImagePath, divyangCertificatePath);
 
         // Ensure files are uploaded
@@ -644,26 +638,11 @@ const profileform = async (req, res) => {
             });
         }
 
-        // Update user details
-        if(update_by && update_by === 'admin') {
-            user.name = name;
-            user.mobile_number = mobile_number;
-            user.gender = gender;
-            user.date_of_birth = date_of_birth;
-            user.guardian_name = guardian_name;            
-        }            
-        user.email_id = email_id;
-        user.guardian_relation = guardian_relation;
-            
-        // console.log("before Updated user details:", user);
-        await user.save();
-        // console.log("after Updated user details:", user);
-
-        if (!update_by || update_by !== 'admin') {
-            is_agent = user?.profile?.is_agent;
-            is_fanchise = user?.profile?.is_fanchise;            
+        if((email && email !== user.email_id) || (guardian_relation && guardian_relation !== user.guardian_relation)) {
+            user.email_id = email;
+            user.guardian_relation = guardian_relation;
+            await user.save();
         }
-        
         // Update or create profile with KYC details
         if (user?.profile?.id) {
             // Update existing profile
@@ -676,10 +655,10 @@ const profileform = async (req, res) => {
                 nominee_email,
                 is_divyang,
                 is_senior_citizen,
-                is_agent,
-                is_fanchise                
+                guardian_relation
             });
             
+            const message = 'Profile details updated successfully';
             const userdetails = await getUserDetails(user_id);
     
             return res.json({
@@ -858,7 +837,7 @@ const getUserDetails = async (userId) => {
         where: { user_id: userDetails.id, status: 'Active' }
     });
     
-    // console.log('Searching for inactive address with user_id:', userDetails.id);
+    console.log('Searching for inactive address with user_id:', userDetails.id);
     // Fetch latest inactive address with proper ordering
     const latestInactiveAddress = await UserAddress.findOne({
         where: { 
@@ -885,7 +864,7 @@ const getUserDetails = async (userId) => {
         where: { user_id: userDetails.id, status: 'Active' }
     });
     
-    // console.log('Searching for inactive bank with user_id:', userDetails.id);
+    console.log('Searching for inactive bank with user_id:', userDetails.id);
     // Fetch latest inactive bank with proper ordering
     const latestInactiveBank = await UserBank.findOne({
         where: { 
@@ -895,8 +874,8 @@ const getUserDetails = async (userId) => {
         order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
     });
 
-    // console.log('Active Bank:', activeBank);
-    // console.log('Latest Inactive Bank:', latestInactiveBank);
+    console.log('Active Bank:', activeBank);
+    console.log('Latest Inactive Bank:', latestInactiveBank);
     
     // Attach structured bank data
     userResponse.userBank = {
@@ -943,14 +922,14 @@ const viewMemberDetails = async (req, res) => {
                 user: null
             });
         }
-
+        const user = JSON.stringify(req.session.user, null, 2);
         res.render('members/view', {
             title: 'View Member - Vertex Admin',
             style: '',
             script: '',
             currentPage: 'members',
             member: member,
-            user: JSON.stringify(req.session.user, null, 2)
+            user: user
         });
     } catch (error) {
         console.error('View member error:', error);
@@ -966,7 +945,6 @@ const viewMemberDetails = async (req, res) => {
 };
 
 const editMember = async (req, res) => {
-    const user = JSON.stringify(req.session.user, null, 2);
     try {
         const { id } = req.params;
         const member = await User.findOne({
@@ -998,8 +976,7 @@ const editMember = async (req, res) => {
             });
         }
 
-        // console.log('Member details on editMember:', member);
-
+        console.log('Member details on editMember:', member);
 
         res.render('members/edit', {
             title: 'Edit Member - Vertex Admin',
@@ -1007,7 +984,7 @@ const editMember = async (req, res) => {
             script: '',
             currentPage: 'members',
             member: member,
-            user: user
+            user: JSON.stringify(req.session.user, null, 2)
         });
     } catch (error) {
         console.error('Edit member error:', error);

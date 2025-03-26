@@ -57,6 +57,16 @@ Profile.init({
     allowNull: false,
     defaultValue: false
   },
+  is_fanchise: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
+  is_agent: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
+  },
   profile_image: {
     type: DataTypes.STRING(255),
     allowNull: true
