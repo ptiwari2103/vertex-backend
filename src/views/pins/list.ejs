@@ -1,0 +1,336 @@
+<%- contentFor('title') %>Pin Management - Vertex Admin
+
+<%- contentFor('style') %>
+<style>
+    .main-content {
+        padding: 20px;
+    }
+    .filters-section {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .table-section {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .date-filter {
+        max-width: 150px;
+    }
+</style>
+
+<%- contentFor('body') %>
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Pin Management</h2>
+        <div>
+            <button type="button" class="btn btn-success me-2" onclick="openBulkAssignModal()" id="bulkAssignBtn" disabled>
+                <i class="bx bx-user-plus"></i> Assign To
+            </button>
+            <button type="button" class="btn btn-primary" onclick="openAddPinModal()">
+                <i class="bx bx-plus"></i> Add Pins
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <form id="filterForm" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Assigned To</label>
+                <select class="form-select" name="assigned_to">
+                    <option value="">All</option>
+                    <% users.forEach(user => { %>
+                        <option value="<%= user.id %>"><%= user.name %> (<%= user.user_id %>)</option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Used By</label>
+                <input type="text" class="form-control" name="used_by" placeholder="Search...">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Created Date</label>
+                <input type="date" class="form-control date-filter" name="created_date">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Assigned Date</label>
+                <input type="date" class="form-control date-filter" name="assigned_date">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Used Date</label>
+                <input type="date" class="form-control date-filter" name="used_date">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="bx bx-filter-alt"></i> Filter
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetFilters()">
+                    <i class="bx bx-reset"></i> Reset
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll()">
+                        </th>
+                        <th>Pin</th>
+                        <th>Assigned To</th>
+                        <th>Used By</th>
+                        <th>Created Date</th>
+                        <th>Assigned Date</th>
+                        <th>Used Date</th>
+                    </tr>
+                </thead>
+                <tbody id="pinsTableBody">
+                    <% pins.forEach(pin => { %>
+                        <tr>
+                            <td>
+                                <% if (!pin.assigned_to) { %>
+                                    <input type="checkbox" class="form-check-input pin-checkbox" value="<%= pin.id %>" onchange="updateBulkAssignButton()">
+                                <% } %>
+                            </td>
+                            <td><%= pin.pin %></td>
+                            <td>
+                                <% if (pin.assignedUser) { %>
+                                    <%= pin.assignedUser.name %>
+                                <% } else { %>
+                                    -
+                                <% } %>
+                            </td>
+                            <td>
+                                <% if (pin.usedUser) { %>
+                                    <%= pin.usedUser.name %>
+                                <% } else { %>
+                                    -
+                                <% } %>
+                            </td>
+                            <td><%= new Date(pin.created_at).toLocaleDateString() %></td>
+                            <td><%= pin.assigned_date ? new Date(pin.assigned_date).toLocaleDateString() : '-' %></td>
+                            <td><%= pin.used_date ? new Date(pin.used_date).toLocaleDateString() : '-' %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div>
+                Showing <span id="startRecord">1</span> to <span id="endRecord">10</span> of <span id="totalRecords"><%= pagination.totalPins %></span> entries
+            </div>
+            <nav>
+                <ul class="pagination mb-0">
+                    <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>" <%= pagination.currentPage === 1 ? 'tabindex="-1"' : '' %>>Previous</a>
+                    </li>
+                    <% for(let i = 1; i <= pagination.totalPages; i++) { %>
+                        <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                            <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                        </li>
+                    <% } %>
+                    <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>" <%= pagination.currentPage === pagination.totalPages ? 'tabindex="-1"' : '' %>>Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Add Pin Modal -->
+<div class="modal fade" id="addPinModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Pins</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPinForm" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Assigned To (Optional)</label>
+                        <select class="form-select" name="assigned_to">
+                            <option value="">Select User...</option>
+                            <% users.forEach(user => { %>
+                                <option value="<%= user.id %>"><%= user.name %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Number of Pins to Create *</label>
+                        <select class="form-select" name="pin_count" required>
+                            <option value="">Select...</option>
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <div class="invalid-feedback">Please select number of pins to create</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddPinForm()">Create Pins</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Assign Modal -->
+<div class="modal fade" id="bulkAssignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Pins</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkAssignForm" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label class="form-label">Assign To *</label>
+                        <select class="form-select" name="assigned_to" required>
+                            <option value="">Select User...</option>
+                            <% users.forEach(user => { %>
+                                <option value="<%= user.id %>"><%= user.name %></option>
+                            <% }); %>
+                        </select>
+                        <div class="invalid-feedback">Please select a user to assign the pins to</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitBulkAssignForm()">Assign Pins</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('script') %>
+<script>
+    // Initialize Bootstrap modals
+    const addPinModal = new bootstrap.Modal(document.getElementById('addPinModal'));
+    const bulkAssignModal = new bootstrap.Modal(document.getElementById('bulkAssignModal'));
+
+    function openAddPinModal() {
+        document.getElementById('addPinForm').reset();
+        addPinModal.show();
+    }
+
+    function openBulkAssignModal() {
+        document.getElementById('bulkAssignForm').reset();
+        bulkAssignModal.show();
+    }
+
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.pin-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+        updateBulkAssignButton();
+    }
+
+    function updateBulkAssignButton() {
+        const selectedPins = document.querySelectorAll('.pin-checkbox:checked');
+        document.getElementById('bulkAssignBtn').disabled = selectedPins.length === 0;
+    }
+
+    function resetFilters() {
+        document.getElementById('filterForm').reset();
+        document.getElementById('filterForm').submit();
+    }
+
+    async function submitAddPinForm() {
+        const form = document.getElementById('addPinForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/pins/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create pins');
+            }
+
+            window.location.reload();
+        } catch (error) {
+            alert('Error creating pins: ' + error.message);
+        }
+    }
+
+    async function submitBulkAssignForm() {
+        const form = document.getElementById('bulkAssignForm');
+        if (!form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+        }
+
+        const selectedPins = Array.from(document.querySelectorAll('.pin-checkbox:checked')).map(cb => cb.value);
+        const formData = new FormData(form);
+        const data = {
+            pin_ids: selectedPins,
+            assigned_to: formData.get('assigned_to'),
+        };
+
+        try {
+            const response = await fetch('/pins/bulk-assign', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to assign pins');
+            }
+
+            window.location.reload();
+        } catch (error) {
+            alert('Error assigning pins: ' + error.message);
+        }
+    }
+
+    // Handle filter form submission
+    document.getElementById('filterForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const searchParams = new URLSearchParams();
+        
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                searchParams.append(key, value);
+            }
+        }
+
+        window.location.href = `?${searchParams.toString()}`;
+    });
+</script>

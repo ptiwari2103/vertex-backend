@@ -3,16 +3,10 @@ const { VertexPin } = require('../models');
 const pinController = require("../controllers/pinController");
 const router = express.Router();
 
-// Get all pins
+// Pin management routes
 router.get('/allpins', pinController.getAllPins);
-
-// Add new pin
-// router.post('/addpin', pinController.addPin);
-
-// // Update pin
-// router.put('/updatepin', pinController.updatePin);
-
-// // Delete pin
-// router.delete('/deletepin', pinController.deletePin);
+router.post('/create', pinController.createPins);
+router.post('/bulk-assign', pinController.bulkAssignPins);
+router.get('/assignedpins', pinController.getAssignedPins);
 
 module.exports = router;
