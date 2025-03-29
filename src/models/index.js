@@ -6,6 +6,7 @@ const Profile = require('./profile');
 const UserBank = require('./userBank');
 const UserAddress = require('./userAddress');
 const VertexPin = require('./vertexPin');
+const VertexMessage = require('./vertexMessage');
 
 // Initialize models
 const models = {
@@ -16,6 +17,7 @@ const models = {
   UserBank,
   UserAddress,
   VertexPin,
+  VertexMessage
 };
 
 // Run associations if they exist

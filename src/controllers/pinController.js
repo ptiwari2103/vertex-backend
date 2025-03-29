@@ -182,26 +182,65 @@ const bulkAssignPins = async (req, res) => {
 // Get assigned pins
 const getAssignedPins = async (req, res) => {
     try {
-        const { user_to } = req.query;
-        if (!user_to) {
-            return res.status(400).json({ error: 'User_id to is required' });
+        const { 
+            user_id,
+            page = 1,
+            limit = 10,
+            sort_by = 'created_at',
+            sort_order = 'desc'
+        } = req.query;
+        console.log(user_id, page, limit, sort_by, sort_order);
+        if (!user_id) {
+            return res.status(400).json({ error: 'User_id is required' });
         }
 
+        // Calculate offset for pagination
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        // Validate sort parameters
+        const validSortFields = ['used_by', 'created_at', 'assigned_date', 'used_date'];
+        const sortField = validSortFields.includes(sort_by) ? sort_by : 'created_at';
+        const sortOrder = ['asc', 'desc'].includes(sort_order.toLowerCase()) ? sort_order.toLowerCase() : 'desc';
+
+        console.log("sortField", sortField, "sortOrder", sortOrder);  // Debugging    
+        console.log("offset", offset, "limit", limit); 
+        // Get total count for pagination
+        const totalCount = await VertexPin.count({
+            where: {
+                assigned_to: user_id
+            }
+        });
+
+        // Get pins with pagination and sorting
         const pins = await VertexPin.findAll({
             where: {
-                assigned_to: user_to
+                assigned_to: user_id
             },
             include: [
                 {
                     model: User,
                     as: 'assignedUser',
                     attributes: ['id', 'name']
+                },
+                {
+                    model: User,
+                    as: 'usedUser',
+                    attributes: ['id', 'name']
                 }
-            ]
+            ],
+            order: [[sortField, sortOrder]],
+            limit: parseInt(limit),
+            offset: offset
         });
 
-        res.json(pins);
+        res.json({
+            pins,
+            total: totalCount,
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(totalCount / parseInt(limit))
+        });
     } catch (error) {
+        console.error('Error in getAssignedPins:', error);
         res.status(500).json({ error: error.message });
     }
 };

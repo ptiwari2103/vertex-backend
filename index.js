@@ -10,6 +10,7 @@ const locationRoutes = require('./src/routes/locationRoutes');
 const authRoutes = require('./src/routes/auth');
 const dashboardRoutes = require('./src/routes/dashboard');
 const pinRoutes = require('./src/routes/pinRoutes');
+const messageRoutes = require('./src/routes/messageRoutes');
 
 require("dotenv").config();
 
@@ -65,6 +66,9 @@ app.get('/', (req, res) => {
 
 // Auth routes (public)
 app.use('/auth', authRoutes);
+
+// Message routes (public)
+app.use('/messages', messageRoutes);
 
 // Protected routes
 app.use('/dashboard', dashboardRoutes);

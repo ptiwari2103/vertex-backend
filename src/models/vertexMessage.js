@@ -1,47 +1,45 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/database');
 
-class VertexPin extends Model {
+class VertexMessage extends Model {
     static associate(models) {
-        VertexPin.belongsTo(models.User, {
-            foreignKey: 'assigned_to',
+        VertexMessage.belongsTo(models.User, {
+            foreignKey: 'created_by',
             targetKey: 'id',
-            as: 'assignedUser'
-        });
-        VertexPin.belongsTo(models.User, {
-            foreignKey: 'used_by',
-            targetKey: 'id',
-            as: 'usedUser'
+            as: 'createdUser'
         });
     }
 }
 
-VertexPin.init({
+VertexMessage.init({
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    pin: {
-        type: DataTypes.STRING(8),
-        allowNull: false,
-        unique: true
+    subject: {
+        type: DataTypes.STRING(255),
+        allowNull: false
     },
-    assigned_to: {
+    message: {
         type: DataTypes.STRING,
+        allowNull: false
+    },
+    image: {
+        type: DataTypes.STRING(255),
         allowNull: true
     },
-    used_by: {
+    created_by: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: false
     },
-    assigned_date: {
+    populate_date: {
         type: DataTypes.DATE,
         allowNull: true
     },
-    used_date: {
-        type: DataTypes.DATE,
-        allowNull: true
+    send_to: {
+        type: DataTypes.JSON,
+    allowNull: false
     },
     created_at: {
         type: DataTypes.DATE,
@@ -52,12 +50,12 @@ VertexPin.init({
         type: DataTypes.DATE,
         allowNull: false,
         defaultValue: DataTypes.NOW
-    }
+    }    
 }, {
     sequelize,
-    modelName: 'VertexPin',
-    tableName: 'vertex_pins',
-    timestamps: false
+    modelName: 'VertexMessage',
+    tableName: 'vertex_messages',
+    timestamps: true
 });
 
-module.exports = VertexPin;
+module.exports = VertexMessage;
