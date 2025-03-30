@@ -6,7 +6,7 @@ class VertexMessage extends Model {
         VertexMessage.belongsTo(models.User, {
             foreignKey: 'created_by',
             targetKey: 'id',
-            as: 'createdUser'
+            as: 'createdByUser'
         });
     }
 }
@@ -19,7 +19,7 @@ VertexMessage.init({
     },
     subject: {
         type: DataTypes.STRING(255),
-        allowNull: false
+        allowNull: true
     },
     message: {
         type: DataTypes.STRING,
@@ -32,14 +32,17 @@ VertexMessage.init({
     created_by: {
         type: DataTypes.STRING,
         allowNull: false
-    },
-    populate_date: {
-        type: DataTypes.DATE,
-        allowNull: true
-    },
+    },        
     send_to: {
         type: DataTypes.JSON,
-    allowNull: false
+    allowNull: true
+    },
+    status: {
+        type: DataTypes.ENUM('Active', 'Inactive'),
+        defaultValue: 'Active',
+        validate: {
+            isIn: [['Active', 'Inactive']]
+        }
     },
     created_at: {
         type: DataTypes.DATE,
@@ -55,7 +58,7 @@ VertexMessage.init({
     sequelize,
     modelName: 'VertexMessage',
     tableName: 'vertex_messages',
-    timestamps: true
+    timestamps: false
 });
 
 module.exports = VertexMessage;

@@ -3,7 +3,8 @@ const messageController = require("../controllers/messageController");
 const router = express.Router();
 
 // Message management routes
-router.get('/allmessages', messageController.getAllMessage);
+router.get('/allmessages', messageController.getAllMessages);
+router.get('/members', messageController.getAllMembers);
 router.post('/create', messageController.createMessage);
     
 module.exports = router;

@@ -1,0 +1,253 @@
+<%- contentFor('title') %>Pin Management - Vertex Admin
+
+<%- contentFor('style') %>
+<style>
+    .main-content {
+        padding: 20px;
+    }
+    .filters-section {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .table-section {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .date-filter {
+        max-width: 150px;
+    }
+    .modal-dialog {
+        max-width: 600px;
+    }
+    .preview-image {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 10px;
+    }
+</style>
+
+<%- contentFor('body') %>
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Message Management</h2>
+        <div>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addMessageModal">
+                <i class="bx bx-plus"></i> Add Message
+            </button>            
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Created By</th>
+                        <th>Created Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="pinsTableBody">
+                    <% messages.forEach(message => { %>
+                        <tr>
+                            <td><%= message.subject %></td>
+                            <td><%= message.createdByUser.name %></td>
+                            <td><%= new Date(message.created_at).toLocaleDateString() %></td>
+                            <td><%= message.status %></td>
+                            <td>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openEditPinModal(<%= message.id %>)">
+                                    <i class="bx bx-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deletePin(<%= message.id %>)">
+                                    <i class="bx bx-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div>
+                Showing <span id="startRecord">1</span> to <span id="endRecord">10</span> of <span id="totalRecords"><%= pagination.totalPins %></span> entries
+            </div>
+            <nav>
+                <ul class="pagination mb-0">
+                    <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>" <%= pagination.currentPage === 1 ? 'tabindex="-1"' : '' %>>Previous</a>
+                    </li>
+                    <% for(let i = 1; i <= pagination.totalPages; i++) { %>
+                        <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                            <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                        </li>
+                    <% } %>
+                    <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>" <%= pagination.currentPage === pagination.totalPages ? 'tabindex="-1"' : '' %>>Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Add Message Modal -->
+<div class="modal fade" id="addMessageModal" tabindex="-1" aria-labelledby="addMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMessageModalLabel">Add New Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="messageForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="subject" name="subject">
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message *</label>
+                        <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Image</label>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/jpeg,image/png" onchange="previewImage(event)">
+                        <img id="imagePreview" class="preview-image d-none" alt="Preview">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Send To</label>
+                        <div class="mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleAllMembers(this)">
+                                <label class="form-check-label" for="checkAll">
+                                    <strong>Check All Members</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="membersList" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            <div class="row">
+                                <% if (members && members.length > 0) { %>
+                                    <% members.forEach((member, index) => { %>
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input member-checkbox" 
+                                                       type="checkbox" 
+                                                       name="send_to" 
+                                                       value="<%= member.id %>" 
+                                                       id="member-<%= member.id %>"
+                                                       onchange="updateCheckAll()">
+                                                <label class="form-check-label" for="member-<%= member.id %>">
+                                                    <%= member.name %> 
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                <% } else { %>
+                                    <div class="col-12">
+                                        <p class="text-muted">No members found</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="Active" selected>Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('script') %>
+<script>
+// Toggle all members function
+function toggleAllMembers(checkbox) {
+    const memberCheckboxes = document.querySelectorAll('.member-checkbox');
+    memberCheckboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+}
+
+// Update check all checkbox state
+function updateCheckAll() {
+    const checkAllBox = document.getElementById('checkAll');
+    const memberCheckboxes = document.querySelectorAll('.member-checkbox');
+    const checkedCount = document.querySelectorAll('.member-checkbox:checked').length;
+    
+    checkAllBox.checked = checkedCount === memberCheckboxes.length;
+    checkAllBox.indeterminate = checkedCount > 0 && checkedCount < memberCheckboxes.length;
+}
+
+// Image preview function
+function previewImage(event) {
+    const file = event.target.files[0];
+    const preview = document.getElementById('imagePreview');
+    
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.classList.remove('d-none');
+        }
+        reader.readAsDataURL(file);
+    } else {
+        preview.src = '';
+        preview.classList.add('d-none');
+    }
+}
+
+// Handle form submission
+document.getElementById('messageForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    // Get selected members
+    const selectedMembers = Array.from(document.querySelectorAll('input[name="send_to"]:checked'))
+        .map(cb => cb.value);
+    formData.set('send_to', JSON.stringify(selectedMembers));
+
+    try {
+        const response = await fetch('/messages/create', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // Close modal and reload page
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addMessageModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            alert(result.error || 'Error creating message');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while creating the message. Please try again.');
+    }
+});
+</script>

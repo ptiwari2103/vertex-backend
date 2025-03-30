@@ -1,0 +1,208 @@
+<%- include('../partials/header') %>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Messages</h1>
+        <button onclick="openAddMessageModal()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Add Message
+        </button>
+    </div>
+
+    <!-- Message List Table -->
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+        <table class="min-w-full">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="px-6 py-3 border-b text-left">
+                        <a href="?sort_by=subject&sort_order=<%= sort.field === 'subject' && sort.order === 'asc' ? 'desc' : 'asc' %>" 
+                           class="flex items-center">
+                            Subject
+                            <% if(sort.field === 'subject') { %>
+                                <span class="ml-1"><%= sort.order === 'asc' ? '↑' : '↓' %></span>
+                            <% } %>
+                        </a>
+                    </th>
+                    <th class="px-6 py-3 border-b text-left">
+                        <a href="?sort_by=created_by&sort_order=<%= sort.field === 'created_by' && sort.order === 'asc' ? 'desc' : 'asc' %>"
+                           class="flex items-center">
+                            Created By
+                            <% if(sort.field === 'created_by') { %>
+                                <span class="ml-1"><%= sort.order === 'asc' ? '↑' : '↓' %></span>
+                            <% } %>
+                        </a>
+                    </th>
+                    <th class="px-6 py-3 border-b text-left">
+                        <a href="?sort_by=created_at&sort_order=<%= sort.field === 'created_at' && sort.order === 'asc' ? 'desc' : 'asc' %>"
+                           class="flex items-center">
+                            Created Date
+                            <% if(sort.field === 'created_at') { %>
+                                <span class="ml-1"><%= sort.order === 'asc' ? '↑' : '↓' %></span>
+                            <% } %>
+                        </a>
+                    </th>
+                    <th class="px-6 py-3 border-b text-left">
+                        <a href="?sort_by=populate_date&sort_order=<%= sort.field === 'populate_date' && sort.order === 'asc' ? 'desc' : 'asc' %>"
+                           class="flex items-center">
+                            Populate Date
+                            <% if(sort.field === 'populate_date') { %>
+                                <span class="ml-1"><%= sort.order === 'asc' ? '↑' : '↓' %></span>
+                            <% } %>
+                        </a>
+                    </th>
+                    <th class="px-6 py-3 border-b text-left">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% messages.forEach(function(message) { %>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 border-b"><%= message.subject || '-' %></td>
+                        <td class="px-6 py-4 border-b"><%= message.createdByUser?.name || '-' %></td>
+                        <td class="px-6 py-4 border-b"><%= new Date(message.created_at).toLocaleDateString() %></td>
+                        <td class="px-6 py-4 border-b"><%= new Date(message.populate_date).toLocaleDateString() %></td>
+                        <td class="px-6 py-4 border-b">
+                            <button onclick="viewMessage('<%= message.id %>')" 
+                                    class="text-blue-500 hover:text-blue-700">
+                                View
+                            </button>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="px-6 py-4 flex justify-between items-center border-t">
+            <div>
+                Showing <%= ((currentPage - 1) * itemsPerPage) + 1 %> to <%= Math.min(currentPage * itemsPerPage, total) %> of <%= total %> entries
+            </div>
+            <div class="flex space-x-2">
+                <% if (currentPage > 1) { %>
+                    <a href="?page=<%= currentPage - 1 %>" 
+                       class="px-3 py-1 border rounded hover:bg-gray-100">
+                        Previous
+                    </a>
+                <% } %>
+                
+                <% for(let i = 1; i <= totalPages; i++) { %>
+                    <a href="?page=<%= i %>" 
+                       class="px-3 py-1 border rounded <%= currentPage === i ? 'bg-blue-500 text-white' : 'hover:bg-gray-100' %>">
+                        <%= i %>
+                    </a>
+                <% } %>
+                
+                <% if (currentPage < totalPages) { %>
+                    <a href="?page=<%= currentPage + 1 %>" 
+                       class="px-3 py-1 border rounded hover:bg-gray-100">
+                        Next
+                    </a>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Message Modal -->
+<div id="addMessageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-full max-w-2xl">
+        <h2 class="text-xl font-bold mb-4">Add New Message</h2>
+        <form id="messageForm" action="/messages/create" method="POST" enctype="multipart/form-data">
+            <div class="mb-4">
+                <label class="block mb-1">Subject</label>
+                <input type="text" name="subject" class="w-full border rounded p-2">
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1">Message *</label>
+                <textarea name="message" required class="w-full border rounded p-2" rows="4"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1">Image</label>
+                <input type="file" name="image" accept="image/jpeg,image/png" class="w-full border rounded p-2">
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1">Populate Date *</label>
+                <input type="datetime-local" name="populate_date" required class="w-full border rounded p-2">
+            </div>
+            <div class="mb-4">
+                <label class="block mb-1">Send To</label>
+                <div id="membersList" class="max-h-40 overflow-y-auto border rounded p-2">
+                    Loading members...
+                </div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeAddMessageModal()" 
+                        class="px-4 py-2 border rounded">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+async function loadMembers() {
+    try {
+        const response = await fetch('/messages/members');
+        const data = await response.json();
+        const membersList = document.getElementById('membersList');
+        membersList.innerHTML = data.members.map(member => `
+            <div class="flex items-center gap-2 p-1">
+                <input type="checkbox" name="send_to" value="${member.id}" 
+                       id="member-${member.id}">
+                <label for="member-${member.id}">
+                    ${member.name} (${member.email})
+                </label>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading members:', error);
+    }
+}
+
+function openAddMessageModal() {
+    document.getElementById('addMessageModal').classList.remove('hidden');
+    loadMembers();
+}
+
+function closeAddMessageModal() {
+    document.getElementById('addMessageModal').classList.add('hidden');
+}
+
+function viewMessage(id) {
+    // Implement view message functionality
+    console.log('View message:', id);
+}
+
+// Handle form submission
+document.getElementById('messageForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    // Get selected members
+    const selectedMembers = Array.from(document.querySelectorAll('input[name="send_to"]:checked'))
+        .map(cb => cb.value);
+    formData.set('send_to', JSON.stringify(selectedMembers));
+
+    try {
+        const response = await fetch('/messages/create', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            closeAddMessageModal();
+            window.location.reload();
+        } else {
+            const error = await response.json();
+            alert(error.message || 'Error creating message');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating message');
+    }
+});
+</script>
+
+<%- include('../partials/footer') %>
