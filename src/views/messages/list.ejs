@@ -63,10 +63,13 @@
                             <td><%= new Date(message.created_at).toLocaleDateString() %></td>
                             <td><%= message.status %></td>
                             <td>
-                                <button type="button" class="btn btn-primary btn-sm" onclick="openEditPinModal(<%= message.id %>)">
+                                <button type="button" class="btn btn-info btn-sm me-1" onclick="viewMessage('<%= message.id %>')">
+                                    <i class="bx bx-show"></i>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm me-1" onclick="editMessage('<%= message.id %>')">
                                     <i class="bx bx-edit"></i>
                                 </button>
-                                <button type="button" class="btn btn-danger btn-sm" onclick="deletePin(<%= message.id %>)">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteMessage('<%= message.id %>')">
                                     <i class="bx bx-trash"></i>
                                 </button>
                             </td>
@@ -177,30 +180,165 @@
     </div>
 </div>
 
+<!-- View Message Modal -->
+<div class="modal fade" id="viewMessageModal" tabindex="-1" aria-labelledby="viewMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewMessageModalLabel">View Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Subject</label>
+                    <p id="viewSubject" class="form-control-plaintext"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Message</label>
+                    <p id="viewMessage" class="form-control-plaintext"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Image</label>
+                    <div id="viewImage"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <p id="viewStatus" class="form-control-plaintext"></p>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Send To</label>
+                    <div id="viewSendTo" class="border rounded p-2"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Message Modal -->
+<div class="modal fade" id="editMessageModal" tabindex="-1" aria-labelledby="editMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editMessageModalLabel">Edit Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editMessageForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <input type="hidden" id="editMessageId" name="id">
+                    <div class="mb-3">
+                        <label for="editSubject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="editSubject" name="subject">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMessageText" class="form-label">Message *</label>
+                        <textarea class="form-control" id="editMessageText" name="message" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editImage" class="form-label">Image</label>
+                        <input type="file" class="form-control" id="editImage" name="image" accept="image/jpeg,image/png" onchange="previewImage(event, 'editImagePreview')">
+                        <img id="editImagePreview" class="preview-image d-none mt-2" alt="Preview">
+                        <div id="currentImage" class="mt-2"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Send To</label>
+                        <div class="mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editCheckAll" onchange="toggleAllMembers(this, 'edit')">
+                                <label class="form-check-label" for="editCheckAll">
+                                    <strong>Check All Members</strong>
+                                </label>
+                            </div>
+                        </div>
+                        <div id="editMembersList" class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                            <div class="row">
+                                <% if (members && members.length > 0) { %>
+                                    <% members.forEach((member, index) => { %>
+                                        <div class="col-md-6 mb-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input edit-member-checkbox" 
+                                                       type="checkbox" 
+                                                       name="send_to" 
+                                                       value="<%= member.id %>" 
+                                                       id="edit-member-<%= member.id %>"
+                                                       onchange="updateCheckAll('edit')">
+                                                <label class="form-check-label" for="edit-member-<%= member.id %>">
+                                                    <%= member.name %>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStatus" class="form-label">Status</label>
+                        <select class="form-select" id="editStatus" name="status" required>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <%- contentFor('script') %>
 <script>
-// Toggle all members function
-function toggleAllMembers(checkbox) {
-    const memberCheckboxes = document.querySelectorAll('.member-checkbox');
+// Load members data on page load
+let members = [];
+
+async function loadMembers() {
+    try {
+        const response = await fetch('/messages/members');
+        const result = await response.json();
+        if (result.success) {
+            members = result.data;
+        } else {
+            console.error('Error loading members:', result.error);
+        }
+    } catch (error) {
+        console.error('Error loading members:', error);
+    }
+}
+
+// Call loadMembers when page loads
+document.addEventListener('DOMContentLoaded', loadMembers);
+
+// Toggle all members function (updated for both add and edit forms)
+function toggleAllMembers(checkbox, type = 'add') {
+    const selector = type === 'edit' ? '.edit-member-checkbox' : '.member-checkbox';
+    const memberCheckboxes = document.querySelectorAll(selector);
     memberCheckboxes.forEach(cb => {
         cb.checked = checkbox.checked;
     });
 }
 
 // Update check all checkbox state
-function updateCheckAll() {
-    const checkAllBox = document.getElementById('checkAll');
-    const memberCheckboxes = document.querySelectorAll('.member-checkbox');
-    const checkedCount = document.querySelectorAll('.member-checkbox:checked').length;
+function updateCheckAll(type = 'add') {
+    const selector = type === 'edit' ? '.edit-member-checkbox' : '.member-checkbox';
+    const checkAllId = type === 'edit' ? 'editCheckAll' : 'checkAll';
+    
+    const checkAllBox = document.getElementById(checkAllId);
+    const memberCheckboxes = document.querySelectorAll(selector);
+    const checkedCount = document.querySelectorAll(`${selector}:checked`).length;
     
     checkAllBox.checked = checkedCount === memberCheckboxes.length;
     checkAllBox.indeterminate = checkedCount > 0 && checkedCount < memberCheckboxes.length;
 }
 
 // Image preview function
-function previewImage(event) {
+function previewImage(event, previewId = 'imagePreview') {
     const file = event.target.files[0];
-    const preview = document.getElementById('imagePreview');
+    const preview = document.getElementById(previewId);
     
     if (file) {
         const reader = new FileReader();
@@ -223,7 +361,7 @@ document.getElementById('messageForm').addEventListener('submit', async function
     
     // Get selected members
     const selectedMembers = Array.from(document.querySelectorAll('input[name="send_to"]:checked'))
-        .map(cb => cb.value);
+        .map(cb => parseInt(cb.value));
     formData.set('send_to', JSON.stringify(selectedMembers));
 
     try {
@@ -248,6 +386,169 @@ document.getElementById('messageForm').addEventListener('submit', async function
     } catch (error) {
         console.error('Error:', error);
         alert('An error occurred while creating the message. Please try again.');
+    }
+});
+
+// View message function
+async function viewMessage(id) {
+    try {
+        const response = await fetch(`/messages/${id}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const message = result.data;
+            document.getElementById('viewSubject').textContent = message.subject || 'N/A';
+            document.getElementById('viewMessage').textContent = message.message;
+            document.getElementById('viewStatus').textContent = message.status;
+            
+            // Handle image
+            const viewImage = document.getElementById('viewImage');
+            if (message.image) {
+                viewImage.innerHTML = `<img src="/${message.image}" class="img-fluid" alt="Message Image">`;
+            } else {
+                viewImage.innerHTML = '<p class="text-muted">No image attached</p>';
+            }
+            
+            // Handle send to
+            const viewSendTo = document.getElementById('viewSendTo');
+            if (message.send_to && message.send_to.length > 0) {
+                const memberNames = message.send_to.map(id => {
+                    const member = members.find(m => m.id === parseInt(id));
+                    return member ? member.name : 'Unknown';
+                });
+                viewSendTo.innerHTML = memberNames.join(', ');
+            } else {
+                viewSendTo.innerHTML = '<p class="text-muted">No members selected</p>';
+            }
+            
+            const viewModal = new bootstrap.Modal(document.getElementById('viewMessageModal'));
+            viewModal.show();
+        } else {
+            alert('Error loading message: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error loading message');
+    }
+}
+
+// Edit message function
+async function editMessage(id) {
+    try {
+        const response = await fetch(`/messages/${id}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            const message = result.data;
+            document.getElementById('editMessageId').value = message.id;
+            document.getElementById('editSubject').value = message.subject || '';
+            document.getElementById('editMessageText').value = message.message;
+            document.getElementById('editStatus').value = message.status;
+            
+            // Handle image preview
+            const currentImage = document.getElementById('currentImage');
+            if (message.image) {
+                currentImage.innerHTML = `
+                    <p>Current image:</p>
+                    <img src="/${message.image}" class="img-fluid" style="max-height: 100px" alt="Current Image">
+                `;
+            } else {
+                currentImage.innerHTML = '';
+            }
+            
+            // Parse send_to array
+            let sendToArray = [];
+            if (message.send_to) {
+                try {
+                    sendToArray = typeof message.send_to === 'string' 
+                        ? JSON.parse(message.send_to) 
+                        : message.send_to;
+                } catch (e) {
+                    console.error('Error parsing send_to:', e);
+                    sendToArray = [];
+                }
+            }
+            
+            // Handle send to checkboxes
+            const checkboxes = document.querySelectorAll('.edit-member-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = sendToArray.some(id => parseInt(id) === parseInt(cb.value));
+            });
+            
+            // Update check all state
+            updateCheckAll('edit');
+            
+            const editModal = new bootstrap.Modal(document.getElementById('editMessageModal'));
+            editModal.show();
+        } else {
+            alert('Error loading message: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error loading message');
+    }
+}
+
+// Delete message function
+async function deleteMessage(id) {
+    if (!confirm('Are you sure you want to delete this message?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/messages/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            window.location.reload();
+        } else {
+            alert(result.error || 'Error deleting message');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error deleting message');
+    }
+}
+
+// Handle edit form submission
+document.getElementById('editMessageForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const messageId = document.getElementById('editMessageId').value;
+    
+    // Get selected members
+    const selectedMembers = Array.from(document.querySelectorAll('.edit-member-checkbox:checked'))
+        .map(cb => parseInt(cb.value));
+    formData.set('send_to', JSON.stringify(selectedMembers));
+
+    try {
+        const response = await fetch(`/messages/${messageId}`, {
+            method: 'PUT',
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editMessageModal'));
+            modal.hide();
+            window.location.reload();
+        } else {
+            alert(result.error || 'Error updating message');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while updating the message. Please try again.');
     }
 });
 </script>

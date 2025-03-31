@@ -659,10 +659,10 @@ const profileform = async (req, res) => {
         await user.save();
         // console.log("after Updated user details:", user);
 
-        if (!update_by || update_by !== 'admin') {
-            is_agent = user?.profile?.is_agent;
-            is_fanchise = user?.profile?.is_fanchise;            
-        }
+        // if (!update_by || update_by !== 'admin') {
+        //     is_agent = user?.profile?.is_agent;
+        //     is_fanchise = user?.profile?.is_fanchise;            
+        // }
         
         // Update or create profile with KYC details
         if (user?.profile?.id) {
@@ -675,9 +675,7 @@ const profileform = async (req, res) => {
                 nominee_contact,
                 nominee_email,
                 is_divyang,
-                is_senior_citizen,
-                is_agent,
-                is_fanchise                
+                is_senior_citizen                
             });
             
             const userdetails = await getUserDetails(user_id);

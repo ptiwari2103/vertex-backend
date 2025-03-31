@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { Op } = require('sequelize');
+const sequelize = require('../config/database'); // Fixed the sequelize import path
 
 // Configure multer for image upload
 const storage = multer.diskStorage({
@@ -35,7 +36,7 @@ const upload = multer({
     }
 }).single('image');
 
-exports.getAllMessages = async (req, res) => {
+const getAllMessages = async (req, res) => {
     console.log('getAllMessages');
     try {
         const page = parseInt(req.query.page) || 1;
@@ -67,8 +68,10 @@ exports.getAllMessages = async (req, res) => {
         const members = await User.findAll({
             attributes: ['id', 'name'],
             where: { 
-                status: { [Op.in]: ['active', 'approved'] } 
-            }
+                status: { [Op.in]: ['active', 'approved'] },
+                user_type: 'member'
+            },
+            order: [['name', 'ASC']]
         });
 
         // For EJS template
@@ -90,7 +93,7 @@ exports.getAllMessages = async (req, res) => {
     }
 };
 
-exports.createMessage = async (req, res) => {
+const createMessage = async (req, res) => {
     upload(req, res, async (err) => {
         try {
             if (err instanceof multer.MulterError) {
@@ -100,14 +103,15 @@ exports.createMessage = async (req, res) => {
             }
 
             const { subject, message, send_to, status } = req.body;
-            console.log(subject, message, send_to, status, req.session.user);
-            console.log(req.session.user?.id);
+            // console.log(subject, message, send_to, status, req.session.user);
+            // console.log(req.session.user?.id);
             if (!message) {
                 throw new Error('Message is required');
             }
 
             const sendToArray = typeof send_to === 'string' ? JSON.parse(send_to) : send_to;
-            console.log(sendToArray);
+            console.log("in create send_to=", send_to);
+            console.log("in create sendToArray=", sendToArray);
             const newMessage = await VertexMessage.create({
                 subject,
                 message,
@@ -139,4 +143,176 @@ exports.createMessage = async (req, res) => {
             res.status(500).render('error', { error: error.message });
         }
     });
+};
+
+// Get message by ID
+const getMessage = async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        const message = await VertexMessage.findOne({
+            where: { id: messageId },
+            include: [{
+                model: User,
+                as: 'createdByUser',
+                attributes: ['name']
+            }]
+        });
+
+        if (!message) {
+            return res.status(404).json({ success: false, error: 'Message not found' });
+        }
+
+        // Parse send_to from string to array if needed
+        if (message.send_to && typeof message.send_to === 'string') {
+            message.send_to = JSON.parse(message.send_to);
+        }
+
+        res.json({ success: true, data: message });
+    } catch (error) {
+        console.error('Error in getMessage:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// Update message
+const updateMessage = async (req, res) => {
+    upload(req, res, async (err) => {
+        try {
+            if (err) {
+                throw new Error(err.message);
+            }
+
+            const messageId = req.params.id;
+            const { subject, message, send_to, status } = req.body;
+            const sendToArray = typeof send_to === 'string' ? JSON.parse(send_to) : send_to;
+            console.log("in update send_to=", send_to);
+            console.log("in update sendToArray=", sendToArray);
+            const existingMessage = await VertexMessage.findByPk(messageId);
+            if (!existingMessage) {
+                throw new Error('Message not found');
+            }
+
+            // If new image is uploaded, delete old image
+            if (req.file && existingMessage.image) {
+                try {
+                    fs.unlinkSync(existingMessage.image);
+                } catch (err) {
+                    console.error('Error deleting old image:', err);
+                }
+            }
+
+            await existingMessage.update({
+                subject,
+                message,
+                image: req.file ? req.file.path : existingMessage.image,
+                send_to: sendToArray,
+                status
+            });
+
+            res.json({
+                success: true,
+                message: 'Message updated successfully',
+                data: existingMessage
+            });
+        } catch (error) {
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            console.error('Error in updateMessage:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+};
+
+// Delete message
+const deleteMessage = async (req, res) => {
+    try {
+        const messageId = req.params.id;
+        const message = await VertexMessage.findByPk(messageId);
+        
+        if (!message) {
+            throw new Error('Message not found');
+        }
+
+        // Delete associated image if exists
+        if (message.image) {
+            try {
+                fs.unlinkSync(message.image);
+            } catch (err) {
+                console.error('Error deleting image:', err);
+            }
+        }
+
+        await message.destroy();
+        res.json({ success: true, message: 'Message deleted successfully' });
+    } catch (error) {
+        console.error('Error in deleteMessage:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get all active members
+const getAllMembers = async (req, res) => {
+    try {
+        const members = await User.findAll({
+            attributes: ['id', 'name'],
+            where: { 
+                status: { [Op.in]: ['active', 'approved'] },
+                user_type: 'member'
+            },
+            order: [['name', 'ASC']]
+        });
+
+        res.json({ success: true, data: members });
+    } catch (error) {
+        console.error('Error in getAllMembers:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+// Notification
+const notification = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        console.log("userId==", userId);
+
+        // Find all active messages where userId is in send_to array using JSON_CONTAINS
+        const messages = await VertexMessage.findAll({
+            where: {
+                status: 'Active',
+                [Op.and]: [
+                    sequelize.literal(`JSON_CONTAINS(send_to, '${userId}', '$')`)
+                ]
+            },
+            order: [['created_at', 'DESC']]
+        });
+        
+        console.log("messages==", messages);
+
+        res.json({
+            success: true,
+            data: messages.map(message => ({
+                id: message.id,
+                subject: message.subject,
+                message: message.message,
+                image: message.image,
+                created_at: message.created_at,
+                status: message.status
+            }))
+        });
+
+    } catch (error) {
+        console.error('Error in notification:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+module.exports = {
+    getAllMessages,
+    createMessage,
+    getMessage,
+    updateMessage,
+    deleteMessage,
+    getAllMembers,
+    notification
 };
