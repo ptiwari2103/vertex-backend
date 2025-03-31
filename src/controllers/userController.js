@@ -290,7 +290,7 @@ const getAllMembers = async (req, res) => {
                 {
                     model: Profile,
                     as: 'profile',
-                    attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status']
+                    attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status', 'is_agent', 'is_fanchise']
                 },
                 {
                     model: UserBank,
@@ -393,6 +393,71 @@ const updatekycStatus = async (req, res) => {
         });
     }
 };  
+
+
+const updateIsAgent = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_agent } = req.body;
+
+        const profile = await Profile.findOne({ 
+            where: { id }
+        });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Profile not found in my database.'
+            });
+        }
+
+        await profile.update({ is_agent });
+
+        res.json({
+            success: true,
+            message: 'Profile is_agent status updated successfully'
+        });
+    } catch (error) {
+        console.error('Update profile is_agent status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update profile is_agent status'
+        });
+    }
+};  
+
+
+const updateIsFranchise = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_fanchise } = req.body;
+
+        const profile = await Profile.findOne({ 
+            where: { id }
+        });
+
+        if (!profile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Profile not found in my database.'
+            });
+        }
+
+        await profile.update({ is_fanchise });
+
+        res.json({
+            success: true,
+            message: 'Profile franchise status updated successfully'
+        });
+    } catch (error) {
+        console.error('Update profile franchise status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update profile franchise status'
+        });
+    }
+};  
+
 
 const viewMember = async (req, res) => {
     try {
@@ -1038,5 +1103,7 @@ module.exports = {
     updateBankStatus,
     deleteBank,
     viewMemberDetails,
-    editMember
+    editMember,
+    updateIsAgent,
+    updateIsFranchise
 };

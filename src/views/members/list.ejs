@@ -93,6 +93,8 @@
                             <th>Name</th>
                             <th>Status</th>
                             <th>KYC Status</th>
+                            <th>Is Agent?</th>
+                            <th>Is Franchise?</th>
                             <th>Created At</th>
                             <th>Actions</th>
                         </tr>
@@ -102,7 +104,7 @@
                             <tr>
                                 <td><%= member.user_id %></td>
                                 <td><%= member.account_number %></td>
-                                <td><%= member.name %></td>
+                                <td><%= member.name %></td>                               
                                 <td>
                                     <span class="status-badge <%= member.status.toLowerCase() === 'active' ? 'status-active' : 
                                         member.status.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"
@@ -111,10 +113,23 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="status-badge <%= member.profile.kyc_status.toLowerCase() === 'approved' ? 'status-active' : 
-                                        member.profile.kyc_status.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"
-                                        onclick="updatekycStatus('<%= member.profile.id %>', '<%= member.profile.kyc_status %>')">
-                                        <%= member.profile.kyc_status %>
+                                    <span class="status-badge <%= member.profile?.kyc_status.toLowerCase() === 'approved' ? 'status-active' : 
+                                        member.profile?.kyc_status.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"
+                                        onclick="updatekycStatus('<%= member.profile?.id %>', '<%= member.profile?.kyc_status %>')">
+                                        <%= member.profile?.kyc_status || 'Inactive' %>
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="status-badge <%= (member.profile?.is_agent || 'Inactive').toLowerCase() === 'active' ? 'status-active' : 'status-inactive' %>"
+                                        onclick="updateIsAgent('<%= member.profile?.id %>', '<%= member.profile?.is_agent || 'Inactive' %>')">
+                                        <%= member.profile?.is_agent || 'Inactive' %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status-badge <%= (member.profile?.is_fanchise || 'Inactive').toLowerCase() === 'active' ? 'status-active' : 'status-inactive' %>"
+                                        onclick="updateIsFranchise('<%= member.profile?.id %>', '<%= member.profile?.is_fanchise || 'Inactive' %>')">
+                                        <%= member.profile?.is_fanchise || 'Inactive' %>
                                     </span>
                                 </td>
 
@@ -220,10 +235,61 @@
     </div>
 </div>
 
+<!-- Is Agent Update Modal -->
+<div class="modal fade" id="isAgentUpdateModal" tabindex="-1" aria-labelledby="isAgentUpdateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="isAgentUpdateModalLabel">Update Agent Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="isAgentSelect">Agent Status</label>
+                    <select class="form-select" id="isAgentSelect">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmIsAgentUpdate()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Is Franchise Update Modal -->
+<div class="modal fade" id="isFranchiseUpdateModal" tabindex="-1" aria-labelledby="isFranchiseUpdateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="isFranchiseUpdateModalLabel">Update Franchise Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="isFranchiseSelect">Franchise Status</label>
+                    <select class="form-select" id="isFranchiseSelect">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmIsFranchiseUpdate()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <%- contentFor('script') %>
 <script>
     let currentMemberId = null;
     let currentkycMemberId = null;
+    let currentFranchiseMemberId = null;
 
     async function updateStatus(id, currentStatus) {
         currentMemberId = id;
@@ -238,6 +304,22 @@
         const statusSelect = document.getElementById('kycStatusSelect');
         statusSelect.value = currentStatus;
         const modal = new bootstrap.Modal(document.getElementById('kycStatusUpdateModal'));
+        modal.show();
+    }
+
+    async function updateIsAgent(id, currentStatus) {
+        currentkycMemberId = id;
+        const statusSelect = document.getElementById('isAgentSelect');
+        statusSelect.value = currentStatus;
+        const modal = new bootstrap.Modal(document.getElementById('isAgentUpdateModal'));
+        modal.show();
+    }
+
+    async function updateIsFranchise(id, currentStatus) {
+        currentkycMemberId = id;
+        const statusSelect = document.getElementById('isFranchiseSelect');
+        statusSelect.value = currentStatus;
+        const modal = new bootstrap.Modal(document.getElementById('isFranchiseUpdateModal'));
         modal.show();
     }
 
@@ -290,6 +372,58 @@
         } catch (error) {
             console.error('Error updating status:', error);
             alert('Failed to update status');
+        }
+    }
+
+    async function confirmIsAgentUpdate() {
+        const newStatus = document.getElementById('isAgentSelect').value;
+
+        try {
+            const response = await fetch(`/members/${currentkycMemberId}/isagent`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_agent: newStatus })
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('isAgentUpdateModal'));
+                modal.hide();
+                location.reload();
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Failed to update agent status');
+            }
+        } catch (error) {
+            console.error('Error updating agent status:', error);
+            alert('Failed to update agent status');
+        }
+    }
+
+    async function confirmIsFranchiseUpdate() {
+        const newStatus = document.getElementById('isFranchiseSelect').value;
+
+        try {
+            const response = await fetch(`/members/${currentkycMemberId}/isfranchise`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_fanchise: newStatus })
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('isFranchiseUpdateModal'));
+                modal.hide();
+                location.reload();
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Failed to update franchise status');
+            }
+        } catch (error) {
+            console.error('Error updating franchise status:', error);
+            alert('Failed to update franchise status');
         }
     }
 

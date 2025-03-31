@@ -58,14 +58,18 @@ Profile.init({
     defaultValue: false
   },
   is_fanchise: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
+    type: DataTypes.ENUM('Inactive', 'Active'),
+    defaultValue: 'Inactive',
+    validate: {
+      isIn: [['Inactive', 'Active']]
+    }
   },
   is_agent: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: false
+    type: DataTypes.ENUM('Inactive', 'Active'),
+    defaultValue: 'Inactive',
+    validate: {
+      isIn: [['Inactive', 'Active']]
+    }
   },
   profile_image: {
     type: DataTypes.STRING(255),

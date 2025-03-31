@@ -298,23 +298,7 @@
                             <%= member.profile?.is_senior_citizen ? 'checked' : '' %> 
                             onchange="updateSeniorCitizenValue()">
                         <label class="form-check-label">Are you a Senior Citizen?</label>
-                    </div>
-
-                    <div class="form-check">
-                        <input type="hidden" id="is_agent_hidden" name="is_agent" value="<%= member.profile?.is_agent ? 'true' : 'false' %>">
-                        <input type="checkbox" id="is_agent" class="form-check-input" 
-                            <%= member.profile?.is_agent ? 'checked' : '' %> 
-                            onchange="updateAgentValue()">
-                        <label class="form-check-label">Are you an Agent?</label>
-                    </div>
-
-                    <div class="form-check">
-                        <input type="hidden" id="is_fanchise_hidden" name="is_fanchise" value="<%= member.profile?.is_fanchise ? 'true' : 'false' %>">
-                        <input type="checkbox" id="is_fanchise" class="form-check-input" 
-                            <%= member.profile?.is_fanchise ? 'checked' : '' %> 
-                            onchange="updateFanchiseValue()">
-                        <label class="form-check-label">Are you a Franchise?</label>
-                    </div>
+                    </div>                    
                     
                 </div>
             </div>

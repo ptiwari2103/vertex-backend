@@ -52,6 +52,8 @@ router.get('/edit/:id', userController.editMember);
 router.get('/view/:id', userController.viewMemberDetails); 
 router.put('/:id/status', userController.updateMemberStatus);
 router.put('/:id/kycstatus', userController.updatekycStatus);
+router.put('/:id/isagent', userController.updateIsAgent);
+router.put('/:id/isfranchise', userController.updateIsFranchise);
 
 // Member address management
 router.put('/address/:id/status', userController.updateAddressStatus);
