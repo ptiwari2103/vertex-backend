@@ -65,12 +65,12 @@ const getAllPins = async (req, res) => {
                 {
                     model: User,
                     as: 'assignedUser',
-                    attributes: ['id', 'name']
+                    attributes: ['id', 'name', 'user_id']
                 },
                 {
                     model: User,
                     as: 'usedUser',
-                    attributes: ['id', 'name']
+                    attributes: ['id', 'name', 'user_id']
                 }
             ],
             order: [['created_at', 'DESC']],
@@ -80,7 +80,7 @@ const getAllPins = async (req, res) => {
 
         // Get all users for dropdowns
         const users = await User.findAll({
-            attributes: ['id', 'user_id', 'name'],
+            attributes: ['id', 'user_id', 'name', 'user_type'],
             order: [['name', 'ASC']]
         });
 

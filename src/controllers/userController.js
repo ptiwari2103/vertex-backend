@@ -1,6 +1,7 @@
-const { User, Profile, UserBank, UserAddress } = require("../models");
+const { User, Profile, UserBank, UserAddress, VertexPin } = require("../models");
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const { Op } = require('sequelize');
 
 const generateUserId = async (districtId) => {
     const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
@@ -92,6 +93,25 @@ const registerUser = async (req, res) => {
             });
         }
 
+        // Validate pay key
+        if (pay_key) {
+            const pin = await VertexPin.findOne({
+                where: {
+                    pin: pay_key,
+                    assigned_to: {
+                        [Op.gt]: 0  // assigned_to greater than 0
+                    },
+                    used_by: null,  // not used yet
+                    used_date: null // no used date
+                }
+            });
+            if (!pin) {
+                return res.status(400). json({ 
+                    error: 'Invalid pay key.' 
+                });
+            }
+        }
+
         // Generate account number and user ID
         const accountNumber = await generateAccountNumber();
         const userId = await generateUserId(district_id);
@@ -123,6 +143,16 @@ const registerUser = async (req, res) => {
         await Profile.create({
             user_id: user.id,
             kyc_status: 'Pending',            
+        });
+
+        // Update pin
+        await VertexPin.update({
+            used_by: user.id,
+            used_date: new Date()
+        }, {
+            where: {
+                pin: pay_key
+            }
         });
 
         // Create user bank
@@ -647,20 +677,33 @@ const kycform = async (req, res) => {
 
 const profileform = async (req, res) => {
     try {
-        const {update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise  } = req.body;
-        
+        const {update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise, divyang_type } = req.body;
+        console.log("===========profileform==============");
         console.log(req.body);
         
         const { profile_image, divyang_certificate } = req.files;
         console.log(profile_image, divyang_certificate);
-        console.log("===========profile form==============");
+        
         
         // console.log(req.body);
         // Validate input
-        if (!user_id || !nominee_name || !nominee_relation || !guardian_relation) {
+        const requiredFields = {
+            user_id: user_id,
+            nominee_name: nominee_name,
+            nominee_relation: nominee_relation,
+            nominee_contact: nominee_contact,
+            guardian_relation: guardian_relation
+        };
+
+        const missingFields = Object.entries(requiredFields)
+            .filter(([key, value]) => !value)
+            .map(([key]) => key);
+
+        if (missingFields.length > 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required fields'
+                message: 'Missing required fields',
+                missingFields: missingFields
             });
         }
 
@@ -705,7 +748,7 @@ const profileform = async (req, res) => {
         if (!profileImagePath) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required profile image.'
+                message: 'Missing required profile image1.'
             });
         }
 
@@ -740,7 +783,8 @@ const profileform = async (req, res) => {
                 nominee_contact,
                 nominee_email,
                 is_divyang,
-                is_senior_citizen                
+                is_senior_citizen,
+                divyang_type: is_divyang === 'true' ? req.body.divyang_type : null
             });
             
             const userdetails = await getUserDetails(user_id);
@@ -763,7 +807,8 @@ const profileform = async (req, res) => {
                 nominee_email,
                 is_divyang,
                 is_senior_citizen,
-                guardian_relation
+                guardian_relation,
+                divyang_type: is_divyang === 'true' ? req.body.divyang_type : null
             });
             
             const userdetails = await getUserDetails(user_id);
@@ -788,6 +833,16 @@ const profileform = async (req, res) => {
 const addUpdateAddress = async (req, res) => {
     try {
         const { user_id, id, ...addressData } = req.body;
+        const user = await User.findOne({
+            where: { user_id: user_id, user_type: 'member' }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found in my records.'
+            });
+        }
         
         if (id) {
             // Update existing address
@@ -795,11 +850,11 @@ const addUpdateAddress = async (req, res) => {
             if (!address) {
                 return res.status(404).json({ success: false, message: 'Address not found' });
             }
-            await address.update(addressData);
+            await address.update({ user_id: user.id, ...addressData });
             res.json({ success: true, message: 'Address updated successfully' });
         } else {
             // Create new address
-            await UserAddress.create({ user_id, ...addressData });
+            await UserAddress.create({ user_id: user.id, ...addressData });
             res.json({ success: true, message: 'Address added successfully' });
         }
     } catch (error) {
@@ -846,6 +901,18 @@ const deleteAddress = async (req, res) => {
 const addUpdateBank = async (req, res) => {
     try {
         const { user_id, id, ...bankData } = req.body;
+
+        // Check if user exists
+        const user = await User.findOne({
+            where: { user_id: user_id, user_type: 'member' }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found in my records.'
+            });
+        }
         
         if (id) {
             // Update existing bank
@@ -853,11 +920,11 @@ const addUpdateBank = async (req, res) => {
             if (!bank) {
                 return res.status(404).json({ success: false, message: 'Bank details not found' });
             }
-            await bank.update(bankData);
+            await bank.update({ user_id: user.id, ...bankData });
             res.json({ success: true, message: 'Bank details updated successfully' });
         } else {
             // Create new bank
-            await UserBank.create({ user_id, ...bankData });
+            await UserBank.create({ user_id: user.id, ...bankData });
             res.json({ success: true, message: 'Bank details added successfully' });
         }
     } catch (error) {

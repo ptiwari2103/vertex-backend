@@ -1,960 +1,1104 @@
 <%- contentFor('title') %>Edit Member - Vertex Admin
 
-<%- contentFor('style') %>
-<style>
-    .main-content {
-        padding: 20px;
-    }
-    .welcome-section {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    .section-card {
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-        padding: 20px;
-    }
-    .section-title {
-        border-bottom: 2px solid #f0f0f0;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-        color: #333;
-        font-size: 1.25rem;
-        font-weight: bold;
-    }
-    .form-section {
-        margin-bottom: 30px;
-    }
-    .document-preview {
-        max-width: 80px;
-        height: 80px;
-        object-fit: cover;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        margin: 10px 0;
-    }
-    .form-label {
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #374151;
-        margin-bottom: 0.25rem;
-    }
-    .form-control {
-        border: 1px solid #d1d5db;
-        border-radius: 0.375rem;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
-        transition: border-color 0.15s ease-in-out;
-    }
-    .form-control:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
-        outline: none;
-    }
-    .form-control.bg-light {
-        background-color: #f3f4f6;
-    }
-    .form-check-input {
-        width: 1rem;
-        height: 1rem;
-        margin-top: 0.25rem;
-    }
-    .form-check-label {
-        font-size: 0.875rem;
-        color: #111827;
-        margin-left: 0.5rem;
-    }
-    .btn-primary {
-        background-color: #3b82f6;
-        border-color: #3b82f6;
-        color: white;
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-        border-radius: 0.375rem;
-        transition: all 0.15s ease-in-out;
-    }
-    .btn-primary:hover {
-        background-color: #2563eb;
-        border-color: #2563eb;
-    }
-    .btn-primary:focus {
-        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
-    }
-    .row.g-3 {
-        margin-right: -0.75rem;
-        margin-left: -0.75rem;
-    }
-    .row.g-3 > [class*="col-"] {
-        padding-right: 0.75rem;
-        padding-left: 0.75rem;
-        margin-bottom: 1rem;
-    }
-    .divyang-certificate {
-        margin-top: 1rem;
-        padding: 1rem;
-        border: 1px solid #e5e7eb;
-        border-radius: 0.375rem;
-        background-color: #f9fafb;
-    }
-    .alert {
-        padding: 0.75rem 1rem;
-        margin-bottom: 1rem;
-        border: 1px solid transparent;
-        border-radius: 0.375rem;
-    }
-    .alert-success {
-        background-color: #d1fae5;
-        border-color: #34d399;
-        color: #065f46;
-    }
-    .alert-danger {
-        background-color: #fee2e2;
-        border-color: #f87171;
-        color: #991b1b;
-    }
-</style>
+    <%- contentFor('style') %>
+        <style>
+            .main-content {
+                padding: 20px;
+            }
 
-<%- contentFor('body') %>
-<div class="main-content">
-    <div class="welcome-section">
-        <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Edit Member</h2>
-            <div>
-                <a href="/members/allmembers" class="btn btn-secondary me-2">
-                    <i class="bx bx-arrow-back"></i> Back to List
-                </a>
-                <a href="/members/view/<%= member.id %>" class="btn btn-info">
-                    <i class="bx bx-show"></i> View Details
-                </a>
-            </div>
-        </div>
-    </div>
+            .welcome-section {
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+            }
 
-    <!-- KYC Information -->
-    <div class="section-card">
-        <h4 class="section-title">KYC Information</h4>
-        <form id="kycForm" class="form-section" enctype="multipart/form-data">
-            <input type="hidden" name="user_id" value="<%= member.user_id %>">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">PAN Number</label>
-                        <input type="text" class="form-control" name="pan_number" value="<%= member.profile?.pan_number || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">PAN Card Image</label>
-                        <input type="file" class="form-control" name="pan_number_image" accept="image/*">
-                        <% if (member.profile?.pan_number_image) { %>
-                            <img src="/<%= member.profile.pan_number_image %>" class="document-preview" alt="PAN Card">
-                        <% } %>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="mb-3">
-                        <label class="form-label">Aadhar Number</label>
-                        <input type="text" class="form-control" name="aadhar_number" value="<%= member.profile?.aadhar_number || '' %>">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Aadhar Front Image</label>
-                        <input type="file" class="form-control" name="aadhar_number_image_front" accept="image/*">
-                        <% if (member.profile?.aadhar_number_image_front) { %>
-                            <img src="/<%= member.profile.aadhar_number_image_front %>" class="document-preview" alt="Aadhar Front">
-                        <% } %>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Aadhar Back Image</label>
-                        <input type="file" class="form-control" name="aadhar_number_image_back" accept="image/*">
-                        <% if (member.profile?.aadhar_number_image_back) { %>
-                            <img src="/<%= member.profile.aadhar_number_image_back %>" class="document-preview" alt="Aadhar Back">
-                        <% } %>
+            .section-card {
+                background: white;
+                border-radius: 10px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                margin-bottom: 20px;
+                padding: 20px;
+            }
+
+            .section-title {
+                border-bottom: 2px solid #f0f0f0;
+                padding-bottom: 10px;
+                margin-bottom: 20px;
+                color: #333;
+                font-size: 1.25rem;
+                font-weight: bold;
+            }
+
+            .form-section {
+                margin-bottom: 30px;
+            }
+
+            .document-preview {
+                max-width: 80px;
+                height: 80px;
+                object-fit: cover;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                margin: 10px 0;
+            }
+
+            .form-label {
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: #374151;
+                margin-bottom: 0.25rem;
+            }
+
+            .form-control {
+                border: 1px solid #d1d5db;
+                border-radius: 0.375rem;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+                transition: border-color 0.15s ease-in-out;
+            }
+
+            .form-control:focus {
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+                outline: none;
+            }
+
+            .form-control.bg-light {
+                background-color: #f3f4f6;
+            }
+
+            .form-check-input {
+                width: 1rem;
+                height: 1rem;
+                margin-top: 0.25rem;
+            }
+
+            .form-check-label {
+                font-size: 0.875rem;
+                color: #111827;
+                margin-left: 0.5rem;
+            }
+
+            .btn-primary {
+                background-color: #3b82f6;
+                border-color: #3b82f6;
+                color: white;
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+                border-radius: 0.375rem;
+                transition: all 0.15s ease-in-out;
+            }
+
+            .btn-primary:hover {
+                background-color: #2563eb;
+                border-color: #2563eb;
+            }
+
+            .btn-primary:focus {
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+            }
+
+            .row.g-3 {
+                margin-right: -0.75rem;
+                margin-left: -0.75rem;
+            }
+
+            .row.g-3>[class*="col-"] {
+                padding-right: 0.75rem;
+                padding-left: 0.75rem;
+                margin-bottom: 1rem;
+            }
+
+            .divyang-certificate {
+                margin-top: 1rem;
+                padding: 1rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.375rem;
+                background-color: #f9fafb;
+            }
+
+            .alert {
+                padding: 0.75rem 1rem;
+                margin-bottom: 1rem;
+                border: 1px solid transparent;
+                border-radius: 0.375rem;
+            }
+
+            .alert-success {
+                background-color: #d1fae5;
+                border-color: #34d399;
+                color: #065f46;
+            }
+
+            .alert-danger {
+                background-color: #fee2e2;
+                border-color: #f87171;
+                color: #991b1b;
+            }
+        </style>
+
+        <%- contentFor('body') %>
+            <div class="main-content">
+                <div class="welcome-section">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="mb-0">Edit Member</h2>
+                        <div>
+                            <a href="/members/allmembers" class="btn btn-secondary me-2">
+                                <i class="bx bx-arrow-back"></i> Back to List
+                            </a>
+                            <a href="/members/view/<%= member.id %>" class="btn btn-info">
+                                <i class="bx bx-show"></i> View Details
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <button type="submit" class="btn btn-primary">Update KYC</button>
-        </form>
-    </div>
 
-    <!-- Profile Information -->
-    <div class="section-card">
-        <h4 class="section-title">Profile Information</h4>
-        <form id="profileForm" class="form-section" enctype="multipart/form-data">
-            <input type="hidden" name="user_id" value="<%= member.user_id %>">
-            <input type="hidden" name="update_by" value="admin">
-            <div class="row g-3">
-                <!-- Read-only fields -->
-                <div class="col-md-4">
-                    <label class="form-label">User ID</label>
-                    <input type="text" class="form-control bg-light" value="<%= member.user_id %>" readonly disabled>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Account Number</label>
-                    <input type="text" class="form-control bg-light" value="<%= member.account_number %>" readonly disabled>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Name</label>
-                    <input type="text" class="form-control" name="name" value="<%= member.name %>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Mobile Number</label>
-                    <input type="text" class="form-control" name="mobile_number" value="<%= member.mobile_number %>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Email ID</label>
-                    <input type="email" name="email_id" class="form-control" value="<%= member.email_id || '' %>">
-                </div>  
-                <div class="col-md-4">
-                    <label class="form-label">Gender</label>
-                    <select name="gender" class="form-control" required>
-                        <option value="">Select Gender</option>
-                        <% ['Male', 'Female', 'Transgender'].forEach(gender => { %>
-                            <option value="<%= gender %>" <%= member.gender === gender ? 'selected' : '' %>><%= gender %></option>
-                        <% }); %>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Date of Birth</label>
-                    <input type="date" class="form-control bg-light" name="date_of_birth" value="<%= member.date_of_birth %>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Guardian Name</label>
-                    <input type="text" class="form-control bg-light" name="guardian_name" value="<%= member.guardian_name %>">
-                </div>
-
-                <!-- Required fields -->
-                <div class="col-md-4">
-                    <label class="form-label">Guardian Relation*</label>
-                    <select name="guardian_relation" class="form-control" required>
-                        <option value="">Select Relation</option>
-                        <% ['Father', 'Mother', 'Brother', 'Sister', 'Wife', 'Husband', 'Son', 'Daughter'].forEach(relation => { %>
-                            <option value="<%= relation %>" <%= member.guardian_relation === relation ? 'selected' : '' %>><%= relation %></option>
-                        <% }); %>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Nominee Name*</label>
-                    <input type="text" name="nominee_name" class="form-control" value="<%= member.profile?.nominee_name || '' %>" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Nominee Relation*</label>
-                    <select name="nominee_relation" class="form-control" required>
-                        <option value="">Select Relation</option>
-                        <% ['Father', 'Mother', 'Brother', 'Sister', 'Wife', 'Husband', 'Son', 'Daughter'].forEach(relation => { %>
-                            <option value="<%= relation %>" <%= member.profile?.nominee_relation === relation ? 'selected' : '' %>><%= relation %></option>
-                        <% }); %>
-                    </select>
-                </div>
-
-                
-                <div class="col-md-4">
-                    <label class="form-label">Nominee Contact</label>
-                    <input type="text" name="nominee_contact" class="form-control" value="<%= member.profile?.nominee_contact || '' %>" pattern="[0-9]{10}">
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Nominee Email</label>
-                    <input type="email" name="nominee_email" class="form-control" value="<%= member.profile?.nominee_email || '' %>">
-                </div>
-
-                <div class="col-md-4">
-                    <label class="form-label">Profile Image*</label>
-                    <input type="file" name="profile_image" class="form-control" accept="image/*">
-                    <% if (member.profile?.profile_image) { %>
-                        <img src="/<%= member.profile.profile_image %>" class="mt-2 document-preview" alt="Profile Image">
-                    <% } %>
-                </div>
-
-                <!-- Checkbox fields -->
-                <div class="col-12">
-                    <div class="form-check mb-2">
-                        <!-- Hidden input to send false when unchecked -->
-                        <input type="hidden" id="is_divyang_hidden" name="is_divyang" value="<%= member.profile?.is_divyang ? 'true' : 'false' %>">
-                    
-                        <!-- Checkbox -->
-                        <input type="checkbox" id="isDivyang" class="form-check-input" 
-                            <%= member.profile?.is_divyang ? 'checked' : '' %> 
-                            onchange="updateDivyangValue()">
-                    
-                        <label class="form-check-label">Are you Divyang? </label>
-                    </div>
-                    
-                    <div id="divyangCertificate" class="divyang-certificate <%= member.profile?.is_divyang ? '' : 'd-none' %>">
-                        <label class="form-label">Divyang Certificate*</label>
-                        <input type="file" name="divyang_certificate" class="form-control" accept="image/*,.pdf">
-                        <% if (member.profile?.divyang_certificate) { %>
-                            <img src="/<%= member.profile.divyang_certificate %>" class="mt-2 document-preview" alt="Divyang Certificate">
-                        <% } %>
-                    </div>
-
-                    <div class="form-check">
-                        <input type="hidden" id="is_senior_citizen_hidden" name="is_senior_citizen" value="<%= member.profile?.is_senior_citizen ? 'true' : 'false' %>">
-                        <input type="checkbox" id="is_senior_citizen" class="form-check-input" 
-                            <%= member.profile?.is_senior_citizen ? 'checked' : '' %> 
-                            onchange="updateSeniorCitizenValue()">
-                        <label class="form-check-label">Are you a Senior Citizen?</label>
-                    </div>                    
-                    
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">Update Profile</button>
-            </div>
-        </form>
-    </div>
-
-    <!-- Address Information -->
-    <div class="section-card">
-        <h4 class="section-title">Address Information</h4>
-        <div class="mb-4">
-            <button type="button" class="btn btn-success" onclick="addNewAddress()">
-                <i class="bx bx-plus"></i> Add New Address
-            </button>
-        </div>
-        <div id="addressList">
-            <% member.userAddress.forEach((address, index) => { %>
-                <div class="address-item mb-4 border rounded p-3">
-                    <form class="addressForm" data-id="<%= address.id %>">
+                <!-- KYC Information -->
+                <div class="section-card">
+                    <h4 class="section-title">KYC Information</h4>
+                    <form id="kycForm" class="form-section" enctype="multipart/form-data">
                         <input type="hidden" name="user_id" value="<%= member.user_id %>">
-                        <input type="hidden" name="id" value="<%= address.id %>">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0">Address #<%= index + 1 %></h5>
-                            <div>
-                                <span class="badge <%= address.status === 'Active' ? 'bg-success' : 'bg-secondary' %> me-2">
-                                    <%= address.status %>
-                                </span>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteAddress('<%= address.id %>')">
-                                    <i class="bx bx-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="row g-3">
+                        <div class="row">
                             <div class="col-md-6">
-                                <h6>Permanent Address</h6>
                                 <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <textarea class="form-control" name="permanent_address" rows="3"><%= address.permanent_address %></textarea>
+                                    <label class="form-label">PAN Number</label>
+                                    <input type="text" class="form-control" name="pan_number"
+                                        value="<%= member.profile?.pan_number || '' %>">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">City</label>
-                                    <input type="text" class="form-control" name="permanent_city" value="<%= address.permanent_city %>">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">District</label>
-                                    <input type="text" class="form-control" name="permanent_district" value="<%= address.permanent_district %>">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">State</label>
-                                    <input type="text" class="form-control" name="permanent_state" value="<%= address.permanent_state %>">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Pincode</label>
-                                    <input type="text" class="form-control" name="permanent_pincode" value="<%= address.permanent_pincode %>">
+                                    <label class="form-label">PAN Card Image</label>
+                                    <input type="file" class="form-control" name="pan_number_image" accept="image/*">
+                                    <% if (member.profile?.pan_number_image) { %>
+                                        <img src="/<%= member.profile.pan_number_image %>" class="document-preview"
+                                            alt="PAN Card">
+                                        <% } %>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <h6>Correspondence Address</h6>
                                 <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <textarea class="form-control" name="correspondence_address" rows="3"><%= address.correspondence_address %></textarea>
+                                    <label class="form-label">Aadhar Number</label>
+                                    <input type="text" class="form-control" name="aadhar_number"
+                                        value="<%= member.profile?.aadhar_number || '' %>">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">City</label>
-                                    <input type="text" class="form-control" name="correspondence_city" value="<%= address.correspondence_city %>">
+                                    <label class="form-label">Aadhar Front Image</label>
+                                    <input type="file" class="form-control" name="aadhar_number_image_front"
+                                        accept="image/*">
+                                    <% if (member.profile?.aadhar_number_image_front) { %>
+                                        <img src="/<%= member.profile.aadhar_number_image_front %>"
+                                            class="document-preview" alt="Aadhar Front">
+                                        <% } %>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">District</label>
-                                    <input type="text" class="form-control" name="correspondence_district" value="<%= address.correspondence_district %>">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">State</label>
-                                    <input type="text" class="form-control" name="correspondence_state" value="<%= address.correspondence_state %>">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Pincode</label>
-                                    <input type="text" class="form-control" name="correspondence_pincode" value="<%= address.correspondence_pincode %>">
+                                    <label class="form-label">Aadhar Back Image</label>
+                                    <input type="file" class="form-control" name="aadhar_number_image_back"
+                                        accept="image/*">
+                                    <% if (member.profile?.aadhar_number_image_back) { %>
+                                        <img src="/<%= member.profile.aadhar_number_image_back %>"
+                                            class="document-preview" alt="Aadhar Back">
+                                        <% } %>
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-primary">Update Address</button>
-                            <button type="button" class="btn btn-outline-primary ms-2" onclick="setAddressStatus('<%= address.id %>', '<%= address.status === 'Active' ? 'Inactive' : 'Active' %>')">
-                                <%= address.status === 'Active' ? 'Set as Inactive' : 'Set as Active' %>
-                            </button>
-                        </div>
+                        <button type="submit" class="btn btn-primary">Update KYC</button>
                     </form>
                 </div>
-            <% }); %>
-        </div>
-    </div>
 
-    <!-- Bank Information -->
-    <div class="section-card">
-        <h4 class="section-title">Bank Information</h4>
-        <div class="mb-4">
-            <button type="button" class="btn btn-success" onclick="addNewBank()">
-                <i class="bx bx-plus"></i> Add New Bank Account
-            </button>
-        </div>
-        <div id="bankList">
-            <% member.userBank.forEach((bank, index) => { %>
-                <div class="bank-item mb-4 border rounded p-3">
-                    <form class="bankForm" data-id="<%= bank.id %>">
+                <!-- Profile Information -->
+                <div class="section-card">
+                    <h4 class="section-title">Profile Information</h4>
+                    <form id="profileForm" class="form-section" enctype="multipart/form-data">
                         <input type="hidden" name="user_id" value="<%= member.user_id %>">
-                        <input type="hidden" name="id" value="<%= bank.id %>">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0">Bank Account #<%= index + 1 %></h5>
-                            <div>
-                                <span class="badge <%= bank.status === 'Active' ? 'bg-success' : 'bg-secondary' %> me-2">
-                                    <%= bank.status %>
-                                </span>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="deleteBank('<%= bank.id %>')">
-                                    <i class="bx bx-trash"></i>
-                                </button>
-                            </div>
-                        </div>
+                        <input type="hidden" name="update_by" value="admin">
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Account Holder Name</label>
-                                    <input type="text" class="form-control" name="account_holder" value="<%= bank.account_holder %>">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Bank Name</label>
-                                    <input type="text" class="form-control" name="bank_name" value="<%= bank.bank_name %>">
-                                </div>                                 
-                                <div class="mb-3">
-                                    <label class="form-label">Account Number</label>
-                                    <input type="text" class="form-control" name="account_number" value="<%= bank.account_number %>">
-                                </div>
+                            <!-- Read-only fields -->
+                            <div class="col-md-4">
+                                <label class="form-label">User ID</label>
+                                <input type="text" class="form-control bg-light" value="<%= member.user_id %>" readonly
+                                    disabled>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Branch Name</label>
-                                    <input type="text" class="form-control" name="branch_name" value="<%= bank.branch_name %>">
+                            <div class="col-md-4">
+                                <label class="form-label">Account Number</label>
+                                <input type="text" class="form-control bg-light" value="<%= member.account_number %>"
+                                    readonly disabled>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Name</label>
+                                <input type="text" class="form-control" name="name" value="<%= member.name %>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Mobile Number</label>
+                                <input type="text" class="form-control" name="mobile_number"
+                                    value="<%= member.mobile_number %>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Email ID</label>
+                                <input type="email" name="email_id" class="form-control"
+                                    value="<%= member.email_id || '' %>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Gender</label>
+                                <select name="gender" class="form-control" required>
+                                    <option value="">Select Gender</option>
+                                    <% ['Male', 'Female' , 'Transgender' ].forEach(gender=> { %>
+                                        <option value="<%= gender %>" <%=member.gender===gender ? 'selected' : '' %>><%=
+                                                gender %>
+                                        </option>
+                                        <% }); %>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" class="form-control bg-light" name="date_of_birth"
+                                    value="<%= member.date_of_birth %>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Guardian Name</label>
+                                <input type="text" class="form-control bg-light" name="guardian_name"
+                                    value="<%= member.guardian_name %>">
+                            </div>
+
+                            <!-- Required fields -->
+                            <div class="col-md-4">
+                                <label class="form-label">Guardian Relation*</label>
+                                <select name="guardian_relation" class="form-control" required>
+                                    <option value="">Select Relation</option>
+                                    <% ['Father', 'Mother' , 'Brother' , 'Sister' , 'Wife' , 'Husband' , 'Son'
+                                        , 'Daughter' ].forEach(relation=> { %>
+                                        <option value="<%= relation %>" <%=member.guardian_relation===relation
+                                            ? 'selected' : '' %>><%= relation %>
+                                        </option>
+                                        <% }); %>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Nominee Name*</label>
+                                <input type="text" name="nominee_name" class="form-control"
+                                    value="<%= member.profile?.nominee_name || '' %>" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Nominee Relation*</label>
+                                <select name="nominee_relation" class="form-control" required>
+                                    <option value="">Select Relation</option>
+                                    <% ['Father', 'Mother' , 'Brother' , 'Sister' , 'Wife' , 'Husband' , 'Son'
+                                        , 'Daughter' ].forEach(relation=> { %>
+                                        <option value="<%= relation %>" <%=member.profile?.nominee_relation===relation
+                                            ? 'selected' : '' %>><%= relation %>
+                                        </option>
+                                        <% }); %>
+                                </select>
+                            </div>
+
+
+                            <div class="col-md-4">
+                                <label class="form-label">Nominee Contact*</label>
+                                <input type="text" name="nominee_contact" class="form-control"
+                                    value="<%= member.profile?.nominee_contact || '' %>" pattern="[0-9]{10}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Nominee Email</label>
+                                <input type="email" name="nominee_email" class="form-control"
+                                    value="<%= member.profile?.nominee_email || '' %>">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Profile Image*</label>
+                                <input type="file" name="profile_image" class="form-control" accept="image/*">
+                                <% if (member.profile?.profile_image) { %>
+                                    <img src="/<%= member.profile.profile_image %>" class="mt-2 document-preview"
+                                        alt="Profile Image">
+                                    <% } %>
+                            </div>
+
+                            <!-- Checkbox fields -->
+                            <div class="col-12">
+                                <div class="form-check mb-2">
+                                    <!-- Hidden input to send false when unchecked -->
+                                    <input type="hidden" id="is_divyang_hidden" name="is_divyang"
+                                        value="<%= member.profile?.is_divyang ? 'true' : 'false' %>">
+
+                                    <!-- Checkbox -->
+                                    <input type="checkbox" id="isDivyang" class="form-check-input"
+                                        <%=member.profile?.is_divyang ? 'checked' : '' %>
+                                    onchange="updateDivyangValue()">
+
+                                    <label class="form-check-label">Are you Divyang? </label>
                                 </div>
-                                <div class="mb-3">
-                                    <label class="form-label">IFSC Number</label>
-                                    <input type="text" class="form-control" name="ifsc_number" value="<%= bank.ifsc_number %>">
+
+                                <div id="divyangFields"
+                                    class="divyang-fields <%= member.profile?.is_divyang ? '' : 'd-none' %>">
+                                    <div class="row">
+                                        <!-- Divyang Type Dropdown -->
+                                        <div class="col-6">
+                                            <label class="form-label">Divyang Type*</label>
+                                            <select name="divyang_type" class="form-control"
+                                                <%=member.profile?.is_divyang ? 'required' : '' %>>
+                                                <option value="">Select Divyang Type</option>
+                                                <option value="Blindness" <%=member.profile?.divyang_type==='Blindness'
+                                                    ? 'selected' : '' %>>Blindness</option>
+                                                <option value="Low-vision"
+                                                    <%=member.profile?.divyang_type==='Low-vision' ? 'selected' : '' %>
+                                                    >Low-vision</option>
+                                                <option value="Hearing Impairment"
+                                                    <%=member.profile?.divyang_type==='Hearing Impairment' ? 'selected'
+                                                    : '' %>>Hearing Impairment</option>
+                                                <option value="Locomotor Disability"
+                                                    <%=member.profile?.divyang_type==='Locomotor Disability'
+                                                    ? 'selected' : '' %>>Locomotor Disability</option>
+                                                <option value="Mental Illness"
+                                                    <%=member.profile?.divyang_type==='Mental Illness' ? 'selected' : ''
+                                                    %>>Mental Illness</option>
+                                                <option value="Multiple Disabilities"
+                                                    <%=member.profile?.divyang_type==='Multiple Disabilities'
+                                                    ? 'selected' : '' %>>Multiple Disabilities</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Divyang Certificate -->
+                                        <div class="col-6">
+                                            <label class="form-label">Divyang Certificate*</label>
+                                            <input type="file" name="divyang_certificate" class="form-control"
+                                                accept="image/*,.pdf" <%= (member.profile?.is_divyang && !member.profile?.divyang_certificate) ? 'required' : '' %>>
+                                            <% if (member.profile?.divyang_certificate) { %>
+                                                <div class="mt-3 text-center p-2" style="border: 1px dashed #dee2e6; border-radius: 4px;">
+                                                    <a href="/<%= member.profile.divyang_certificate %>" target="_blank" class="d-inline-block">
+                                                        <img src="/<%= member.profile.divyang_certificate %>"
+                                                            class="document-preview" alt="Divyang Certificate"
+                                                            style="height: 150px; width: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                    </a>
+                                                    <div class="mt-2">
+                                                        <small class="text-muted">Click image to view full size</small>
+                                                    </div>
+                                                </div>
+                                            <% } %>
+                                        </div>
+                                    </div>
                                 </div>
+
+                                <div class="form-check">
+                                    <input type="hidden" id="is_senior_citizen_hidden" name="is_senior_citizen"
+                                        value="<%= member.profile?.is_senior_citizen ? 'true' : 'false' %>">
+                                    <input type="checkbox" id="is_senior_citizen" class="form-check-input"
+                                        <%=member.profile?.is_senior_citizen ? 'checked' : '' %>
+                                    onchange="updateSeniorCitizenValue()">
+                                    <label class="form-check-label">Are you a Senior Citizen?</label>
+                                </div>
+
                             </div>
                         </div>
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-primary">Update Bank Details</button>
-                            <button type="button" class="btn btn-outline-primary ms-2" onclick="setBankStatus('<%= bank.id %>', '<%= bank.status === 'Active' ? 'Inactive' : 'Active' %>')">
-                                <%= bank.status === 'Active' ? 'Set as Inactive' : 'Set as Active' %>
-                            </button>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
                         </div>
                     </form>
                 </div>
-            <% }); %>
-        </div>
-    </div>
 
-    <!-- Address Modal -->
-    <div class="modal fade" id="addressModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Address</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="newAddressForm" class="needs-validation" novalidate>
-                        <input type="hidden" name="user_id" value="<%= member.id %>">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <h6>Permanent Address</h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <textarea class="form-control" name="permanent_address" rows="3"></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">City</label>
-                                    <input type="text" class="form-control" name="permanent_city" value="">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">District</label>
-                                    <input type="text" class="form-control" name="permanent_district" value="">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">State</label>
-                                    <input type="text" class="form-control" name="permanent_state" value="">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Pincode</label>
-                                    <input type="text" class="form-control" name="permanent_pincode" value="">
-                                </div>
+                <!-- Address Information -->
+                <div class="section-card">
+                    <h4 class="section-title">Address Information</h4>
+                    <div class="mb-4">
+                        <button type="button" class="btn btn-success" onclick="addNewAddress()">
+                            <i class="bx bx-plus"></i> Add New Address
+                        </button>
+                    </div>
+                    <div id="addressList">
+                        <% member.userAddress.forEach((address, index)=> { %>
+                            <div class="address-item mb-4 border rounded p-3">
+                                <form class="addressForm" data-id="<%= address.id %>">
+                                    <input type="hidden" name="user_id" value="<%= member.user_id %>">
+                                    <input type="hidden" name="id" value="<%= address.id %>">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0">Address #<%= index + 1 %>
+                                        </h5>
+                                        <div>
+                                            <span
+                                                class="badge <%= address.status === 'Active' ? 'bg-success' : 'bg-secondary' %> me-2">
+                                                <%= address.status %>
+                                            </span>
+                                            <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="deleteAddress('<%= address.id %>')">
+                                                <i class="bx bx-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <h6>Permanent Address</h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Address</label>
+                                                <textarea class="form-control" name="permanent_address"
+                                                    rows="3"><%= address.permanent_address %></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">City</label>
+                                                <input type="text" class="form-control" name="permanent_city"
+                                                    value="<%= address.permanent_city %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">District</label>
+                                                <input type="text" class="form-control" name="permanent_district"
+                                                    value="<%= address.permanent_district %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">State</label>
+                                                <input type="text" class="form-control" name="permanent_state"
+                                                    value="<%= address.permanent_state %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Pincode</label>
+                                                <input type="text" class="form-control" name="permanent_pincode"
+                                                    value="<%= address.permanent_pincode %>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Correspondence Address</h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Address</label>
+                                                <textarea class="form-control" name="correspondence_address"
+                                                    rows="3"><%= address.correspondence_address %></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">City</label>
+                                                <input type="text" class="form-control" name="correspondence_city"
+                                                    value="<%= address.correspondence_city %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">District</label>
+                                                <input type="text" class="form-control" name="correspondence_district"
+                                                    value="<%= address.correspondence_district %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">State</label>
+                                                <input type="text" class="form-control" name="correspondence_state"
+                                                    value="<%= address.correspondence_state %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Pincode</label>
+                                                <input type="text" class="form-control" name="correspondence_pincode"
+                                                    value="<%= address.correspondence_pincode %>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button type="submit" class="btn btn-primary">Update Address</button>
+                                        <button type="button" class="btn btn-outline-primary ms-2"
+                                            onclick="setAddressStatus('<%= address.id %>', '<%= address.status === 'Active' ? 'Inactive' : 'Active' %>')">
+                                            <%= address.status==='Active' ? 'Set as Inactive' : 'Set as Active' %>
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
-                            <div class="col-md-6">
-                                <h6>Correspondence Address</h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Address</label>
-                                    <textarea class="form-control" name="correspondence_address" rows="3"></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">City</label>
-                                    <input type="text" class="form-control" name="correspondence_city" value="">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">District</label>
-                                    <input type="text" class="form-control" name="correspondence_district" value="">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">State</label>
-                                    <input type="text" class="form-control" name="correspondence_state" value="">
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Pincode</label>
-                                    <input type="text" class="form-control" name="correspondence_pincode" value="">
-                                </div>
+                            <% }); %>
+                    </div>
+                </div>
+
+                <!-- Bank Information -->
+                <div class="section-card">
+                    <h4 class="section-title">Bank Information</h4>
+                    <div class="mb-4">
+                        <button type="button" class="btn btn-success" onclick="addNewBank()">
+                            <i class="bx bx-plus"></i> Add New Bank Account
+                        </button>
+                    </div>
+                    <div id="bankList">
+                        <% member.userBank.forEach((bank, index)=> { %>
+                            <div class="bank-item mb-4 border rounded p-3">
+                                <form class="bankForm" data-id="<%= bank.id %>">
+                                    <input type="hidden" name="user_id" value="<%= member.user_id %>">
+                                    <input type="hidden" name="id" value="<%= bank.id %>">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <h5 class="mb-0">Bank Account #<%= index + 1 %>
+                                        </h5>
+                                        <div>
+                                            <span
+                                                class="badge <%= bank.status === 'Active' ? 'bg-success' : 'bg-secondary' %> me-2">
+                                                <%= bank.status %>
+                                            </span>
+                                            <button type="button" class="btn btn-sm btn-danger"
+                                                onclick="deleteBank('<%= bank.id %>')">
+                                                <i class="bx bx-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Account Holder Name</label>
+                                                <input type="text" class="form-control" name="account_holder"
+                                                    value="<%= bank.account_holder %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Bank Name</label>
+                                                <input type="text" class="form-control" name="bank_name"
+                                                    value="<%= bank.bank_name %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Account Number</label>
+                                                <input type="text" class="form-control" name="account_number"
+                                                    value="<%= bank.account_number %>">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Branch Name</label>
+                                                <input type="text" class="form-control" name="branch_name"
+                                                    value="<%= bank.branch_name %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">IFSC Number</label>
+                                                <input type="text" class="form-control" name="ifsc_number"
+                                                    value="<%= bank.ifsc_number %>">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Account Type</label>
+                                                <select name="account_type" class="form-control" required>
+                                                    <option value="">Select Account Type</option>
+                                                    <option value="Savings" <%= bank.account_type === 'Savings' ? 'selected' : '' %>>Savings</option>
+                                                    <option value="Current" <%= bank.account_type === 'Current' ? 'selected' : '' %>>Current</option>
+                                                    <option value="Salary" <%= bank.account_type === 'Salary' ? 'selected' : '' %>>Salary</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <button type="submit" class="btn btn-primary">Update Bank Details</button>
+                                        <button type="button" class="btn btn-outline-primary ms-2"
+                                            onclick="setBankStatus('<%= bank.id %>', '<%= bank.status === 'Active' ? 'Inactive' : 'Active' %>')">
+                                            <%= bank.status==='Active' ? 'Set as Inactive' : 'Set as Active' %>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <% }); %>
+                    </div>
+                </div>
+
+                <!-- Address Modal -->
+                <div class="modal fade" id="addressModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add New Address</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="newAddressForm" class="needs-validation" novalidate>
+                                    <input type="hidden" name="user_id" value="<%= member.id %>">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <h6>Permanent Address</h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Address</label>
+                                                <textarea class="form-control" name="permanent_address"
+                                                    rows="3"></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">City</label>
+                                                <input type="text" class="form-control" name="permanent_city" value="">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">District</label>
+                                                <input type="text" class="form-control" name="permanent_district"
+                                                    value="">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">State</label>
+                                                <input type="text" class="form-control" name="permanent_state" value="">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Pincode</label>
+                                                <input type="text" class="form-control" name="permanent_pincode"
+                                                    value="">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Correspondence Address</h6>
+                                            <div class="mb-3">
+                                                <label class="form-label">Address</label>
+                                                <textarea class="form-control" name="correspondence_address"
+                                                    rows="3"></textarea>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">City</label>
+                                                <input type="text" class="form-control" name="correspondence_city"
+                                                    value="">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">District</label>
+                                                <input type="text" class="form-control" name="correspondence_district"
+                                                    value="">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">State</label>
+                                                <input type="text" class="form-control" name="correspondence_state"
+                                                    value="">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Pincode</label>
+                                                <input type="text" class="form-control" name="correspondence_pincode"
+                                                    value="">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="submitNewAddress()">Save
+                                    Address</button>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="submitNewAddress()">Save Address</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Bank Modal -->
-    <div class="modal fade" id="bankModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Bank Account</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="newBankForm" class="needs-validation" novalidate>
-                        <input type="hidden" name="user_id" value="<%= member.id %>">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Account Holder Name *</label>
-                                    <input type="text" class="form-control" name="account_holder" required>
-                                    <div class="invalid-feedback">Account Holder Name is required</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Bank Name *</label>
-                                    <input type="text" class="form-control" name="bank_name" required>
-                                    <div class="invalid-feedback">Bank Name is required</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Account Number *</label>
-                                    <input type="text" class="form-control" name="account_number" required pattern="[0-9]{9,18}">
-                                    <div class="invalid-feedback">Please enter a valid account number (9-18 digits)</div>
-                                </div>
+                <!-- Bank Modal -->
+                <div class="modal fade" id="bankModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Add New Bank Account</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Branch Name *</label>
-                                    <input type="text" class="form-control" name="branch_name" required>
-                                    <div class="invalid-feedback">Branch Name is required</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">IFSC Number *</label>
-                                    <input type="text" class="form-control" name="ifsc_number" required pattern="^[A-Z]{4}0[A-Z0-9]{6}$">
-                                    <div class="invalid-feedback">Please enter a valid IFSC code</div>
-                                </div>
+                            <div class="modal-body">
+                                <form id="newBankForm" class="needs-validation" novalidate>
+                                    <input type="hidden" name="user_id" value="<%= member.user_id %>">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Account Holder Name *</label>
+                                                <input type="text" class="form-control" value="<%= member.name %>" name="account_holder" required>
+                                                <div class="invalid-feedback">Account Holder Name is required</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Bank Name *</label>
+                                                <input type="text" class="form-control" name="bank_name" required>
+                                                <div class="invalid-feedback">Bank Name is required</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Account Number *</label>
+                                                <input type="text" class="form-control" name="account_number" required
+                                                    pattern="[0-9]{9,18}">
+                                                <div class="invalid-feedback">Please enter a valid account number (9-18
+                                                    digits)</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Branch Name *</label>
+                                                <input type="text" class="form-control" name="branch_name" required>
+                                                <div class="invalid-feedback">Branch Name is required</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">IFSC Number *</label>
+                                                <input type="text" class="form-control" name="ifsc_number" required
+                                                    pattern="^[A-Z]{4}0[A-Z0-9]{6}$">
+                                                <div class="invalid-feedback">Please enter a valid IFSC code</div>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Account Type *</label>
+                                                <select name="account_type" class="form-control" required>
+                                                    <option value="">Select Account Type</option>
+                                                    <option value="Savings">Savings</option>
+                                                    <option value="Current">Current</option>
+                                                    <option value="Salary">Salary</option>
+                                                </select>
+                                                <div class="invalid-feedback">Please select an account type</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="submitNewBank()">Save Bank
+                                    Details</button>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="submitNewBank()">Save Bank Details</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <script>
-    function updateDivyangValue() {
-        const checkbox = document.getElementById("isDivyang");
-        const hiddenInput = document.getElementById("is_divyang_hidden");
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-        const divyangDiv = document.getElementById("divyangCertificate");
-        if (checkbox.checked) {
-            divyangDiv.classList.remove("d-none");
-        } else {
-            divyangDiv.classList.add("d-none");
-        }
-    }
+                <script>
+                    function updateDivyangValue() {
+                        const checkbox = document.getElementById("isDivyang");
+                        const hiddenInput = document.getElementById("is_divyang_hidden");
+                        hiddenInput.value = checkbox.checked ? "true" : "false";
+                        const divyangDiv = document.getElementById("divyangFields");
+                        if (checkbox.checked) {
+                            divyangDiv.classList.remove("d-none");
+                        } else {
+                            divyangDiv.classList.add("d-none");
+                        }
+                    }
 
-    function updateSeniorCitizenValue() {
-        const checkbox = document.getElementById("is_senior_citizen");
-        const hiddenInput = document.getElementById("is_senior_citizen_hidden");        
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-    }
+                    function updateSeniorCitizenValue() {
+                        const checkbox = document.getElementById("is_senior_citizen");
+                        const hiddenInput = document.getElementById("is_senior_citizen_hidden");
+                        hiddenInput.value = checkbox.checked ? "true" : "false";
+                    }
 
-    function updateAgentValue() {
-        const checkbox = document.getElementById("is_agent");
-        const hiddenInput = document.getElementById("is_agent_hidden");        
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-    }
+                    function updateAgentValue() {
+                        const checkbox = document.getElementById("is_agent");
+                        const hiddenInput = document.getElementById("is_agent_hidden");
+                        hiddenInput.value = checkbox.checked ? "true" : "false";
+                    }
 
-    function updateFanchiseValue() {
-        const checkbox = document.getElementById("is_fanchise");
-        const hiddenInput = document.getElementById("is_fanchise_hidden");        
-        hiddenInput.value = checkbox.checked ? "true" : "false";
-    }
+                    function updateFanchiseValue() {
+                        const checkbox = document.getElementById("is_fanchise");
+                        const hiddenInput = document.getElementById("is_fanchise_hidden");
+                        hiddenInput.value = checkbox.checked ? "true" : "false";
+                    }
 
-    // KYC Form Submission
-    document.getElementById('kycForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        try {
-            const response = await fetch('/members/kyc', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                alert('KYC details updated successfully');
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to update KYC details');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to update KYC details');
-        }
-    });
+                    // KYC Form Submission
+                    document.getElementById('kycForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.target);
+                        try {
+                            const response = await fetch('/members/kyc', {
+                                method: 'POST',
+                                body: formData
+                            });
 
-    // Profile Form Submission
-    document.getElementById('profileForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        try {
-            // const response = await fetch('/members/profile', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify(Object.fromEntries(formData)),
-            // });
+                            const data = await response.json();
+                            if (data.success) {
+                                alert('KYC details updated successfully');
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to update KYC details');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to update KYC details');
+                        }
+                    });
 
-            const response = await fetch('/members/profile', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                alert('Profile details updated successfully');
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to update profile details');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to update profile details');
-        }
-    });
+                    // Profile Form Submission
+                    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.target);
+                        try {
+                            // const response = await fetch('/members/profile', {
+                            //     method: 'POST',
+                            //     headers: {
+                            //         'Content-Type': 'application/json',
+                            //     },
+                            //     body: JSON.stringify(Object.fromEntries(formData)),
+                            // });
 
-    // Address form handling
-    document.querySelectorAll('.addressForm').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const addressId = e.target.dataset.id;
-            
-            try {
-                const response = await fetch('/members/addupdateaddress', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(Object.fromEntries(formData)),
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    alert('Address updated successfully');
-                    location.reload();
-                } else {
-                    alert(data.message || 'Failed to update address');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to update address');
-            }
-        });
-    });
+                            const response = await fetch('/members/profile', {
+                                method: 'POST',
+                                body: formData
+                            });
 
-    // Bank form handling
-    document.querySelectorAll('.bankForm').forEach(form => {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const bankId = e.target.dataset.id;
-            
-            try {
-                const response = await fetch('/members/addupdatebank', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(Object.fromEntries(formData)),
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    alert('Bank details updated successfully');
-                    location.reload();
-                } else {
-                    alert(data.message || 'Failed to update bank details');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to update bank details');
-            }
-        });
-    });
+                            const data = await response.json();
+                            if (data.success) {
+                                alert('Profile details updated successfully');
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to update profile details');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to update profile details');
+                        }
+                    });
 
-    // Address status update
-    async function setAddressStatus(addressId, status) {
-        try {
-            const response = await fetch(`/members/address/${addressId}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status }),
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to update status');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to update status');
-        }
-    }
+                    // Address form handling
+                    document.querySelectorAll('.addressForm').forEach(form => {
+                        form.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            const addressId = e.target.dataset.id;
 
-    // Bank status update
-    async function setBankStatus(bankId, status) {
-        try {
-            const response = await fetch(`/members/bank/${bankId}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status }),
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to update status');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to update status');
-        }
-    }
+                            try {
+                                const response = await fetch('/members/addupdateaddress', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify(Object.fromEntries(formData)),
+                                });
 
-    // Add new address
-    async function addNewAddress() {
-        const formData = {
-            user_id: '<%= member.user_id %>',
-            permanent_address: '',
-            permanent_city: '',
-            permanent_district: '',
-            permanent_state: '',
-            permanent_pincode: '',
-            correspondence_address: '',
-            correspondence_city: '',
-            correspondence_district: '',
-            correspondence_state: '',
-            correspondence_pincode: '',
-            status: 'Active',
-        };
+                                const data = await response.json();
+                                if (data.success) {
+                                    alert('Address updated successfully');
+                                    location.reload();
+                                } else {
+                                    alert(data.message || 'Failed to update address');
+                                }
+                            } catch (error) {
+                                console.error('Error:', error);
+                                alert('Failed to update address');
+                            }
+                        });
+                    });
 
-        try {
-            const response = await fetch('/members/addupdateaddress', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to add address');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to add address');
-        }
-    }
+                    // Bank form handling
+                    document.querySelectorAll('.bankForm').forEach(form => {
+                        form.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.target);
+                            const bankId = e.target.dataset.id;
 
-    // Add new bank
-    async function addNewBank() {
-        const formData = {
-            user_id: '<%= member.user_id %>',
-            bank_name: '',
-            branch_name: '',
-            account_number: '',
-            ifsc_code: '',
-            account_type: 'Saving',
-            status: 'Active',
-        };
+                            try {
+                                const response = await fetch('/members/addupdatebank', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify(Object.fromEntries(formData)),
+                                });
 
-        try {
-            const response = await fetch('/members/addupdatebank', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to add bank account');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to add bank account');
-        }
-    }
+                                const data = await response.json();
+                                if (data.success) {
+                                    alert('Bank details updated successfully');
+                                    location.reload();
+                                } else {
+                                    alert(data.message || 'Failed to update bank details');
+                                }
+                            } catch (error) {
+                                console.error('Error:', error);
+                                alert('Failed to update bank details');
+                            }
+                        });
+                    });
 
-    // Delete address
-    async function deleteAddress(addressId) {
-        if (!confirm('Are you sure you want to delete this address?')) return;
+                    // Address status update
+                    async function setAddressStatus(addressId, status) {
+                        try {
+                            const response = await fetch(`/members/address/${addressId}/status`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ status }),
+                            });
 
-        try {
-            const response = await fetch(`/members/address/${addressId}`, {
-                method: 'DELETE',
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to delete address');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to delete address');
-        }
-    }
+                            const data = await response.json();
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to update status');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to update status');
+                        }
+                    }
 
-    // Delete bank
-    async function deleteBank(bankId) {
-        if (!confirm('Are you sure you want to delete this bank account?')) return;
+                    // Bank status update
+                    async function setBankStatus(bankId, status) {
+                        try {
+                            const response = await fetch(`/members/bank/${bankId}/status`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ status }),
+                            });
 
-        try {
-            const response = await fetch(`/members/bank/${bankId}`, {
-                method: 'DELETE',
-            });
-            
-            const data = await response.json();
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.message || 'Failed to delete bank account');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Failed to delete bank account');
-        }
-    }
+                            const data = await response.json();
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to update status');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to update status');
+                        }
+                    }
 
-    // Initialize Bootstrap modals
-    const addressModal = new bootstrap.Modal(document.getElementById('addressModal'));
-    const bankModal = new bootstrap.Modal(document.getElementById('bankModal'));
+                    // Add new address
+                    async function addNewAddress() {
+                        const formData = {
+                            user_id: '<%= member.user_id %>',
+                            permanent_address: '',
+                            permanent_city: '',
+                            permanent_district: '',
+                            permanent_state: '',
+                            permanent_pincode: '',
+                            correspondence_address: '',
+                            correspondence_city: '',
+                            correspondence_district: '',
+                            correspondence_state: '',
+                            correspondence_pincode: '',
+                            status: 'Active',
+                        };
 
-    function addNewAddress() {
-        document.getElementById('newAddressForm').reset();
-        addressModal.show();
-    }
+                        try {
+                            const response = await fetch('/members/addupdateaddress', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(formData),
+                            });
 
-    function addNewBank() {
-        document.getElementById('newBankForm').reset();
-        bankModal.show();
-    }
+                            const data = await response.json();
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to add address');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to add address');
+                        }
+                    }
 
-    async function submitNewAddress() {
-        const form = document.getElementById('newAddressForm');
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
-            return;
-        }
+                    // Add new bank
+                    async function addNewBank() {
+                        const formData = {
+                            user_id: '<%= member.user_id %>',
+                            bank_name: '',
+                            branch_name: '',
+                            account_number: '',
+                            ifsc_code: '',
+                            account_type: 'Saving',
+                            status: 'Active',
+                        };
 
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
+                        try {
+                            const response = await fetch('/members/addupdatebank', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(formData),
+                            });
 
-        try {
-            const response = await fetch('/members/addupdateaddress', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
+                            const data = await response.json();
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to add bank account');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to add bank account');
+                        }
+                    }
 
-            if (!response.ok) {
-                throw new Error('Failed to add address');
-            }
+                    // Delete address
+                    async function deleteAddress(addressId) {
+                        if (!confirm('Are you sure you want to delete this address?')) return;
 
-            // Refresh the page to show new address
-            window.location.reload();
-        } catch (error) {
-            alert('Error adding address: ' + error.message);
-        }
-    }
+                        try {
+                            const response = await fetch(`/members/address/${addressId}`, {
+                                method: 'DELETE',
+                            });
 
-    async function submitNewBank() {
-        const form = document.getElementById('newBankForm');
-        if (!form.checkValidity()) {
-            form.classList.add('was-validated');
-            return;
-        }
+                            const data = await response.json();
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to delete address');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to delete address');
+                        }
+                    }
 
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
+                    // Delete bank
+                    async function deleteBank(bankId) {
+                        if (!confirm('Are you sure you want to delete this bank account?')) return;
 
-        try {
-            const response = await fetch('/members/addupdatebank', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
+                        try {
+                            const response = await fetch(`/members/bank/${bankId}`, {
+                                method: 'DELETE',
+                            });
 
-            if (!response.ok) {
-                throw new Error('Failed to add bank account');
-            }
+                            const data = await response.json();
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to delete bank account');
+                            }
+                        } catch (error) {
+                            console.error('Error:', error);
+                            alert('Failed to delete bank account');
+                        }
+                    }
 
-            // Refresh the page to show new bank account
-            window.location.reload();
-        } catch (error) {
-            alert('Error adding bank account: ' + error.message);
-        }
-    }
-    </script>
+                    // Initialize Bootstrap modals
+                    const addressModal = new bootstrap.Modal(document.getElementById('addressModal'));
+                    const bankModal = new bootstrap.Modal(document.getElementById('bankModal'));
 
-    <%- contentFor('script') %>
+                    function addNewAddress() {
+                        document.getElementById('newAddressForm').reset();
+                        addressModal.show();
+                    }
+
+                    function addNewBank() {
+                        document.getElementById('newBankForm').reset();
+                        bankModal.show();
+                    }
+
+                    async function submitNewAddress() {
+                        const form = document.getElementById('newAddressForm');
+                        if (!form.checkValidity()) {
+                            form.classList.add('was-validated');
+                            return;
+                        }
+
+                        const formData = new FormData(form);
+                        const data = Object.fromEntries(formData.entries());
+
+                        try {
+                            const response = await fetch('/members/addupdateaddress', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(data),
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to add address');
+                            }
+
+                            // Refresh the page to show new address
+                            window.location.reload();
+                        } catch (error) {
+                            alert('Error adding address: ' + error.message);
+                        }
+                    }
+
+                    async function submitNewBank() {
+                        const form = document.getElementById('newBankForm');
+                        if (!form.checkValidity()) {
+                            form.classList.add('was-validated');
+                            return;
+                        }
+
+                        const formData = new FormData(form);
+                        const data = Object.fromEntries(formData.entries());
+
+                        try {
+                            const response = await fetch('/members/addupdatebank', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(data),
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to add bank account');
+                            }
+
+                            // Refresh the page to show new bank account
+                            window.location.reload();
+                        } catch (error) {
+                            alert('Error adding bank account: ' + error.message);
+                        }
+                    }
+                </script>
+
+                <%- contentFor('script') %>

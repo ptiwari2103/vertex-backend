@@ -45,7 +45,7 @@
                 <select class="form-select" name="assigned_to">
                     <option value="">All</option>
                     <% users.forEach(user => { %>
-                        <option value="<%= user.id %>"><%= user.name %></option>
+                        <option value="<%= user.id %>"><%= user.name %> (<%= user.user_id %>)</option>
                     <% }); %>
                 </select>
             </div>
@@ -104,14 +104,14 @@
                             <td><%= pin.pin %></td>
                             <td>
                                 <% if (pin.assignedUser) { %>
-                                    <%= pin.assignedUser.name %>
+                                    <%= pin.assignedUser.name %> (<%= pin.assignedUser.user_id %>)
                                 <% } else { %>
                                     -
                                 <% } %>
                             </td>
                             <td>
                                 <% if (pin.usedUser) { %>
-                                    <%= pin.usedUser.name %>
+                                    <%= pin.usedUser.name %> (<%= pin.usedUser.user_id %>)
                                 <% } else { %>
                                     -
                                 <% } %>
@@ -164,7 +164,7 @@
                         <select class="form-select" name="assigned_to">
                             <option value="">Select User...</option>
                             <% users.forEach(user => { %>
-                                <option value="<%= user.id %>"><%= user.name %></option>
+                                <option value="<%= user.id %>"><%= user.name %> (<%= user.user_id %>)</option>
                             <% }); %>
                         </select>
                     </div>
@@ -207,7 +207,7 @@
                         <select class="form-select" name="assigned_to" required>
                             <option value="">Select User...</option>
                             <% users.forEach(user => { %>
-                                <option value="<%= user.id %>"><%= user.name %></option>
+                                <option value="<%= user.id %>"><%= user.name %> (<%= user.user_id %>)</option>
                             <% }); %>
                         </select>
                         <div class="invalid-feedback">Please select a user to assign the pins to</div>

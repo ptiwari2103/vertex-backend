@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
-const { User } = require("../models/index.js");
+const { User, VertexPin } = require("../models/index.js");
+const { Op } = require('sequelize');
 
 // Validate user ID format (SSDDXY - 6 digits)
 const isValidUserId = (userId) => {
@@ -160,8 +161,53 @@ const showLoginForm = (req, res) => {
     });
 };
 
+const validatePaymentKey = async (req, res) => {
+    try {
+        const { payment_key } = req.body;
+        
+        // Validate payment key format
+        // if (!payment_key || !/^[A-Z0-9]{10}$/.test(payment_key)) {
+        //     return res.json({
+        //         success: false,
+        //         message: 'Invalid payment key format'
+        //     });
+        // }
+        
+        // Check if payment key is valid
+        const pin = await VertexPin.findOne({
+            where: {
+                pin: payment_key,
+                assigned_to: {
+                    [Op.gt]: 0  // assigned_to greater than 0
+                },
+                used_by: null,  // not used yet
+                used_date: null // no used date
+            }
+        });
+        
+        if (!pin) {
+            return res.json({
+                success: false,
+                message: 'Invalid payment key'
+            });
+        }
+               
+        return res.json({
+            success: true,
+            message: 'Payment key validated successfully'
+        });
+    } catch (error) {
+        console.error('Payment key validation error:', error);
+        return res.json({
+            success: false,
+            message: 'An error occurred during payment key validation. Please try again.'
+        });
+    }
+};
+
 module.exports = {
     showLoginForm,
     login,
-    logout
+    logout,
+    validatePaymentKey
 };

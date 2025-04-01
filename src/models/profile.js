@@ -48,6 +48,10 @@ Profile.init({
     allowNull: false,
     defaultValue: false
   },
+  divyang_type: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   divyang_certificate: {
     type: DataTypes.STRING(255),
     allowNull: true

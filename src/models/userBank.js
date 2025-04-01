@@ -45,6 +45,10 @@ UserBank.init({
     type: DataTypes.STRING(11),
     allowNull: true
   },
+  account_type: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
   status: {
     type: DataTypes.ENUM('Inactive', 'Active'),
     defaultValue: 'Inactive',

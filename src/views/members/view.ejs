@@ -91,7 +91,7 @@
     <div class="section-card">
         <h4 class="section-title">Basic Information</h4>
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="info-row">
                     <div class="info-label">User ID</div>
                     <div class="info-value"><%= member.user_id %></div>
@@ -105,7 +105,7 @@
                     <div class="info-value"><%= member.name %></div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="info-row">
                     <div class="info-label">Status</div>
                     <div class="info-value">
@@ -115,6 +115,26 @@
                         </span>
                     </div>
                 </div>
+                <div class="info-row">
+                    <div class="info-label">Is Agent</div>
+                    <div class="info-value">
+                        <span class="status-badge <%= member.profile.is_agent.toLowerCase() === 'active' ? 'status-active' : 
+                            member.profile.is_agent.toLowerCase() === 'inactive' ? 'status-inactive' : 'status-pending' %>">
+                            <%= member.profile.is_agent %>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Is Franchise</div>
+                    <div class="info-value">
+                        <span class="status-badge <%= member.profile.is_fanchise.toLowerCase() === 'active' ? 'status-active' : 
+                            member.profile.is_fanchise.toLowerCase() === 'inactive' ? 'status-inactive' : 'status-pending' %>">
+                            <%= member.profile.is_fanchise %>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
                 <div class="info-row">
                     <div class="info-label">Created Date</div>
                     <div class="info-value"><%= new Date(member.created_date).toLocaleDateString() %></div>
@@ -131,7 +151,7 @@
     <div class="section-card">
         <h4 class="section-title">KYC Information</h4>
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="info-row">
                     <div class="info-label">KYC Status</div>
                     <div class="info-value">
@@ -150,13 +170,7 @@
                     <div class="info-value"><%= member.profile?.aadhar_number || 'Not provided' %></div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <% if (member.profile?.pan_number_image) { %>
-                    <div class="info-row">
-                        <div class="info-label">PAN Card Image</div>
-                        <img src="/<%= member.profile.pan_number_image %>" class="document-image" alt="PAN Card">
-                    </div>
-                <% } %>
+            <div class="col-md-4">
                 <% if (member.profile?.aadhar_number_image_front) { %>
                     <div class="info-row">
                         <div class="info-label">Aadhar Front Image</div>
@@ -170,6 +184,15 @@
                     </div>
                 <% } %>
             </div>
+
+            <div class="col-md-4">
+                <% if (member.profile?.pan_number_image) { %>
+                    <div class="info-row">
+                        <div class="info-label">PAN Card Image</div>
+                        <img src="/<%= member.profile.pan_number_image %>" class="document-image" alt="PAN Card">
+                    </div>
+                <% } %>                
+            </div>
         </div>
     </div>
 
@@ -177,15 +200,31 @@
     <div class="section-card">
         <h4 class="section-title">Profile Information</h4>
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="info-row">
-                    <div class="info-label">Email</div>
+                    <div class="info-label">Email ID</div>
                     <div class="info-value"><%= member.email_id || 'Not provided' %></div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label">Mobile</div>
+                    <div class="info-label">Mobile Number</div>
                     <div class="info-value"><%= member.mobile_number || 'Not provided' %></div>
                 </div>
+                <div class="info-row">
+                    <div class="info-label">Gender</div>
+                    <div class="info-value"><%= member.gender || 'Not provided' %></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Date of Birth</div>
+                    <div class="info-value"><%= member.date_of_birth ? new Date(member.date_of_birth).toLocaleDateString() : 'Not provided' %></div>
+                </div>
+                <% if (member.profile?.profile_image) { %>
+                    <div class="info-row">
+                        <div class="info-label">Profile Image</div>
+                        <div class="info-value">
+                            <img src="/<%= member.profile.profile_image %>" class="profile-image" alt="Profile Image" style="max-width: 150px; border-radius: 5px;">
+                        </div>
+                    </div>
+                <% } %>
                 <div class="info-row">
                     <div class="info-label">Guardian Name</div>
                     <div class="info-value"><%= member.guardian_name || 'Not provided' %></div>
@@ -195,7 +234,7 @@
                     <div class="info-value"><%= member.guardian_relation || 'Not provided' %></div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="info-row">
                     <div class="info-label">Nominee Name</div>
                     <div class="info-value"><%= member.profile?.nominee_name || 'Not provided' %></div>
@@ -212,6 +251,38 @@
                     <div class="info-label">Nominee Email</div>
                     <div class="info-value"><%= member.profile?.nominee_email || 'Not provided' %></div>
                 </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-row">
+                    <div class="info-label">Senior Citizen</div>
+                    <div class="info-value">
+                        <span class="status-badge <%= member.profile?.is_senior_citizen ? 'status-active' : 'status-inactive' %>">
+                            <%= member.profile?.is_senior_citizen ? 'Yes' : 'No' %>
+                        </span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Divyang Status</div>
+                    <div class="info-value">
+                        <span class="status-badge <%= member.profile?.is_divyang ? 'status-active' : 'status-inactive' %>">
+                            <%= member.profile?.is_divyang ? 'Yes' : 'No' %>
+                        </span>
+                    </div>
+                </div>
+                <% if (member.profile?.is_divyang) { %>
+                    <div class="info-row">
+                        <div class="info-label">Divyang Type</div>
+                        <div class="info-value"><%= member.profile?.divyang_type || 'Not specified' %></div>
+                    </div>
+                    <% if (member.profile?.divyang_certificate) { %>
+                        <div class="info-row">
+                            <div class="info-label">Divyang Certificate</div>
+                            <div class="info-value">
+                                <img src="/<%= member.profile.divyang_certificate %>" class="document-image" alt="Divyang Certificate">
+                            </div>
+                        </div>
+                    <% } %>
+                <% } %>
             </div>
         </div>
     </div>
@@ -310,8 +381,8 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label class="form-label">IFSC Code</label>
-                                <p class="form-control-static"><%= bank.ifsc_code %></p>
+                                <label class="form-label">IFSC Number</label>
+                                <p class="form-control-static"><%= bank.ifsc_number %></p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Account Type</label>
