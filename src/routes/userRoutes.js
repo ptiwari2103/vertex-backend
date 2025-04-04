@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { verifyApiToken } = require('../middleware/auth');
 
 // Multer Storage Configuration
 const storage = multer.diskStorage({
@@ -40,11 +41,18 @@ const upload = multer({
     { name: 'divyang_certificate', maxCount: 1 }
 ]);
 
-// KYC form submission route
-router.post('/kyc', upload, userController.kycform);
-router.post('/profile', upload, userController.profileform);
-router.post('/addupdateaddress', userController.addUpdateAddress);
-router.post('/addupdatebank', userController.addUpdateBank);
+// Protected routes - require API authentication
+router.post('/kyc', verifyApiToken, upload, userController.kycform);
+router.post('/profile', verifyApiToken, upload, userController.profileform);
+router.post('/addupdateaddress', verifyApiToken, userController.addUpdateAddress);
+router.post('/addupdatebank', verifyApiToken, userController.addUpdateBank);
+
+
+router.post('/adminkyc',  upload, userController.kycform);
+router.post('/adminprofile', upload, userController.profileform);
+router.post('/adminaddupdateaddress',  userController.addUpdateAddress);
+router.post('/adminaddupdatebank',  userController.addUpdateBank);
+
 
 // Member management routes
 router.get('/allmembers', userController.getAllMembers);

@@ -1,0 +1,149 @@
+<%- contentFor('title') %>Card Management - Vertex Admin
+
+    <%- contentFor('style') %>
+        <style>
+            .main-content {
+                padding: 20px;
+            }
+
+            .filters-section {
+                background: #fff;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            .table-section {
+                background: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            .date-filter {
+                max-width: 150px;
+            }
+        </style>
+
+        <%- contentFor('body') %>
+            <div class="main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">List Cards</h2>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="filters-section">
+                    <form id="filterForm" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">User</label>
+                            <select class="form-select" name="user_id" onchange="submitForm()">
+                                <option value="">All</option>
+                                <% users.forEach(user=> { %>
+                                    <option value="<%= user.id %>" <%=user.id==query.user_id ? 'selected' : '' %>><%=
+                                            user.name %> (<%= user.user_id %>)</option>
+                                    <% }); %>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status" onchange="submitForm()">
+                                <option value="">All</option>
+                                <option value="Pending" <%=query.status==='Pending' ? 'selected' : '' %>>Pending
+                                </option>
+                                <option value="Approved" <%=query.status==='Approved' ? 'selected' : '' %>>Approved
+                                </option>
+                                <option value="Rejected" <%=query.status==='Rejected' ? 'selected' : '' %>>Rejected
+                                </option>
+                                <option value="Blocked" <%=query.status==='Blocked' ? 'selected' : '' %>>Blocked
+                                </option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                <script>
+                    function submitForm() {
+                        document.getElementById('filterForm').submit();
+                    }
+                </script>
+
+                <!-- Table Section -->
+                <!-- Table Section -->
+                <div class="table-section">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>S.No.</th>
+                                    <th>User</th>
+                                    <th>Card Number</th>
+                                    <th>Created At</th>
+                                    <th>Assigned At</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% cards.forEach((card, index)=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= (pagination.currentPage - 1) * 10 + index + 1 %>
+                                        </td>
+                                        <td>
+                                            <%= card.user.name %> (<%= card.user.user_id %>)
+                                        </td>
+                                        <td>
+                                            <%= card.card_number %>
+                                        </td>
+                                        <td>
+                                            <%= new Date(card.created_at).toLocaleDateString() %>
+                                        </td>
+                                        <td>
+                                            <%= card.assigned_date ? new Date(card.assigned_date).toLocaleDateString()
+                                                : '-' %>
+                                        </td>
+                                        <td>
+                                            <%= card.status %>
+                                        </td>
+                                        <td>
+                                            <!-- Add action buttons here -->
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                            <a class="page-link"
+                                href="?page=<%= pagination.currentPage - 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>"
+                                tabindex="-1">Previous</a>
+                        </li>
+                        <% for(let i=1; i <=pagination.totalPages; i++) { %>
+                            <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                                <a class="page-link"
+                                    href="?page=<%= i %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">
+                                    <%= i %>
+                                </a>
+                            </li>
+                            <% } %>
+                                <li
+                                    class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                                    <a class="page-link"
+                                        href="?page=<%= pagination.currentPage + 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">Next</a>
+                                </li>
+                    </ul>
+                </nav>
+            </div>
+            </div>
+
+            <script>
+                function submitForm() {
+                    document.getElementById('filterForm').submit();
+                }
+            </script>

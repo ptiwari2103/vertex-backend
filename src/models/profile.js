@@ -52,6 +52,11 @@ Profile.init({
     type: DataTypes.STRING(255),
     allowNull: true
   },
+  divyang_percentage: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+    defaultValue: 0
+  },
   divyang_certificate: {
     type: DataTypes.STRING(255),
     allowNull: true

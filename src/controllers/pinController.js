@@ -1,5 +1,4 @@
 const { VertexPin, User } = require("../models");
-const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
 // Generate a unique 8-digit alphanumeric pin
@@ -24,6 +23,50 @@ const generateUniquePin = async () => {
     return pin;
 };
 
+// Add new pins
+const addPins = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 10;
+        const offset = (page - 1) * limit;
+
+        // Get pins with pagination
+        const { count, rows: pins } = await VertexPin.findAndCountAll({
+            where: {
+                assigned_to: 0,
+                used_by: null
+            },
+            order: [['created_at', 'DESC']],
+            limit,
+            offset
+        });
+
+        // Get all users for dropdowns
+        const users = await User.findAll({
+            attributes: ['id', 'user_id', 'name', 'user_type'],
+            order: [['name', 'ASC']]
+        });
+
+        // Calculate pagination details
+        const totalPages = Math.ceil(count / limit);
+
+        // Render the pins list page
+        res.render('pins/add', {
+            pins,
+            users,
+            user: JSON.stringify(req.session.user, null, 2),
+            currentPage: 'addpins',
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalPins: count
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 // Get all pins with pagination and filters
 const getAllPins = async (req, res) => {
     try {
@@ -33,6 +76,9 @@ const getAllPins = async (req, res) => {
 
         // Build filter conditions
         const whereClause = {};
+
+        whereClause.assigned_to = { [Op.gt]: 0 };
+
         if (req.query.assigned_to) {
             whereClause.assigned_to = req.query.assigned_to;
         }
@@ -93,6 +139,7 @@ const getAllPins = async (req, res) => {
             users,
             user: JSON.stringify(req.session.user, null, 2),
             currentPage: 'pins',
+            query: req.query,
             pagination: {
                 currentPage: page,
                 totalPages,
@@ -246,6 +293,7 @@ const getAssignedPins = async (req, res) => {
 };
 
 module.exports = {
+    addPins,
     getAllPins,
     createPins,
     bulkAssignPins,

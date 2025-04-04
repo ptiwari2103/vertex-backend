@@ -4,6 +4,7 @@ const pinController = require("../controllers/pinController");
 const router = express.Router();
 
 // Pin management routes
+router.get('/addpins', pinController.addPins);
 router.get('/allpins', pinController.getAllPins);
 router.post('/create', pinController.createPins);
 router.post('/bulk-assign', pinController.bulkAssignPins);

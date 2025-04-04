@@ -79,28 +79,19 @@
         <a class="nav-link <%= locals.currentPage === 'members' ? 'active' : '' %>" href="/members/allmembers">
             <i class='bx bxs-user'></i> Members
         </a>
-        <a class="nav-link" href="#">
+        <a class="nav-link <%= locals.currentPage === 'pins' ? 'active' : '' %>" href="/pins/allpins">
             <i class='bx bxs-user'></i> Pins Management
         </a>
-        <div class="submenu">
-            <a class="nav-link <%= locals.currentPage === 'addpins' ? 'active' : '' %>" href="/pins/addpins">Add Pin</a>
-            <a class="nav-link <%= locals.currentPage === 'pins' ? 'active' : '' %>" href="/pins/allpins">Assigned Pin</a>
-        </div>
-
-        <!-- Messages Management -->
         <a class="nav-link <%= locals.currentPage === 'messages' ? 'active' : '' %>" href="/messages/allmessages">
             <i class='bx bxs-user'></i> Messages Management
-        </a>
-
-        <!-- Cards Management -->
-        <a class="nav-link <%= locals.currentPage === 'cards' ? 'active' : '' %>" href="/cards/allcards">
-            <i class='bx bxs-user'></i> Cards Management
         </a>
     </nav>
     
 
     <div class="user-info">
-        <p>Welcome, <%= user?.name || "Admin" %></p>
+        <!-- <p>Welcome, <%= user.name %></p>
+        <p class="text-muted mb-2">ID: <%= user.user_id %></p> -->
+        <p>Welcome, Admin</p>
         <form action="/auth/logout" method="POST">
             <button type="submit" class="logout-btn">
                 <i class='bx bx-log-out'></i> Logout

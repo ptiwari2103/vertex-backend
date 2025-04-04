@@ -334,7 +334,7 @@
                                     class="divyang-fields <%= member.profile?.is_divyang ? '' : 'd-none' %>">
                                     <div class="row">
                                         <!-- Divyang Type Dropdown -->
-                                        <div class="col-6">
+                                        <div class="col-4">
                                             <label class="form-label">Divyang Type*</label>
                                             <select name="divyang_type" class="form-control"
                                                 <%=member.profile?.is_divyang ? 'required' : '' %>>
@@ -359,8 +359,14 @@
                                             </select>
                                         </div>
 
+                                        <div class="col-4">
+                                            <label class="form-label">Divyang Percentage*</label>
+                                            <input type="number" name="divyang_percentage" class="form-control"
+                                                <%=member.profile?.is_divyang ? 'required' : '' %> value="<%= member.profile?.divyang_percentage %>" min="0" max="100">
+                                        </div>
+
                                         <!-- Divyang Certificate -->
-                                        <div class="col-6">
+                                        <div class="col-4">
                                             <label class="form-label">Divyang Certificate*</label>
                                             <input type="file" name="divyang_certificate" class="form-control"
                                                 accept="image/*,.pdf" <%= (member.profile?.is_divyang && !member.profile?.divyang_certificate) ? 'required' : '' %>>
@@ -671,7 +677,7 @@
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label">Account Holder Name *</label>
-                                                <input type="text" class="form-control" value="<%= member.name %>" name="account_holder" required>
+                                                <input type="text" class="form-control" value="<%= member.name %>" name="account_holder" required readonly>
                                                 <div class="invalid-feedback">Account Holder Name is required</div>
                                             </div>
                                             <div class="mb-3">
@@ -758,7 +764,7 @@
                         e.preventDefault();
                         const formData = new FormData(e.target);
                         try {
-                            const response = await fetch('/members/kyc', {
+                            const response = await fetch('/members/adminkyc', {
                                 method: 'POST',
                                 body: formData
                             });
@@ -789,7 +795,7 @@
                             //     body: JSON.stringify(Object.fromEntries(formData)),
                             // });
 
-                            const response = await fetch('/members/profile', {
+                            const response = await fetch('/members/adminprofile', {
                                 method: 'POST',
                                 body: formData
                             });
@@ -815,7 +821,7 @@
                             const addressId = e.target.dataset.id;
 
                             try {
-                                const response = await fetch('/members/addupdateaddress', {
+                                const response = await fetch('/members/adminaddupdateaddress', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -845,7 +851,7 @@
                             const bankId = e.target.dataset.id;
 
                             try {
-                                const response = await fetch('/members/addupdatebank', {
+                                const response = await fetch('/members/adminaddupdatebank', {
                                     method: 'POST',
                                     headers: {
                                         'Content-Type': 'application/json',
@@ -1051,7 +1057,7 @@
                         const data = Object.fromEntries(formData.entries());
 
                         try {
-                            const response = await fetch('/members/addupdateaddress', {
+                            const response = await fetch('/members/adminaddupdateaddress', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -1081,7 +1087,7 @@
                         const data = Object.fromEntries(formData.entries());
 
                         try {
-                            const response = await fetch('/members/addupdatebank', {
+                            const response = await fetch('/members/adminaddupdatebank', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',

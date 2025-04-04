@@ -239,17 +239,19 @@ const login = async (req, res) => {
                 user_type: user.user_type
             },
             process.env.JWT_SECRET,
-            { expiresIn: '1h' }
+            { expiresIn: '15m' }
         );
 
-        const userdetails = await getUserDetails(user_id);      
+        const userdetails = await getUserDetails(user.user_id);      
         
         // Return user details and token
         res.json({
             success: true,
             data: {
                 user: userdetails,
-                token
+                token: token,
+                token_type: 'Bearer',
+                expires_in: 5 // 5 minutes in seconds
             }
         });
     } catch (error) {
@@ -571,15 +573,13 @@ const verifyToken = (req, res, next) => {
 
 const kycform = async (req, res) => {
     try {
-        const { user_id, pan_number, aadhar_number } = req.body;
+        // Get user from middleware
+        const user_id = req.user.user_id;
+        const { pan_number, aadhar_number } = req.body;
         const { pan_number_image, aadhar_number_image_front, aadhar_number_image_back } = req.files;
-        console.log(pan_number_image, aadhar_number_image_front, aadhar_number_image_back);
-        console.log("==========================");
-        console.log(req.files);
-        console.log("-----------------------------------");
-        // console.log(req.body);
+        
         // Validate input
-        if (!user_id || !pan_number || !aadhar_number) {
+        if (!pan_number || !aadhar_number) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields'
@@ -634,7 +634,7 @@ const kycform = async (req, res) => {
                 kyc_status: 'Submitted'
             });
             
-            const userdetails = await getUserDetails(user_id);
+            const userdetails = await getUserDetails(user.user_id);
     
             return res.json({
                 success: true,
@@ -654,7 +654,7 @@ const kycform = async (req, res) => {
                 kyc_status: 'Submitted'
             });
             
-            const userdetails = await getUserDetails(user_id);
+            const userdetails = await getUserDetails(user.user_id);
     
             return res.json({
                 success: true,
@@ -677,12 +677,12 @@ const kycform = async (req, res) => {
 
 const profileform = async (req, res) => {
     try {
-        const {update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise, divyang_type } = req.body;
+        const {update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise, divyang_type, divyang_percentage } = req.body;
         console.log("===========profileform==============");
         console.log(req.body);
         
         const { profile_image, divyang_certificate } = req.files;
-        console.log(profile_image, divyang_certificate);
+        console.log("profile_image, divyang_certificate", profile_image, divyang_certificate);
         
         
         // console.log(req.body);
@@ -731,10 +731,6 @@ const profileform = async (req, res) => {
             ? profile_image[0]?.path 
             : user?.profile?.profile_image || null;
 
-        // const divyangCertificatePath = Array.isArray(divyang_certificate) && divyang_certificate.length > 0 
-        //     ? divyang_certificate[0]?.path 
-        //     : user?.profile?.divyang_certificate || null;
-
         const divyangCertificatePath = is_divyang === 'true' 
             ? (Array.isArray(divyang_certificate) && divyang_certificate.length > 0 
                 ? divyang_certificate[0]?.path 
@@ -742,7 +738,7 @@ const profileform = async (req, res) => {
             : null;
         
 // console.log("is_divyang", is_divyang);
-        console.log(profileImagePath, divyangCertificatePath);
+        console.log("profileImagePath2, divyangCertificatePath2", profileImagePath, divyangCertificatePath);
 
         // Ensure files are uploaded
         if (!profileImagePath) {
@@ -766,15 +762,11 @@ const profileform = async (req, res) => {
         // console.log("before Updated user details:", user);
         await user.save();
         // console.log("after Updated user details:", user);
-
-        // if (!update_by || update_by !== 'admin') {
-        //     is_agent = user?.profile?.is_agent;
-        //     is_fanchise = user?.profile?.is_fanchise;            
-        // }
         
         // Update or create profile with KYC details
         if (user?.profile?.id) {
             // Update existing profile
+            console.log("before Updated profile details:", user.profile);
             const updatedProfile = await user.profile.update({
                 profile_image: profileImagePath,
                 divyang_certificate: divyangCertificatePath,
@@ -784,10 +776,12 @@ const profileform = async (req, res) => {
                 nominee_email,
                 is_divyang,
                 is_senior_citizen,
-                divyang_type: is_divyang === 'true' ? req.body.divyang_type : null
+                divyang_type: is_divyang === 'true' ? req.body.divyang_type : null,
+                divyang_percentage: is_divyang === 'true' ? req.body.divyang_percentage : null
             });
+            console.log("after Updated profile details:", updatedProfile);            
             
-            const userdetails = await getUserDetails(user_id);
+            const userdetails = await getUserDetails(user.user_id);
     
             return res.json({
                 success: true,
@@ -810,8 +804,9 @@ const profileform = async (req, res) => {
                 guardian_relation,
                 divyang_type: is_divyang === 'true' ? req.body.divyang_type : null
             });
+            console.log("after Created new profile:", newProfile);
             
-            const userdetails = await getUserDetails(user_id);
+            const userdetails = await getUserDetails(user.user_id);
     
             return res.json({
                 success: true,
@@ -851,12 +846,19 @@ const addUpdateAddress = async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Address not found' });
             }
             await address.update({ user_id: user.id, ...addressData });
-            res.json({ success: true, message: 'Address updated successfully' });
+
+            const userdetails = await getUserDetails(user.user_id);
+
+            res.json({ success: true, data: userdetails, message: 'Address updated successfully' });
         } else {
             // Create new address
             await UserAddress.create({ user_id: user.id, ...addressData });
-            res.json({ success: true, message: 'Address added successfully' });
+            
+            const userdetails = await getUserDetails(user.user_id);
+
+            res.json({ success: true, data: userdetails, message: 'Address added successfully' });
         }
+
     } catch (error) {
         console.error('Error in addUpdateAddress:', error);
         res.status(500).json({ success: false, message: 'Failed to save address' });
@@ -874,6 +876,21 @@ const updateAddressStatus = async (req, res) => {
         }
 
         await address.update({ status });
+        // console.log("status=", status);
+        if (status === 'Active') {
+            // Set all other addresses for the user to inactive
+            await UserAddress.update(
+                { status: 'Inactive' },
+                {
+                    where: {
+                        user_id: address.user_id,
+                        id: { [Op.ne]: address.id }, // Exclude the current address
+                        status: 'Active' // Only update active addresses
+                    }
+                }
+            );
+        }
+
         res.json({ success: true, message: 'Address status updated successfully' });
     } catch (error) {
         console.error('Error in updateAddressStatus:', error);
@@ -900,6 +917,7 @@ const deleteAddress = async (req, res) => {
 
 const addUpdateBank = async (req, res) => {
     try {
+        
         const { user_id, id, ...bankData } = req.body;
 
         // Check if user exists
@@ -921,13 +939,27 @@ const addUpdateBank = async (req, res) => {
                 return res.status(404).json({ success: false, message: 'Bank details not found' });
             }
             await bank.update({ user_id: user.id, ...bankData });
-            res.json({ success: true, message: 'Bank details updated successfully' });
+
+            const userdetails = await getUserDetails(user.user_id);
+
+            res.json({ success: true, data: userdetails, message: 'Bank details updated successfully' });
         } else {
             // Create new bank
             await UserBank.create({ user_id: user.id, ...bankData });
-            res.json({ success: true, message: 'Bank details added successfully' });
+            
+            const userdetails = await getUserDetails(user.user_id);
+
+            res.json({ success: true, data: userdetails, message: 'Bank details added successfully' });
         }
     } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            // Handle duplicate entry error
+            return res.status(400).json({
+                success: false,
+                message: 'Duplicate entry error',
+                error: error.errors.map(e => e.message) // Extract specific error messages
+            });
+        }
         console.error('Error in addUpdateBank:', error);
         res.status(500).json({ success: false, message: 'Failed to save bank details' });
     }
@@ -944,6 +976,20 @@ const updateBankStatus = async (req, res) => {
         }
 
         await bank.update({ status });
+
+        if (status === 'Active') {
+            // Set all other banks for the user to inactive
+            await UserBank.update(
+                { status: 'Inactive' },
+                {
+                    where: {
+                        user_id: bank.user_id,
+                        id: { [Op.ne]: bank.id }, // Exclude the current bank
+                        status: 'Active' // Only update active banks
+                    }
+                }
+            );
+        }
         res.json({ success: true, message: 'Bank status updated successfully' });
     } catch (error) {
         console.error('Error in updateBankStatus:', error);
@@ -970,8 +1016,15 @@ const deleteBank = async (req, res) => {
 
 // Utility function to fetch user details with associated models
 const getUserDetails = async (userId) => {
+    
     const userDetails = await User.findOne({
-        where: { user_id: userId, user_type: 'member' },
+        where: {
+            user_id: userId,
+            user_type: 'member',
+            status: {
+                [Op.or]: ['Active', 'Approved']
+            }
+        },
         include: [
             { model: Profile, as: 'profile' }
         ]
@@ -998,8 +1051,8 @@ const getUserDetails = async (userId) => {
         order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
     });
 
-    console.log('Active Address:', activeAddress);
-    console.log('Latest Inactive Address:', latestInactiveAddress);
+    // console.log('Active Address:', activeAddress);
+    // console.log('Latest Inactive Address:', latestInactiveAddress);
     
        
     // Attach structured address data
@@ -1045,7 +1098,7 @@ const getUserDetails = async (userId) => {
 const viewMemberDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        const member = await User.findOne({
+        const member = await User.findOne({      
             where: { id, user_type: 'member' },
             include: [
                 {
