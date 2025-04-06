@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 
 const addCard = async (req, res) => {
     try {
-        const { user_id, card_number, card_last4, card_type, expiry_month, expiry_year, cvv_code } = req.body;
+        const { user_id } = req.body;
 
         // Check if user exists with status 'active' and 'approved'
         const user = await User.findOne({
@@ -23,13 +23,7 @@ const addCard = async (req, res) => {
 
         // Create a new card entry
         const card = await Card.create({
-            user_id: user.id,
-            card_number,
-            card_last4,
-            card_type,
-            expiry_month,
-            expiry_year,
-            cvv_code
+            user_id: user.id
         });
 
         return res.status(201).json({ message: 'Your request was successfully added.' });
@@ -37,6 +31,7 @@ const addCard = async (req, res) => {
         return res.status(500).json({ error: error.message });
     }
 };
+
 
 const getDetails = async (req, res) => {
     console.log("req.query.user_id", req.query.user_id);
@@ -52,35 +47,23 @@ const getDetails = async (req, res) => {
     }
 };
 
-// const getAllCards = async (req, res) => {
-//     try {
-//         const cards = await Card.findAll();
-//         return res.status(200).json(cards);
-//     } catch (error) {
-//         return res.status(500).json({ error: error.message });
-//     }
-// };
 
-// Get all cards with pagination and filters
-const getAllCardsBCK = async (req, res) => {
+const requestCard = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = 10;
         const offset = (page - 1) * limit;
 
         // Build filter conditions
-        const whereClause = {};
+        const whereClause = {
+            status: 'Pending'
+        };
 
-        whereClause.user_id = { [Op.gt]: 0 };
+        //whereClause.user_id = { [Op.gt]: 0 };
 
         if (req.query.user_id) {
-            whereClause.user_id = req.query.user_id;
-        }
-        if (req.query.created_date) {
-            whereClause.created_at = {
-                [Op.gte]: new Date(req.query.created_date),
-                [Op.lt]: new Date(new Date(req.query.created_date).getTime() + 24 * 60 * 60 * 1000)
-            };
+            //whereClause.user_id = req.query.user_id;
+            whereClause['$user.user_id$'] = { [Op.like]: `%${req.query.user_id}%` };
         }
 
         // Get cards with pagination
@@ -98,22 +81,14 @@ const getAllCardsBCK = async (req, res) => {
             offset
         });
 
-
-        // Get all users for dropdowns
-        const users = await User.findAll({
-            attributes: ['id', 'user_id', 'name', 'user_type'],
-            order: [['name', 'ASC']]
-        });
-
         // Calculate pagination details
         const totalPages = Math.ceil(count / limit);
 
         // Render the cards list page
-        res.render('cards/list', {
+        res.render('cards/request', {
             cards,
-            users,
             user: JSON.stringify(req.session.user, null, 2),
-            currentPage: 'cards',
+            currentPage: 'requestcard',
             query: req.query,
             pagination: {
                 currentPage: page,
@@ -126,7 +101,6 @@ const getAllCardsBCK = async (req, res) => {
     }
 };
 
-
 const getAllCards = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -134,13 +108,14 @@ const getAllCards = async (req, res) => {
         const offset = (page - 1) * limit;
 
         // Build filter conditions
-        const whereClause = {};
-
-        whereClause.user_id = { [Op.gt]: 0 };
+        const whereClause = {
+            status: { [Op.ne]: 'Pending' }
+        };
 
         if (req.query.user_id) {
-            whereClause.user_id = req.query.user_id;
+            whereClause['$user.user_id$'] = { [Op.like]: `%${req.query.user_id}%` };
         }
+
         if (req.query.status) {
             whereClause.status = req.query.status;
         }
@@ -158,7 +133,7 @@ const getAllCards = async (req, res) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'name', 'user_id']
+                    attributes: ['id', 'name', 'user_id', 'account_number']
                 }
             ],
             order: [['created_at', 'DESC']],
@@ -166,21 +141,15 @@ const getAllCards = async (req, res) => {
             offset
         });
 
-        // Get all users for dropdowns
-        const users = await User.findAll({
-            attributes: ['id', 'user_id', 'name', 'user_type'],
-            order: [['name', 'ASC']]
-        });
-
+        
         // Calculate pagination details
         const totalPages = Math.ceil(count / limit);
 
         // Render the cards list page
         res.render('cards/list', {
             cards,
-            users,
             user: JSON.stringify(req.session.user, null, 2),
-            currentPage: 'cards',
+            currentPage: 'allcards',
             query: req.query,
             pagination: {
                 currentPage: page,
@@ -193,8 +162,53 @@ const getAllCards = async (req, res) => {
     }
 };
 
+const updateCard = async (req, res) => {
+    try {
+        // console.log("req.body", req.body);
+        const { id, card_number,cvv_code, expiry_month, expiry_year, card_limit } = req.body;
+        const card = await Card.findOne({ where: { id } });
+        
+        // console.log("card", card);
+        
+        if (!card) {
+            return res.status(404).json({ error: 'Card not found' });
+        }
+        
+        const assigned_date = new Date();
+        const status = 'Approved';        
+        await card.update({ card_number,cvv_code,expiry_month,expiry_year,assigned_date,card_limit,status });
+        return res.status(200).json({ message: 'Card updated successfully' });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+const updateCardStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        
+        // Find the card
+        const card = await Card.findOne({ where: { id } });
+        
+        if (!card) {
+            return res.status(404).json({ error: 'Card not found' });
+        }
+        
+        // Update the status
+        await card.update({ status });
+        
+        return res.status(200).json({ message: 'Card status updated successfully' });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     addCard,
     getDetails,
-    getAllCards
+    getAllCards,
+    requestCard,
+    updateCard,
+    updateCardStatus
 };

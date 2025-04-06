@@ -1,0 +1,237 @@
+<%- contentFor('title') %>Card Management - Vertex Admin
+
+    <%- contentFor('style') %>
+        <style>
+            .main-content {
+                padding: 20px;
+            }
+
+            .filters-section {
+                background: #fff;
+                padding: 15px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            .table-section {
+                background: #fff;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            }
+
+            .date-filter {
+                max-width: 150px;
+            }
+        </style>
+
+        <%- contentFor('body') %>
+            <div class="main-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="mb-0">List Cards</h2>
+                </div>
+
+                <!-- Filters Section -->
+                <div class="filters-section">
+                    <form id="filterForm" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Requested User ID</label>
+                            <input type="text" class="form-control" name="user_id" maxlength="8"
+                                value="<%= query.user_id || '' %>" oninput="applyFilter()" placeholder="Enter User ID">
+                        </div>
+                    </form>
+                </div>
+
+                <script>
+                    function applyFilter() {
+                        document.getElementById('filterForm').submit();
+                    } 
+                </script>
+
+                <!-- Table Section -->
+                <!-- Table Section -->
+                <div class="table-section">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>S.No.</th>
+                                    <th>User</th>
+                                    <th>Requested At</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% cards.forEach((card, index)=> { %>
+                                    <tr>
+                                        <td>
+                                            <%= (pagination.currentPage - 1) * 10 + index + 1 %>
+                                        </td>
+                                        <td>
+                                            <%= card.user.name %> (<%= card.user.user_id %>)
+                                        </td>
+                                        <td>
+                                            <%= new Date(card.created_at).toLocaleDateString() %>
+                                        </td>
+                                        <td>
+                                            <%= card.status %>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-primary"
+                                                onclick="openAddCardModal(<%= card.id %>)">Add Card</button>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pagination -->
+                <nav>
+                    <ul class="pagination">
+                        <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                            <a class="page-link"
+                                href="?page=<%= pagination.currentPage - 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>"
+                                tabindex="-1">Previous</a>
+                        </li>
+                        <% for(let i=1; i <=pagination.totalPages; i++) { %>
+                            <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                                <a class="page-link"
+                                    href="?page=<%= i %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">
+                                    <%= i %>
+                                </a>
+                            </li>
+                            <% } %>
+                                <li
+                                    class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                                    <a class="page-link"
+                                        href="?page=<%= pagination.currentPage + 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">Next</a>
+                                </li>
+                    </ul>
+                </nav>
+            </div>
+            </div>
+
+
+
+            <!-- Add Card Modal -->
+            <div class="modal fade" id="addCardModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Card</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="addCardForm" class="needs-validation" novalidate>
+                                <input type="hidden" name="id" id="addCardId">
+                                <div class="mb-3">
+                                    <label class="form-label">Card Number</label>
+                                    <input type="text" pattern="\d{16}" maxlength="16" class="form-control" name="card_number" required placeholder="Enter 16-digit Card Number" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <div class="invalid-feedback">
+                                        Please enter a valid 16-digit card number.
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">CVV Code</label>
+                                    <input type="text" pattern="\d{3}" maxlength="3" class="form-control" name="cvv_code" required placeholder="Enter 3-digit CVV Code" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <div class="invalid-feedback">
+                                        Please enter a valid 3-digit CVV code.
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Expiry Month</label>
+                                    <select class="form-select" name="expiry_month" required>
+                                        <option value="01">January</option>
+                                        <option value="02">February</option>
+                                        <option value="03" selected>March</option>
+                                        <option value="04">April</option>
+                                        <option value="05">May</option>
+                                        <option value="06">June</option>
+                                        <option value="07">July</option>
+                                        <option value="08">August</option>
+                                        <option value="09">September</option>
+                                        <option value="10">October</option>
+                                        <option value="11">November</option>
+                                        <option value="12">December</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Expiry Year</label>
+                                    <select class="form-select" name="expiry_year" required>
+                                        <% 
+                                            const currentYear = new Date().getFullYear(); 
+                                            const currentMonth = new Date().getMonth() + 1; // getMonth() is zero-based
+                                            const startYear = currentMonth > 3 ? currentYear + 1 : currentYear;
+                                        %>
+                                        <option value="<%= startYear %>" selected><%= startYear %></option>
+                                        <option value="<%= startYear + 1 %>"><%= startYear + 1 %></option>
+                                        <option value="<%= startYear + 2 %>"><%= startYear + 2 %></option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Card Limit</label>
+                                    <input type="text" pattern="\d{1,6}" maxlength="6" class="form-control" name="card_limit" required placeholder="Enter up to 6 digits" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <div class="invalid-feedback">
+                                        Please enter a valid card limit up to 6 digits.
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" onclick="submitAddCardForm()">Save
+                                changes</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <script>
+                function submitForm() {
+                    document.getElementById('filterForm').submit();
+                }
+
+
+                function openAddCardModal(cardId) {
+                    document.getElementById('addCardId').value = cardId;
+                    const addCardModal = new bootstrap.Modal(document.getElementById('addCardModal'));
+                    addCardModal.show();
+                }
+
+
+                function submitAddCardForm() {
+                    const form = document.getElementById('addCardForm');
+                    if (!form.checkValidity()) {
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    const formData = new FormData(form);
+                    const data = Object.fromEntries(formData.entries());
+                    console.log("data", data);
+                    fetch('/cards/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data),
+                    })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Failed to update card');
+                            }
+                            window.location.reload();
+                        })
+                        .catch(error => {
+                            alert('Error updating card: ' + error.message);
+                        });
+                }
+            </script>

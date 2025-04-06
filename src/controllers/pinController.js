@@ -76,11 +76,11 @@ const getAllPins = async (req, res) => {
 
         // Build filter conditions
         const whereClause = {};
-
         whereClause.assigned_to = { [Op.gt]: 0 };
 
         if (req.query.assigned_to) {
-            whereClause.assigned_to = req.query.assigned_to;
+            // whereClause.assigned_to = req.query.assigned_to;
+            whereClause['$assignedUser.user_id$'] = { [Op.like]: `%${req.query.assigned_to}%` };
         }
         if (req.query.used_by) {
             whereClause.used_by = { [Op.like]: `%${req.query.used_by}%` };

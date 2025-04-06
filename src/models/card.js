@@ -28,14 +28,6 @@ Card.init({
     type: DataTypes.STRING(50),
     allowNull: true 
   },
-  card_last4: {
-    type: DataTypes.STRING(50),
-    allowNull: true
-  },
-  card_type: {
-    type: DataTypes.STRING(50),
-    allowNull: true
-  },
   expiry_month: {
     type: DataTypes.TINYINT,
     allowNull: true

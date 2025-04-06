@@ -40,34 +40,40 @@
     <!-- Filters Section -->
     <div class="filters-section">
         <form id="filterForm" class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Assigned To</label>
-                <select class="form-select" name="assigned_to" onchange="submitForm()">
-                    <option value="">All</option>
-                    <% users.forEach(user => { %>
-                        <option value="<%= user.id %>" <%= user.id == query.assigned_to ? 'selected' : '' %>><%= user.name %> (<%= user.user_id %>)</option>
-                    <% }); %>
-                </select>
+                <input type="text" class="form-control" name="assigned_to" maxlength="8" value="<%= query.assigned_to || '' %>" placeholder="Enter User ID">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Created Date</label>
-                <input type="date" class="form-control date-filter" name="created_date" value="<%= query.created_date || '' %>" onchange="submitForm()">
+                <input type="date" class="form-control date-filter" name="created_date" value="<%= query.created_date || '' %>">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Assigned Date</label>
-                <input type="date" class="form-control date-filter" name="assigned_date" value="<%= query.assigned_date || '' %>" onchange="submitForm()">
+                <input type="date" class="form-control date-filter" name="assigned_date" value="<%= query.assigned_date || '' %>">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label">Used Date</label>
-                <input type="date" class="form-control date-filter" name="used_date" value="<%= query.used_date || '' %>" onchange="submitForm()">
+                <input type="date" class="form-control date-filter" name="used_date" value="<%= query.used_date || '' %>">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+                </div>
             </div>
         </form>
     </div>
     
     <script>
-        function submitForm() {
-            document.getElementById('filterForm').submit();
-        }
+    function applyFilter() {
+        const userIdInput = document.querySelector('input[name="assigned_to"]');
+        const userId = userIdInput.value;
+        document.getElementById('filterForm').submit();
+    }
+    function submitForm() {
+        document.getElementById('filterForm').submit();
+    }
     </script>
 
     <!-- Table Section -->
@@ -250,8 +256,17 @@
     }
 
     function resetFilters() {
-        document.getElementById('filterForm').reset();
-        document.getElementById('filterForm').submit();
+        const form = document.getElementById('filterForm');
+        form.reset();
+        // Clear all form fields
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (input.type === 'text' || input.type === 'number' || input.tagName === 'SELECT' || input.type === 'date') {
+                input.value = '';
+            }
+        });
+        // Redirect to base URL without any filters
+        window.location.href = '/pins/allpins';
     }
 
     async function submitAddPinForm() {
@@ -315,19 +330,4 @@
             alert('Error assigning pins: ' + error.message);
         }
     }
-
-    // Handle filter form submission
-    document.getElementById('filterForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const searchParams = new URLSearchParams();
-        
-        for (const [key, value] of formData.entries()) {
-            if (value) {
-                searchParams.append(key, value);
-            }
-        }
-
-        window.location.href = `?${searchParams.toString()}`;
-    });
 </script>

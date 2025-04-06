@@ -70,7 +70,16 @@
 </style>
 
 <div class="sidebar">
-    <a href="/dashboard" class="brand-title">Vertex Admin</a>
+    <div class="user-info">
+        <p>Welcome, <%= user?.name || "Admin" %></p>
+        <form action="/auth/logout" method="POST">
+            <button type="submit" class="logout-btn">
+                <i class='bx bx-log-out'></i> Logout
+            </button>
+        </form>
+    </div>
+
+    <!-- <a href="/dashboard" class="brand-title">Vertex Admin</a> -->
     
     <nav class="nav flex-column">
         <a class="nav-link <%= locals.currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">
@@ -93,18 +102,15 @@
         </a>
 
         <!-- Cards Management -->
-        <a class="nav-link <%= locals.currentPage === 'cards' ? 'active' : '' %>" href="/cards/allcards">
+        <a class="nav-link" href="#">
             <i class='bx bxs-user'></i> Cards Management
         </a>
+        <div class="submenu">
+            <a class="nav-link <%= locals.currentPage === 'requestcard' ? 'active' : '' %>" href="/cards/requestcard">Request Card</a>
+            <a class="nav-link <%= locals.currentPage === 'allcards' ? 'active' : '' %>" href="/cards/allcards">Assigned Card</a>
+        </div>
     </nav>
     
 
-    <div class="user-info">
-        <p>Welcome, <%= user?.name || "Admin" %></p>
-        <form action="/auth/logout" method="POST">
-            <button type="submit" class="logout-btn">
-                <i class='bx bx-log-out'></i> Logout
-            </button>
-        </form>
-    </div>
+    
 </div>
