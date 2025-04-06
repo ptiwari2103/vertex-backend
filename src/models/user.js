@@ -176,10 +176,17 @@ User.init({
         defaultValue: false
     },
     status: {
-        type: DataTypes.ENUM('Pending', 'Active', 'Inactive', 'Blocked', 'Approved', 'Deleted'),
+        type: DataTypes.ENUM('Pending', 'Active', 'Inactive', 'Blocked', 'Deleted'),
         defaultValue: 'Pending',
         validate: {
-            isIn: [['Pending', 'Active', 'Inactive', 'Blocked', 'Approved', 'Deleted']]
+            isIn: [['Pending', 'Active', 'Inactive', 'Blocked', 'Deleted']]
+        }
+    },
+    is_edit: {
+        type: DataTypes.ENUM('Enabled', 'Disabled'),
+        defaultValue: 'Enabled',
+        validate: {
+            isIn: [['Enabled', 'Disabled']]
         }
     }
 }, {

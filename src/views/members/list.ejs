@@ -2,70 +2,57 @@
 
 <%- contentFor('style') %>
 <style>
-    .main-content {
-        padding: 20px;
-    }
-    .welcome-section {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-    .member-table {
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.1);
-    }
-    .member-table th {
-        background-color: #f8f9fa;
-        border: none;
-    }
-    .member-table td {
-        vertical-align: middle;
-    }
-    .status-badge {
-        padding: 5px 10px;
-        border-radius: 15px;
-        font-size: 12px;
-        font-weight: 500;
-        cursor: pointer;
-    }
-    .status-active {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    .status-pending {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    .status-inactive {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    .action-btn {
-        padding: 5px 10px;
-        font-size: 14px;
-        margin: 0 2px;
-    }
-    .pagination {
-        margin-top: 20px;
-        justify-content: center;
-    }
-    .pagination .page-item.active .page-link {
-        background-color: #007bff;
-        border-color: #007bff;
-    }
-    .member-details-modal .modal-body {
-        padding: 20px;
-    }
-    .member-details-modal .detail-row {
-        margin-bottom: 15px;
-    }
-    .member-details-modal .detail-label {
-        font-weight: bold;
-        color: #6c757d;
-    }
+.main-content {
+padding: 20px;
+}
+
+.welcome-section {
+background: white;
+padding: 20px;
+border-radius: 10px;
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+margin-bottom: 20px;
+}
+
+.table-section {
+background: #fff;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.date-filter {
+max-width: 150px;
+}
+
+.status-badge {
+padding: 5px 10px;
+border-radius: 15px;
+font-size: 12px;
+font-weight: 500;
+cursor: pointer;
+}
+
+.status-active {
+background-color: #d4edda;
+color: #155724;
+}
+
+.status-pending {
+background-color: #fff3cd;
+color: #856404;
+}
+
+.status-inactive {
+background-color: #f8d7da;
+color: #721c24;
+}
+
+.action-btn {
+padding: 5px 10px;
+font-size: 14px;
+margin: 0 2px;
+}
 </style>
 
 <%- contentFor('body') %>
@@ -73,216 +60,297 @@
     <div class="welcome-section">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="mb-0">Members Management</h2>
-            <div>
-                <span class="mr-3">Total Members: <%= pagination.count %></span>
-                <!-- <a href="/members/add" class="btn btn-primary">
-                    <i class="bx bx-plus"></i> Add Member
-                </a> -->
+        </div>
+        <!-- Filters Section -->
+        <form id="filterForm" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">User ID</label>
+                <input type="text" class="form-control" name="user_id" maxlength="8"
+                        value="<%= query.user_id || '' %>" placeholder="Enter User ID">
             </div>
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All</option>
+                    <option value="Pending" <%=query.status==='Pending' ? 'selected' : '' %>>Pending
+                    </option>
+                    <option value="Active" <%=query.status==='Active' ? 'selected' : '' %>>Active
+                    </option>
+                    <option value="Inactive" <%=query.status==='Inactive' ? 'selected' : '' %>>Inactive
+                    </option>
+                    <option value="Blocked" <%=query.status==='Blocked' ? 'selected' : '' %>>Blocked
+                    </option>
+                    <option value="Deleted" <%=query.status==='Deleted' ? 'selected' : '' %>>Deleted
+                    </option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+                </div>
+            </div>
+        </form>        
+    </div>
+
+    
+    <!-- Table Section -->
+    <div class="table-section">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>S.No.</th>
+                        <th>User ID</th>
+                        <th>Account ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Is Edit</th>
+                        <th>KYC Status</th>
+                        <th>Is Agent?</th>
+                        <th>Is Franchise?</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% members.forEach((member,index) => { %>
+                        <tr>
+                            <td><%= (pagination.currentPage - 1) * 10 + index + 1 %></td>
+                            <td><%= member.user_id %></td>
+                            <td><%= member.account_number %></td>
+                            <td><%= member.name %></td>                               
+                            <td>
+                                <span class="status-badge <%= member.status.toLowerCase() === 'active' ? 'status-active' : 
+                                    member.status.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"
+                                    onclick="updateStatus('<%= member.id %>', '<%= member.status %>')">
+                                    <%= member.status %>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge <%= member.is_edit === 'Enabled' ? 'status-active' : 'status-inactive' %>"
+                                    onclick="updateIsEdit('<%= member.id %>', '<%= member.is_edit %>')">
+                                    <%= member.is_edit %>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge <%= member.profile?.kyc_status?.toLowerCase() === 'approved' ? 'status-active' : 
+                                    member.profile?.kyc_status?.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"
+                                    onclick="updatekycStatus('<%= member.profile?.id %>', '<%= member.profile?.kyc_status %>')">
+                                    <%= member.profile?.kyc_status || 'Inactive' %>
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="status-badge <%= (member.profile?.is_agent || 'Inactive').toLowerCase() === 'active' ? 'status-active' : 'status-inactive' %>"
+                                    onclick="updateIsAgent('<%= member.profile?.id %>', '<%= member.profile?.is_agent || 'Inactive' %>')">
+                                    <%= member.profile?.is_agent || 'Inactive' %>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge <%= (member.profile?.is_fanchise || 'Inactive').toLowerCase() === 'active' ? 'status-active' : 'status-inactive' %>"
+                                    onclick="updateIsFranchise('<%= member.profile?.id %>', '<%= member.profile?.is_fanchise || 'Inactive' %>')">
+                                    <%= member.profile?.is_fanchise || 'Inactive' %>
+                                </span>
+                            </td>
+
+                            <td><%= new Date(member.created_date).toLocaleDateString() %></td>
+                            <td>
+                                <a href="/members/view/<%= member.id %>" class="btn btn-sm btn-info action-btn">
+                                    <i class="bx bx-show"></i> View
+                                </a>
+                                <a href="/members/edit/<%= member.id %>" class="btn btn-sm btn-primary action-btn">
+                                    <i class="bx bx-edit"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <div class="card member-table">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>User ID</th>
-                            <th>Account ID</th>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th>KYC Status</th>
-                            <th>Is Agent?</th>
-                            <th>Is Franchise?</th>
-                            <th>Created At</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% members.forEach(member => { %>
-                            <tr>
-                                <td><%= member.user_id %></td>
-                                <td><%= member.account_number %></td>
-                                <td><%= member.name %></td>                               
-                                <td>
-                                    <span class="status-badge <%= member.status.toLowerCase() === 'active' ? 'status-active' : 
-                                        member.status.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"
-                                        onclick="updateStatus('<%= member.id %>', '<%= member.status %>')">
-                                        <%= member.status %>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="status-badge <%= member.profile?.kyc_status.toLowerCase() === 'approved' ? 'status-active' : 
-                                        member.profile?.kyc_status.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"
-                                        onclick="updatekycStatus('<%= member.profile?.id %>', '<%= member.profile?.kyc_status %>')">
-                                        <%= member.profile?.kyc_status || 'Inactive' %>
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <span class="status-badge <%= (member.profile?.is_agent || 'Inactive').toLowerCase() === 'active' ? 'status-active' : 'status-inactive' %>"
-                                        onclick="updateIsAgent('<%= member.profile?.id %>', '<%= member.profile?.is_agent || 'Inactive' %>')">
-                                        <%= member.profile?.is_agent || 'Inactive' %>
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="status-badge <%= (member.profile?.is_fanchise || 'Inactive').toLowerCase() === 'active' ? 'status-active' : 'status-inactive' %>"
-                                        onclick="updateIsFranchise('<%= member.profile?.id %>', '<%= member.profile?.is_fanchise || 'Inactive' %>')">
-                                        <%= member.profile?.is_fanchise || 'Inactive' %>
-                                    </span>
-                                </td>
-
-                                <td><%= new Date(member.created_date).toLocaleDateString() %></td>
-                                <td>
-                                    <a href="/members/view/<%= member.id %>" class="btn btn-sm btn-info action-btn">
-                                        <i class="bx bx-show"></i> View
-                                    </a>
-                                    <a href="/members/edit/<%= member.id %>" class="btn btn-sm btn-primary action-btn">
-                                        <i class="bx bx-edit"></i> Edit
-                                    </a>
-                                </td>
-                            </tr>
-                        <% }); %>
-                    </tbody>
-                </table>
-            </div>
-
-            <% if (pagination.total > 1) { %>
-                <nav>
-                    <ul class="pagination">
-                        <% for(let i = 1; i <= pagination.total; i++) { %>
-                            <li class="page-item <%= pagination.current === i ? 'active' : '' %>">
-                                <a class="page-link" href="/members?page=<%= i %>"><%= i %></a>
-                            </li>
-                        <% } %>
-                    </ul>
-                </nav>
+    <!-- Pagination -->
+    <nav>
+    <ul class="pagination">
+        <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+            <a class="page-link"
+                href="?page=<%= pagination.currentPage - 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>"
+                tabindex="-1">Previous</a>
+        </li>
+        <% for(let i=1; i <=pagination.totalPages; i++) { %>
+            <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                <a class="page-link"
+                    href="?page=<%= i %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">
+                    <%= i %>
+                </a>
+            </li>
             <% } %>
+            <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                <a class="page-link"
+                    href="?page=<%= pagination.currentPage + 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">Next</a>
+            </li>
+    </ul>
+    </nav>
+</div>
+
+
+
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusUpdateModal" tabindex="-1" aria-labelledby="statusUpdateModalLabel"
+aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="statusUpdateModalLabel">Update Status</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="statusSelect" class="form-label">Select Status</label>
+                <select class="form-select" id="statusSelect">
+                    <option value="Active">Active</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Blocked">Blocked</option>
+                    <option value="Deleted">Deleted</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary"
+                onclick="confirmStatusUpdate()">Update</button>
         </div>
     </div>
 </div>
-
-<!-- Status Update Modal -->
-<div class="modal fade" id="statusUpdateModal" tabindex="-1" aria-labelledby="statusUpdateModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="statusUpdateModalLabel">Update Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="statusSelect" class="form-label">Select Status</label>
-                    <select class="form-select" id="statusSelect">
-                        <option value="Active">Active</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Inactive">Inactive</option>
-                        <option value="Blocked">Blocked</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Deleted">Deleted</option>
-
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="confirmStatusUpdate()">Update</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <!-- Member Details Modal -->
-<div class="modal fade member-details-modal" id="memberDetailsModal" tabindex="-1" aria-labelledby="memberDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="memberDetailsModalLabel">Member Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Content will be dynamically loaded -->
-            </div>
+<div class="modal fade member-details-modal" id="memberDetailsModal" tabindex="-1"
+aria-labelledby="memberDetailsModalLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="memberDetailsModalLabel">Member Details</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <!-- Content will be dynamically loaded -->
         </div>
     </div>
+</div>
 </div>
 
 <!-- Kyc Status Update Modal -->
-<div class="modal fade" id="kycStatusUpdateModal" tabindex="-1" aria-labelledby="kycStatusUpdateModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="kycStatusUpdateModalLabel">Update Kyc Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="kycStatusSelect">Kyc Status</label>
-                    <select class="form-select" id="kycStatusSelect">
-                        <option value="Submitted">Submitted</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Rejected">Rejected</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="confirmkycStatusUpdate()">Update</button>
+<div class="modal fade" id="kycStatusUpdateModal" tabindex="-1" aria-labelledby="kycStatusUpdateModalLabel"
+aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="kycStatusUpdateModalLabel">Update Kyc Status</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="kycStatusSelect">Kyc Status</label>
+                <select class="form-select" id="kycStatusSelect">
+                    <option value="Submitted">Submitted</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
             </div>
         </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary"
+                onclick="confirmkycStatusUpdate()">Update</button>
+        </div>
     </div>
+</div>
 </div>
 
 <!-- Is Agent Update Modal -->
-<div class="modal fade" id="isAgentUpdateModal" tabindex="-1" aria-labelledby="isAgentUpdateModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="isAgentUpdateModalLabel">Update Agent Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="isAgentUpdateModal" tabindex="-1" aria-labelledby="isAgentUpdateModalLabel"
+aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="isAgentUpdateModalLabel">Update Agent Status</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="isAgentSelect">Agent Status</label>
+                <select class="form-select" id="isAgentSelect">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
             </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="isAgentSelect">Agent Status</label>
-                    <select class="form-select" id="isAgentSelect">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="confirmIsAgentUpdate()">Update</button>
-            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary"
+                onclick="confirmIsAgentUpdate()">Update</button>
         </div>
     </div>
 </div>
+</div>
 
 <!-- Is Franchise Update Modal -->
-<div class="modal fade" id="isFranchiseUpdateModal" tabindex="-1" aria-labelledby="isFranchiseUpdateModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="isFranchiseUpdateModalLabel">Update Franchise Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="isFranchiseSelect">Franchise Status</label>
-                    <select class="form-select" id="isFranchiseSelect">
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="confirmIsFranchiseUpdate()">Update</button>
+<div class="modal fade" id="isFranchiseUpdateModal" tabindex="-1"
+aria-labelledby="isFranchiseUpdateModalLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="isFranchiseUpdateModalLabel">Update Franchise Status</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="isFranchiseSelect">Franchise Status</label>
+                <select class="form-select" id="isFranchiseSelect">
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
             </div>
         </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary"
+                onclick="confirmIsFranchiseUpdate()">Update</button>
+        </div>
     </div>
+</div>
+</div>
+
+<!-- Is Edit Update Modal -->
+<div class="modal fade" id="isEditUpdateModal" tabindex="-1"
+aria-labelledby="isEditUpdateModalLabel" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="isEditUpdateModalLabel">Update Is Edit Status</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="isEditSelect">Is Edit Status</label>
+                <select class="form-select" id="isEditSelect">
+                    <option value="Enabled">Enabled</option>
+                    <option value="Disabled">Disabled</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary"
+                onclick="confirmIsEditUpdate()">Update</button>
+        </div>
+    </div>
+</div>
 </div>
 
 <%- contentFor('script') %>
@@ -320,6 +388,14 @@
         const statusSelect = document.getElementById('isFranchiseSelect');
         statusSelect.value = currentStatus;
         const modal = new bootstrap.Modal(document.getElementById('isFranchiseUpdateModal'));
+        modal.show();
+    }
+
+    async function updateIsEdit(id, currentStatus) {
+        currentkycMemberId = id;
+        const statusSelect = document.getElementById('isEditSelect');
+        statusSelect.value = currentStatus;
+        const modal = new bootstrap.Modal(document.getElementById('isEditUpdateModal'));
         modal.show();
     }
 
@@ -427,6 +503,32 @@
         }
     }
 
+    async function confirmIsEditUpdate() {
+        const newStatus = document.getElementById('isEditSelect').value;
+
+        try {
+            const response = await fetch(`/members/${currentkycMemberId}/isedit`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_edit: newStatus })
+            });
+
+            if (response.ok) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('isEditUpdateModal'));
+                modal.hide();
+                location.reload();
+            } else {
+                const data = await response.json();
+                alert(data.message || 'Failed to update is edit status');
+            }
+        } catch (error) {
+            console.error('Error updating is edit status:', error);
+            alert('Failed to update is edit status');
+        }
+    }
+
     async function viewMember(id) {
         try {
             const response = await fetch(`/members/${id}`);
@@ -436,23 +538,23 @@
                 const member = data.member;
                 const modalBody = document.querySelector('.member-details-modal .modal-body');
                 modalBody.innerHTML = `
-                    <div class="detail-row">
-                        <div class="detail-label">User ID</div>
-                        <div>${member.user_id}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Name</div>
-                        <div>${member.name}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Status</div>
-                        <div>${member.status}</div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Created Date</div>
-                        <div>${new Date(member.created_date).toLocaleDateString()}</div>
-                    </div>
-                `;
+    <div class="detail-row">
+        <div class="detail-label">User ID</div>
+        <div>${member.user_id}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Name</div>
+        <div>${member.name}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Status</div>
+        <div>${member.status}</div>
+    </div>
+    <div class="detail-row">
+        <div class="detail-label">Created Date</div>
+        <div>${new Date(member.created_date).toLocaleDateString()}</div>
+    </div>
+`;
                 const modal = new bootstrap.Modal(document.getElementById('memberDetailsModal'));
                 modal.show();
             } else {
@@ -482,5 +584,20 @@
                 alert('Failed to delete member');
             }
         }
+    }
+
+
+    function resetFilters() {
+        const form = document.getElementById('filterForm');
+        form.reset();
+        // Clear all form fields
+        const inputs = form.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            if (input.type === 'text' || input.type === 'number' || input.tagName === 'SELECT') {
+                input.value = '';
+            }
+        });
+        // Submit the form with cleared values
+        window.location.href = '/members/allmembers';
     }
 </script>

@@ -80,10 +80,11 @@ const getAllPins = async (req, res) => {
 
         if (req.query.assigned_to) {
             // whereClause.assigned_to = req.query.assigned_to;
-            whereClause['$assignedUser.user_id$'] = { [Op.like]: `%${req.query.assigned_to}%` };
+            // whereClause['$assignedUser.user_id$'] = { [Op.like]: `%${req.query.assigned_to}%` };
+            whereClause['$assignedUser.user_id$'] = req.query.assigned_to;
         }
         if (req.query.used_by) {
-            whereClause.used_by = { [Op.like]: `%${req.query.used_by}%` };
+            whereClause.used_by = req.query.used_by;
         }
         if (req.query.created_date) {
             whereClause.created_at = {

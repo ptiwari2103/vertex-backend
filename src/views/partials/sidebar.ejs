@@ -1,74 +1,3 @@
-<style>
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        width: 250px;
-        background: #343a40;
-        padding: 20px;
-        color: white;
-        z-index: 1000;
-    }
-    .nav-link {
-        color: rgba(255,255,255,.75);
-        padding: 10px 0;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        text-decoration: none;
-        transition: color 0.2s ease;
-    }
-    .nav-link:hover {
-        color: white;
-    }
-    .nav-link.active {
-        color: white;
-        font-weight: bold;
-    }
-    .nav-link i {
-        font-size: 20px;
-    }
-    .user-info {
-        margin-top: 20px;
-        padding: 15px;
-        border-top: 1px solid rgba(255,255,255,.1);
-    }
-    .user-info p {
-        margin: 0;
-        font-size: 14px;
-        color: rgba(255,255,255,.75);
-    }
-    .logout-btn {
-        margin-top: 10px;
-        width: 100%;
-        background-color: #dc3545;
-        border: none;
-        padding: 8px;
-        color: white;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-    }
-    .logout-btn:hover {
-        background-color: #bb2d3b;
-    }
-    .brand-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 1.5rem;
-        color: white;
-        text-decoration: none;
-    }
-    .brand-title:hover {
-        color: white;
-        text-decoration: none;
-    }
-    .submenu {
-        padding-left: 20px;
-    }
-</style>
-
 <div class="sidebar">
     <div class="user-info">
         <p>Welcome, <%= user?.name || "Admin" %></p>
@@ -78,8 +7,6 @@
             </button>
         </form>
     </div>
-
-    <!-- <a href="/dashboard" class="brand-title">Vertex Admin</a> -->
     
     <nav class="nav flex-column">
         <a class="nav-link <%= locals.currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">
@@ -96,12 +23,9 @@
             <a class="nav-link <%= locals.currentPage === 'pins' ? 'active' : '' %>" href="/pins/allpins">Assigned Pin</a>
         </div>
 
-        <!-- Messages Management -->
         <a class="nav-link <%= locals.currentPage === 'messages' ? 'active' : '' %>" href="/messages/allmessages">
             <i class='bx bxs-user'></i> Messages Management
         </a>
-
-        <!-- Cards Management -->
         <a class="nav-link" href="#">
             <i class='bx bxs-user'></i> Cards Management
         </a>
@@ -110,7 +34,4 @@
             <a class="nav-link <%= locals.currentPage === 'allcards' ? 'active' : '' %>" href="/cards/allcards">Assigned Card</a>
         </div>
     </nav>
-    
-
-    
 </div>

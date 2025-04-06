@@ -1,0 +1,51 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard">Vertex Admin</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link <%= locals.currentPage === 'dashboard' ? 'active' : '' %>" href="/dashboard">
+                        <i class='bx bxs-dashboard'></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <%= locals.currentPage === 'members' ? 'active' : '' %>" href="/members/allmembers">
+                        <i class='bx bxs-user'></i> Members
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle <%= ['pins', 'addpins', 'allpins'].includes(locals.currentPage) ? 'active' : '' %>" href="#" id="pinsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class='bx bxs-key'></i> Pin Management
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="pinsDropdown">
+                        <li><a class="dropdown-item <%= locals.currentPage === 'addpins' ? 'active' : '' %>" href="/pins/addpins">Add Pins</a></li>
+                        <li><a class="dropdown-item <%= locals.currentPage === 'allpins' ? 'active' : '' %>" href="/pins/allpins">Assigned Pins</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <%= locals.currentPage === 'messages' ? 'active' : '' %>" href="/messages/allmessages">
+                        <i class='bx bxs-message'></i> Messages
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle <%= ['cards', 'requestcard', 'allcards'].includes(locals.currentPage) ? 'active' : '' %>" href="#" id="cardsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class='bx bxs-credit-card'></i> Credit Cards
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="cardsDropdown">
+                        <li><a class="dropdown-item <%= locals.currentPage === 'requestcard' ? 'active' : '' %>" href="/cards/requestcard">Requested List</a></li>
+                        <li><a class="dropdown-item <%= locals.currentPage === 'allcards' ? 'active' : '' %>" href="/cards/allcards">Assigned List</a></li>
+                    </ul>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3">Welcome, <%= user?.name || "Admin" %></span>
+                <form action="/auth/logout" method="POST">
+                    <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>

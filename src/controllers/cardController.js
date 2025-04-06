@@ -113,7 +113,8 @@ const getAllCards = async (req, res) => {
         };
 
         if (req.query.user_id) {
-            whereClause['$user.user_id$'] = { [Op.like]: `%${req.query.user_id}%` };
+            //whereClause['$user.user_id$'] = { [Op.like]: `%${req.query.user_id}%` };
+            whereClause['$user.user_id$'] = req.query.user_id;
         }
 
         if (req.query.status) {
@@ -151,6 +152,9 @@ const getAllCards = async (req, res) => {
             user: JSON.stringify(req.session.user, null, 2),
             currentPage: 'allcards',
             query: req.query,
+            title: 'Cards - Vertex Admin',
+            style: '',
+            script: '',
             pagination: {
                 currentPage: page,
                 totalPages,

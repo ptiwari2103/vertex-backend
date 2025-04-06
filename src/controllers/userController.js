@@ -316,7 +316,28 @@ const getAllMembers = async (req, res) => {
         const limit = 10; // Items per page
         const offset = (page - 1) * limit;
 
+        // Build filter conditions
+        const whereClause = {
+            user_type: 'member'
+        };
+
+        if (req.query.status) {
+            whereClause.status = req.query.status;
+        }
+
+        if (req.query.created_date) {
+            whereClause.created_at = {
+                [Op.gte]: new Date(req.query.created_date),
+                [Op.lt]: new Date(new Date(req.query.created_date).getTime() + 24 * 60 * 60 * 1000)
+            };
+        }
+
+        if (req.query.user_id) {
+            whereClause.user_id = req.query.user_id;
+        }
+
         const { count, rows: members } = await User.findAndCountAll({
+            where: whereClause,
             attributes: { exclude: ['password'] },
             include: [
                 {
@@ -330,24 +351,28 @@ const getAllMembers = async (req, res) => {
                     attributes: ['id']
                 }
             ],
-            where: { user_type: 'member' },
             limit,
             offset,
             order: [['created_date', 'DESC']]
         });
 
+        // console.log("count and limit = ", count, limit);
+
         const totalPages = Math.ceil(count / limit);
+        
+        // console.log("totalPages", totalPages);  
 
         res.render('members/list', {
+            members,            
+            user: JSON.stringify(req.session.user, null, 2),
+            currentPage: 'members',
+            query: req.query,
             title: 'Members - Vertex Admin',
             style: '',
             script: '',
-            currentPage: 'members',
-            user: JSON.stringify(req.session.user, null, 2),
-            members:members,
             pagination: {
-                current: page,
-                total: totalPages,
+                currentPage: page,
+                totalPages: totalPages,
                 count: count
             }
         });
@@ -490,6 +515,35 @@ const updateIsFranchise = async (req, res) => {
     }
 };  
 
+
+const updateIsEdit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { is_edit } = req.body;
+
+        // Validate input
+        if (!is_edit || !['Enabled', 'Disabled'].includes(is_edit)) {
+            return res.status(400).json({ success: false, message: 'Invalid is_edit status' });
+        }
+
+        // Find the member
+        const member = await User.findOne({
+            where: { id, user_type: 'member' }
+        });
+
+        if (!member) {
+            return res.status(404).json({ success: false, message: 'Member not found' });
+        }
+
+        // Update the is_edit status
+        await member.update({ is_edit });
+
+        return res.status(200).json({ success: true, message: 'Is Edit status updated successfully' });
+    } catch (error) {
+        console.error('Error updating is_edit status:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
 
 const viewMember = async (req, res) => {
     try {
@@ -1212,6 +1266,9 @@ module.exports = {
     prelogin,
     updateMemberStatus,
     updatekycStatus,
+    updateIsAgent,
+    updateIsFranchise,
+    updateIsEdit,
     viewMember,
     deleteMember,
     kycform,
@@ -1223,7 +1280,5 @@ module.exports = {
     updateBankStatus,
     deleteBank,
     viewMemberDetails,
-    editMember,
-    updateIsAgent,
-    updateIsFranchise
+    editMember
 };
