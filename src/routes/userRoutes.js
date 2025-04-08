@@ -63,6 +63,7 @@ router.put('/:id/kycstatus', userController.updatekycStatus);
 router.put('/:id/isagent', userController.updateIsAgent);
 router.put('/:id/isfranchise', userController.updateIsFranchise);
 router.put('/:id/isedit', userController.updateIsEdit);
+router.put('/:id/pinpasswordstatus', userController.updatePinPasswordStatus);
 
 // Member address management
 router.put('/address/:id/status', userController.updateAddressStatus);
@@ -78,5 +79,11 @@ router.post('/login', userController.login);
 router.post('/prelogin', userController.prelogin);
 router.get('/:id', userController.viewMember);
 router.delete('/:id', userController.deleteMember);
+
+// Pin Password
+router.post('/create-pin-password', verifyApiToken, userController.createPinPassword);
+router.post('/verify-pin-password', verifyApiToken, userController.verifyPinPassword);
+
+router.post('/getmemberdata', verifyApiToken, userController.getMemberData);
 
 module.exports = router;

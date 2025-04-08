@@ -183,10 +183,21 @@ User.init({
         }
     },
     is_edit: {
-        type: DataTypes.ENUM('Enabled', 'Disabled'),
-        defaultValue: 'Enabled',
+        type: DataTypes.ENUM('Pending', 'Approved'),
+        defaultValue: 'Pending',
         validate: {
-            isIn: [['Enabled', 'Disabled']]
+            isIn: [['Pending', 'Approved']]
+        }
+    },
+    pin_password: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
+    pin_password_status: {
+        type: DataTypes.ENUM('Pending', 'Active', 'Reset'),
+        defaultValue: 'Pending',
+        validate: {
+            isIn: [['Pending', 'Active', 'Reset']]
         }
     }
 }, {

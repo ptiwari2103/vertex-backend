@@ -1,4 +1,4 @@
-const { VertexMessage, User } = require('../models');
+const { VertexMessage, User, VertexMessageUser } = require('../models');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');

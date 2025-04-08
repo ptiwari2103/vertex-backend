@@ -8,6 +8,7 @@ const UserAddress = require('./userAddress');
 const VertexPin = require('./vertexPin');
 const VertexMessage = require('./vertexMessage');
 const Card = require('./card');
+const VertexMessageUser = require('./vertexMessageUser');
 
 // Initialize models
 const models = {
@@ -19,7 +20,8 @@ const models = {
   UserAddress,
   VertexPin,
   VertexMessage,
-  Card
+  Card,
+  VertexMessageUser
 };
 
 // Run associations if they exist

@@ -224,7 +224,7 @@ const login = async (req, res) => {
         }
 
         // Check user status
-        if (!['Active', 'Approved'].includes(user.status)) {
+        if (!['Active'].includes(user.status)) {
             return res.status(401).json({
                 success: false,
                 message: `Your account is currently ${user.status.toLowerCase()}. Please contact support.`
@@ -522,7 +522,7 @@ const updateIsEdit = async (req, res) => {
         const { is_edit } = req.body;
 
         // Validate input
-        if (!is_edit || !['Enabled', 'Disabled'].includes(is_edit)) {
+        if (!is_edit || !['Pending', 'Approved'].includes(is_edit)) {
             return res.status(400).json({ success: false, message: 'Invalid is_edit status' });
         }
 
@@ -732,8 +732,8 @@ const kycform = async (req, res) => {
 const profileform = async (req, res) => {
     try {
         const {update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise, divyang_type, divyang_percentage } = req.body;
-        console.log("===========profileform==============");
-        console.log(req.body);
+        // console.log("===========profileform==============");
+        // console.log(req.body);
         
         const { profile_image, divyang_certificate } = req.files;
         console.log("profile_image, divyang_certificate", profile_image, divyang_certificate);
@@ -798,7 +798,7 @@ const profileform = async (req, res) => {
         if (!profileImagePath) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required profile image1.'
+                message: 'Missing required profile image.'
             });
         }
 
@@ -819,6 +819,7 @@ const profileform = async (req, res) => {
         
         // Update or create profile with KYC details
         if (user?.profile?.id) {
+            const profile_status = 'Submitted';
             // Update existing profile
             console.log("before Updated profile details:", user.profile);
             const updatedProfile = await user.profile.update({
@@ -831,7 +832,8 @@ const profileform = async (req, res) => {
                 is_divyang,
                 is_senior_citizen,
                 divyang_type: is_divyang === 'true' ? req.body.divyang_type : null,
-                divyang_percentage: is_divyang === 'true' ? req.body.divyang_percentage : null
+                divyang_percentage: is_divyang === 'true' ? req.body.divyang_percentage : null,
+                profile_status
             });
             console.log("after Updated profile details:", updatedProfile);            
             
@@ -1068,86 +1070,6 @@ const deleteBank = async (req, res) => {
     }
 };
 
-// Utility function to fetch user details with associated models
-const getUserDetails = async (userId) => {
-    
-    const userDetails = await User.findOne({
-        where: {
-            user_id: userId,
-            user_type: 'member',
-            status: {
-                [Op.or]: ['Active', 'Approved']
-            }
-        },
-        include: [
-            { model: Profile, as: 'profile' }
-        ]
-    });
-
-    if (!userDetails) {
-        return null;
-    }
-
-    const userResponse = userDetails.toJSON();
-
-    // Fetch active address
-    const activeAddress = await UserAddress.findOne({
-        where: { user_id: userDetails.id, status: 'Active' }
-    });
-    
-    // console.log('Searching for inactive address with user_id:', userDetails.id);
-    // Fetch latest inactive address with proper ordering
-    const latestInactiveAddress = await UserAddress.findOne({
-        where: { 
-            user_id: userDetails.id, 
-            status: 'Inactive' 
-        },
-        order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
-    });
-
-    // console.log('Active Address:', activeAddress);
-    // console.log('Latest Inactive Address:', latestInactiveAddress);
-    
-       
-    // Attach structured address data
-    userResponse.userAddress = {
-        activeAddress: activeAddress ? activeAddress.toJSON() : null,
-        latestAddress: latestInactiveAddress ? latestInactiveAddress.toJSON() : null
-    };
-
-
-
-    // Fetch active bank
-    const activeBank = await UserBank.findOne({
-        where: { user_id: userDetails.id, status: 'Active' }
-    });
-    
-    // console.log('Searching for inactive bank with user_id:', userDetails.id);
-    // Fetch latest inactive bank with proper ordering
-    const latestInactiveBank = await UserBank.findOne({
-        where: { 
-            user_id: userDetails.id, 
-            status: 'Inactive' 
-        },
-        order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
-    });
-
-    // console.log('Active Bank:', activeBank);
-    // console.log('Latest Inactive Bank:', latestInactiveBank);
-    
-    // Attach structured bank data
-    userResponse.userBank = {
-        activeBank: activeBank ? activeBank.toJSON() : null,
-        latestBank: latestInactiveBank ? latestInactiveBank.toJSON() : null
-    };
-
-    // Remove sensitive fields
-    // delete userResponse.id;
-    // delete userResponse.password;
-    // delete userResponse.user_type;
-
-    return userResponse;
-};
 
 const viewMemberDetails = async (req, res) => {
     try {
@@ -1259,6 +1181,301 @@ const editMember = async (req, res) => {
     }
 };
 
+const updatePinPasswordStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { pin_password_status } = req.body;
+
+        const user = await User.findOne({ 
+            where: { id }
+        });
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found in database.'
+            });
+        }
+        
+        //console.log('Pin password status:', pin_password_status); 
+        let updatedPinPassword;
+        let updatedPinPasswordStatus;
+        
+        if (pin_password_status === 'Reset') {
+            updatedPinPassword = null;
+            updatedPinPasswordStatus = 'Pending';
+        } else {
+            updatedPinPassword = user.pin_password;
+            updatedPinPasswordStatus = pin_password_status;
+        }  
+
+        await user.update({ pin_password_status: updatedPinPasswordStatus, pin_password: updatedPinPassword });
+
+        res.json({
+            success: true,
+            message: 'Pin password status updated successfully'
+        });
+    } catch (error) {
+        console.error('Update pin password status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update pin password status'
+        });
+    }
+};
+
+
+const createPinPassword = async (req, res) => {
+    try {
+        const { user_id, pin_password } = req.body;
+
+        // Check if user exists with status 'active' and 'approved'
+        const user = await User.findOne({
+            where: {
+                id: user_id,
+                user_type: 'member',
+                status: 'Active'
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found or not eligible' });
+        }
+
+        // Create a new pin password entry
+        await User.update({
+            pin_password: pin_password,
+            pin_password_status: 'Active'
+        }, {
+            where: {
+                id: user.id
+            }
+        });
+
+        const userdata = await getUserDetails(user.user_id);
+
+        return res.status(201).json({ 
+            success: true,
+            data: userdata,
+            message: 'Your request was successfully added.' 
+        });
+    } catch (error) {
+        return res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
+    }
+};
+
+
+
+const verifyPinPassword = async (req, res) => {
+    try {
+        const { user_id, pin_password } = req.body;
+
+        // Check if user exists with status 'active' and 'approved'
+        const user = await User.findOne({
+            where: {
+                id: user_id,
+                user_type: 'member',
+                status: 'Active'
+            }
+        });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found or not eligible' });
+        }
+
+        const userdata = await getUserDetails(user.user_id);
+
+        if (user.pin_password === pin_password) {
+            return res.status(200).json({ 
+                success: true,
+                data: userdata,
+                message: 'Your pin is correct.' });
+        }else{
+            return res.status(200).json({ 
+                success:false,
+                data: userdata,
+                message: 'Your pin is incorrect.' });
+        }
+        
+    } catch (error) {
+        return res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
+    }
+};
+
+
+
+const getUserDetailsBCK = async (userId) => {
+    
+    const userDetails = await User.findOne({
+        where: {
+            user_id: userId,
+            user_type: 'member',
+            status: 'Active'
+        },
+        include: [
+            { model: Profile, as: 'profile' }
+        ]
+    });
+
+    if (!userDetails) {
+        return null;
+    }
+
+    const userResponse = userDetails.toJSON();
+
+    // Fetch active address
+    const activeAddress = await UserAddress.findOne({
+        where: { user_id: userDetails.id, status: 'Active' }
+    });
+    
+    // console.log('Searching for inactive address with user_id:', userDetails.id);
+    // Fetch latest inactive address with proper ordering
+    const latestInactiveAddress = await UserAddress.findOne({
+        where: { 
+            user_id: userDetails.id, 
+            status: 'Inactive' 
+        },
+        order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
+    });
+
+    // console.log('Active Address:', activeAddress);
+    // console.log('Latest Inactive Address:', latestInactiveAddress);
+    
+       
+    // Attach structured address data
+    userResponse.userAddress = {
+        activeAddress: activeAddress ? activeAddress.toJSON() : null,
+        latestAddress: latestInactiveAddress ? latestInactiveAddress.toJSON() : null
+    };
+
+
+
+    // Fetch active bank
+    const activeBank = await UserBank.findOne({
+        where: { user_id: userDetails.id, status: 'Active' }
+    });
+    
+    // console.log('Searching for inactive bank with user_id:', userDetails.id);
+    // Fetch latest inactive bank with proper ordering
+    const latestInactiveBank = await UserBank.findOne({
+        where: { 
+            user_id: userDetails.id, 
+            status: 'Inactive' 
+        },
+        order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
+    });
+
+    // console.log('Active Bank:', activeBank);
+    // console.log('Latest Inactive Bank:', latestInactiveBank);
+    
+    // Attach structured bank data
+    userResponse.userBank = {
+        activeBank: activeBank ? activeBank.toJSON() : null,
+        latestBank: latestInactiveBank ? latestInactiveBank.toJSON() : null
+    };
+
+    // Remove sensitive fields
+    // delete userResponse.id;
+    // delete userResponse.password;
+    // delete userResponse.user_type;
+
+    return userResponse;
+};
+
+
+
+// Utility function to fetch user details with associated models
+const getUserDetails = async (userId) => {
+    
+    const userDetails = await User.findOne({
+        where: {
+            user_id: userId,
+            user_type: 'member',
+            status: 'Active'
+        },
+        attributes: {
+            exclude: ['password', 'pin_password']
+        },
+        include: [
+            { model: Profile, as: 'profile' }
+        ]
+    });
+
+    if (!userDetails) {
+        return null;
+    }
+
+    const userResponse = userDetails.toJSON();
+
+    // First try to get the latest active address
+    let address = await UserAddress.findOne({
+        where: { 
+            user_id: userDetails.id, 
+            status: 'Active' 
+        },
+        order: [['created_date', 'DESC']]
+    });
+
+    // If no active address exists, get the latest inactive address
+    if (!address) {
+        address = await UserAddress.findOne({
+            where: { 
+                user_id: userDetails.id, 
+                status: 'Inactive' 
+            },
+            order: [['created_date', 'DESC']]
+        });
+    }
+
+    // Add the address to the user response
+    userResponse.address = address ? address.toJSON() : null;
+
+    
+    // First try to get the latest active bank
+    let bank = await UserBank.findOne({
+        where: { 
+            user_id: userDetails.id, 
+            status: 'Active' 
+        },
+        order: [['created_date', 'DESC']]
+    });
+
+    // If no active bank exists, get the latest inactive bank
+    if (!bank) {
+        bank = await UserBank.findOne({
+            where: { 
+                user_id: userDetails.id, 
+                status: 'Inactive' 
+            },
+            order: [['created_date', 'DESC']]
+        });
+    }
+
+    // Add the bank to the user response
+    userResponse.bank = bank ? bank.toJSON() : null;
+
+    return userResponse;
+};
+
+const getMemberData = async (req, res) => {
+    const { user_id } = req.body;
+    const user = await getUserDetails(user_id);
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+    return res.status(200).json({
+        success: true,
+        message: "User details retrieved successfully",
+        data: user
+    });    
+};
+
 module.exports = {
     getAllMembers,
     registerUser,
@@ -1269,8 +1486,10 @@ module.exports = {
     updateIsAgent,
     updateIsFranchise,
     updateIsEdit,
+    updatePinPasswordStatus,
     viewMember,
     deleteMember,
+    verifyToken,
     kycform,
     profileform,
     addUpdateAddress,
@@ -1280,5 +1499,8 @@ module.exports = {
     updateBankStatus,
     deleteBank,
     viewMemberDetails,
-    editMember
+    editMember,
+    createPinPassword,
+    verifyPinPassword,
+    getMemberData
 };

@@ -34,7 +34,7 @@ const addCard = async (req, res) => {
 
 
 const getDetails = async (req, res) => {
-    console.log("req.query.user_id", req.query.user_id);
+    // console.log("req.query.user_id", req.query.user_id);
     try {
         const card = await Card.findOne({
             where: {

@@ -110,6 +110,13 @@ Profile.init({
     validate: {
       isIn: [['Pending', 'Submitted', 'Approved', 'Rejected']]
     }
+  },
+  profile_status: {
+    type: DataTypes.ENUM('Pending', 'Submitted'),
+    defaultValue: 'Pending',
+    validate: {
+      isIn: [['Pending', 'Submitted']]
+    }
   }
 }, {
   sequelize,
