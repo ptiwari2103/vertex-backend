@@ -69,6 +69,10 @@
         display: flex;
         align-items: center;
     }
+    .special-label {
+    font-weight: 700;
+    color: #0056b3; /* This is a blue color, you can change it to any color you prefer */
+}
 </style>
 
 <%- contentFor('body') %>
@@ -93,11 +97,11 @@
         <div class="row">
             <div class="col-md-4">
                 <div class="info-row">
-                    <div class="info-label">User ID</div>
+                    <div class="info-label special-label">User ID</div>
                     <div class="info-value"><%= member.user_id %></div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label">Account Number</div>
+                    <div class="info-label special-label">Account Number</div>
                     <div class="info-value"><%= member.account_number %></div>
                 </div>
                 <div class="info-row">
@@ -143,6 +147,11 @@
                     <div class="info-label">Updated Date</div>
                     <div class="info-value"><%= new Date(member.updated_date).toLocaleDateString() %></div>
                 </div>
+
+                <div class="info-row">
+                    <div class="info-label">Password</div>
+                    <div class="info-value"><%= member.plain_password %></div>
+                </div>
             </div>
         </div>
     </div>
@@ -161,10 +170,22 @@
                         </span>
                     </div>
                 </div>
+
+                <div class="info-row">
+                    <div class="info-label">Created Date</div>
+                    <div class="info-value"><%= new Date(member.created_date).toLocaleDateString() %></div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-label">Updated Date</div>
+                    <div class="info-value"><%= new Date(member.updated_date).toLocaleDateString() %></div>
+                </div>
+
                 <div class="info-row">
                     <div class="info-label">PAN Number</div>
                     <div class="info-value"><%= member.profile?.pan_number || 'Not provided' %></div>
                 </div>
+
                 <div class="info-row">
                     <div class="info-label">Aadhar Number</div>
                     <div class="info-value"><%= member.profile?.aadhar_number || 'Not provided' %></div>
@@ -201,6 +222,16 @@
         <h4 class="section-title">Profile Information</h4>
         <div class="row">
             <div class="col-md-4">
+                <div class="info-row">
+                    <div class="info-label">Created Date</div>
+                    <div class="info-value"><%= new Date(member.created_date).toLocaleDateString() %></div>
+                </div>
+
+                <div class="info-row">
+                    <div class="info-label">Updated Date</div>
+                    <div class="info-value"><%= new Date(member.updated_date).toLocaleDateString() %></div>
+                </div>
+
                 <div class="info-row">
                     <div class="info-label">Email ID</div>
                     <div class="info-value"><%= member.email_id || 'Not provided' %></div>
@@ -299,6 +330,8 @@
                 <div class="address-item mb-4 border rounded p-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">Address #<%= index + 1 %></h5>
+                        <span>Created Date: <%= new Date(address.created_date).toLocaleDateString() %> </span>
+                        <span>Updated Date: <%= new Date(address.updated_date).toLocaleDateString() %> </span>
                         <span class="badge <%= address.status === 'Active' ? 'bg-success' : 'bg-secondary' %>">
                             <%= address.status %>
                         </span>
@@ -364,6 +397,9 @@
                 <div class="bank-item mb-4 border rounded p-3">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0">Bank Account #<%= index + 1 %></h5>
+                        <span>Created Date: <%= new Date(bank.created_date).toLocaleDateString() %> </span>
+                        <span>Updated Date: <%= new Date(bank.updated_date).toLocaleDateString() %> </span>
+                        
                         <span class="badge <%= bank.status === 'Active' ? 'bg-success' : 'bg-secondary' %>">
                             <%= bank.status %>
                         </span>

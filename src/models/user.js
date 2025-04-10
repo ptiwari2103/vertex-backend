@@ -99,6 +99,10 @@ User.init({
             }
         }
     },
+    plain_password: {
+        type: DataTypes.STRING(255),
+        allowNull: true
+    },
     user_type: {
         type: DataTypes.ENUM('admin', 'subadmin', 'member'),
         defaultValue: 'member',

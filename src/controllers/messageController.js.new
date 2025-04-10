@@ -361,7 +361,6 @@ const notification = async (req, res) => {
             const message = messageUser.message;
             return {
                 id: message.id,
-                message_user_id: messageUser.id,
                 subject: message.subject,
                 message: message.message,
                 image: message.image,
@@ -383,59 +382,6 @@ const notification = async (req, res) => {
     }
 };
 
-const unreadCount = async (req, res) => {
-    try {
-        const userId = req.params.id;
-        console.log("unreadCount userId==", userId);
-        const count = await VertexMessageUser.count({
-            where: {
-                user_id: userId,
-                status: 'Unread'
-            }
-        });
-        console.log("unreadCount count==", count);
-        res.json({ success: true, data: { count } });
-    } catch (error) {
-        console.error('Error in unreadCount:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-};
-
-const markAsRead = async (req, res) => {
-    try {
-        const { message_user_id } = req.body;
-        console.log('Marking message as read:', message_user_id);
-        
-        const result = await VertexMessageUser.update(
-            { 
-                status: 'Read',
-                updated_at: new Date()
-            }, 
-            {
-                where: { id: message_user_id }
-            }
-        );
-        
-        console.log('Update result:', result);
-        
-        if (result[0] === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Message user record not found' 
-            });
-        }
-        
-        res.json({ 
-            success: true, 
-            message: 'Message marked as read',
-            data: { updated: result[0] }
-        });
-    } catch (error) {
-        console.error('Error in markAsRead:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-};
-
 module.exports = {
     getAllMessages,
     createMessage,
@@ -443,7 +389,5 @@ module.exports = {
     updateMessage,
     deleteMessage,
     getAllMembers,
-    notification,
-    unreadCount,
-    markAsRead
+    notification
 };

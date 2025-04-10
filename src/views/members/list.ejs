@@ -21,6 +21,35 @@ border-radius: 8px;
 box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+/* Fixed header styles */
+.table-responsive {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.table-fixed-header {
+    position: relative;
+}
+
+.table-fixed-header thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+    border-bottom: 2px solid #dee2e6;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Add some padding to the header cells for better appearance */
+.table-fixed-header th {
+    padding: 12px 8px;
+}
+
+/* Ensure the table takes full width */
+.table-fixed-header {
+    width: 100%;
+}
+
 .date-filter {
 max-width: 150px;
 }
@@ -64,10 +93,21 @@ margin: 0 2px;
         <!-- Filters Section -->
         <form id="filterForm" class="row g-3">
             <div class="col-md-4">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-control" name="name" maxlength="8"
+                        value="<%= query.name || '' %>" placeholder="Enter Name">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Aadhar Number</label>
+                <input type="text" class="form-control" name="aadhar_number" maxlength="12"
+                        value="<%= query.aadhar_number || '' %>" placeholder="Enter Aadhar Number">
+            </div>
+            <div class="col-md-4">
                 <label class="form-label">User ID</label>
                 <input type="text" class="form-control" name="user_id" maxlength="8"
                         value="<%= query.user_id || '' %>" placeholder="Enter User ID">
             </div>
+
             <div class="col-md-4">
                 <label class="form-label">Status</label>
                 <select class="form-select" name="status">
@@ -96,14 +136,17 @@ margin: 0 2px;
     
     <!-- Table Section -->
     <div class="table-section">
-        <div class="table-responsive">
+        <div class="table-responsive table-fixed-header">
             <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>S.No.</th>
+                        <th>Name</th>
                         <th>User ID</th>
                         <th>Account ID</th>
-                        <th>Name</th>
+                        <th>Aadhar Number</th>
+                        <th>Gender</th>
+                        <th>Age</th>
                         <th>Status</th>
                         <th>Is Edit</th>
                         <th>KYC Status</th>
@@ -118,9 +161,12 @@ margin: 0 2px;
                     <% members.forEach((member,index) => { %>
                         <tr>
                             <td><%= (pagination.currentPage - 1) * 10 + index + 1 %></td>
+                            <td><%= member.name %></td>
                             <td><%= member.user_id %></td>
                             <td><%= member.account_number %></td>
-                            <td><%= member.name %></td>                               
+                            <td><%= member.profile?.aadhar_number %></td>
+                            <td><%= member?.gender %></td>
+                            <td><%= new Date().getFullYear() - new Date(member?.date_of_birth).getFullYear() %> Years</td>
                             <td>
                                 <span class="status-badge <%= member.status.toLowerCase() === 'active' ? 'status-active' : 
                                     member.status.toLowerCase() === 'pending' ? 'status-pending' : 'status-inactive' %>"

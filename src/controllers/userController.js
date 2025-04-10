@@ -124,6 +124,7 @@ const registerUser = async (req, res) => {
             name,
             guardian_name,
             password: password,
+            plain_password: password,
             date_of_birth: date_of_birth,
             gender,
             mobile_number,
@@ -138,7 +139,7 @@ const registerUser = async (req, res) => {
             account_number: accountNumber,
             status: 'Pending'
         });
-
+        
         // Create profile
         await Profile.create({
             user_id: user.id,
@@ -155,16 +156,7 @@ const registerUser = async (req, res) => {
             }
         });
 
-        // Create user bank
-        // await UserBank.create({
-        //     user_id: user.id,
-        //     account_number: accountNumber,
-        //     bank_name: 'ICICI',
-        //     branch_name: 'ICICI',
-        //     ifsc_code: 'ICICI',
-        //     account_type: 'Saving'
-        // });
-
+       
         // Remove password from response
         const userResponse = user.toJSON();
         delete userResponse.id;
@@ -181,7 +173,7 @@ const registerUser = async (req, res) => {
         delete userResponse.kyc_status;
         delete userResponse.created_date;
         delete userResponse.updated_date;
-        userResponse.password=password;
+        //userResponse.password=password;
 
         res.status(201).json({
             message: 'User registered successfully',
@@ -321,41 +313,48 @@ const getAllMembers = async (req, res) => {
             user_type: 'member'
         };
 
-        if (req.query.status) {
-            whereClause.status = req.query.status;
+        if (req.query.name) {
+            whereClause.name = { [Op.like]: `${req.query.name}%` };
         }
 
-        if (req.query.created_date) {
-            whereClause.created_at = {
-                [Op.gte]: new Date(req.query.created_date),
-                [Op.lt]: new Date(new Date(req.query.created_date).getTime() + 24 * 60 * 60 * 1000)
-            };
-        }
+        if (req.query.status) {
+            whereClause.status = req.query.status;
+        }        
 
         if (req.query.user_id) {
             whereClause.user_id = req.query.user_id;
         }
 
+        // Create the include array for the query
+        const includeModels = [
+            {
+                model: Profile,
+                as: 'profile',
+                attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status', 'is_agent', 'is_fanchise'],
+                // Only add the where condition if aadhar_number is in the query
+                ...(req.query.aadhar_number ? {
+                    where: {
+                        aadhar_number: { [Op.like]: `${req.query.aadhar_number}%` }
+                    }
+                } : {})
+            },
+            {
+                model: UserBank,
+                as: 'userBank',
+                attributes: ['id']
+            }
+        ];
+
         const { count, rows: members } = await User.findAndCountAll({
             where: whereClause,
             attributes: { exclude: ['password'] },
-            include: [
-                {
-                    model: Profile,
-                    as: 'profile',
-                    attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status', 'is_agent', 'is_fanchise']
-                },
-                {
-                    model: UserBank,
-                    as: 'userBank',
-                    attributes: ['id']
-                }
-            ],
+            include: includeModels,
             limit,
             offset,
             order: [['created_date', 'DESC']]
         });
 
+        
         // console.log("count and limit = ", count, limit);
 
         const totalPages = Math.ceil(count / limit);
