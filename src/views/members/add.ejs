@@ -1,112 +1,793 @@
-<%- contentFor('title') %>Add New Member - Vertex Admin
+<%- contentFor('title') %>Add Member - Vertex Admin
 
 <%- contentFor('style') %>
 <style>
     .main-content {
-        margin-left: 250px;
         padding: 20px;
     }
-    .form-section {
+
+    .welcome-section {
         background: white;
-        padding: 2rem;
+        padding: 20px;
         border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
     }
-    .form-header {
-        margin-bottom: 2rem;
+
+    .section-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        padding: 20px;
+    }
+
+    .section-title {
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        color: #333;
+        font-size: 1.25rem;
+        font-weight: bold;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+    }
+
+    .document-preview {
+        max-width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin: 10px 0;
+    }
+
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.25rem;
+    }
+
+    .error-text {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .success-text {
+        color: #28a745;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .password-strength {
+        margin-top: 0.5rem;
+    }
+
+    .password-strength-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.25rem;
+    }
+
+    .password-strength-item.valid {
+        color: #28a745;
+    }
+
+    .password-strength-item i {
+        margin-right: 0.5rem;
+    }
+
+    .terms-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .terms-modal-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+        width: 100%;
+    }
+
+    .terms-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
         padding-bottom: 1rem;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .terms-modal-footer {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
     }
 </style>
 
 <%- contentFor('body') %>
-<%- include('../partials/sidebar', { currentPage: 'members' }); %>
-
 <div class="main-content">
-    <div class="form-section">
-        <div class="form-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2 class="mb-0">Add New Member</h2>
-                <a href="/members" class="btn btn-outline-secondary">
-                    <i class="bx bx-arrow-back"></i> Back to Members
+    <div class="welcome-section">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Add Agent Member</h2>
+            <div>
+                <a href="/members/allmembers" class="btn btn-secondary me-2">
+                    <i class="bx bx-arrow-back"></i> Back to List
                 </a>
             </div>
         </div>
+    </div>
 
-        <form id="addMemberForm" action="/members" method="POST">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="name" class="form-label">Full Name</label>
+    <div class="section-card">
+        <form id="registrationForm" method="POST" action="/members/register">
+            <input type="hidden" name="parent_id" value="<%= parentId %>" />
+            
+            <div class="row g-3">
+                <!-- Name -->
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Name <span class="text-danger">*</span>
+                        <span class="text-primary small">(Should match Aadhaar card)</span>
+                    </label>
                     <input type="text" class="form-control" id="name" name="name" required>
+                    <div class="error-text" id="nameError"></div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="user_id" class="form-label">User ID</label>
-                    <input type="text" class="form-control" id="user_id" name="user_id" required>
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                <!-- Guardian Name -->
+                <div class="col-md-6">
+                    <label for="guardian_name" class="form-label">Guardian Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="guardian_name" name="guardian_name" required>
+                    <div class="error-text" id="guardianNameError"></div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="phone" class="form-label">Phone Number</label>
-                    <input type="tel" class="form-control" id="phone" name="phone">
-                </div>
-            </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                <!-- Date of Birth -->
+                <div class="col-md-6">
+                    <label for="date_of_birth" class="form-label">Date of Birth <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
+                    <div class="error-text" id="dobError"></div>
+                    <div id="ageDisplay"></div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select class="form-select" id="status" name="status" required>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+
+                <!-- Gender -->
+                <div class="col-md-6">
+                    <label for="gender" class="form-label">Gender <span class="text-danger">*</span></label>
+                    <select class="form-select" id="gender" name="gender" required>
+                        <option value="">Select</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Transgender">Transgender</option>
                     </select>
+                    <div class="error-text" id="genderError"></div>
                 </div>
-            </div>
 
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bx bx-plus"></i> Create Member
-                </button>
-                <a href="/members" class="btn btn-secondary ms-2">Cancel</a>
+                <!-- Mobile Number -->
+                <div class="col-md-6">
+                    <label for="mobile_number" class="form-label">Mobile Number <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control" id="mobile_number" name="mobile_number" maxlength="10" required>
+                    <div class="error-text" id="mobileError"></div>
+                </div>
+
+                <!-- Email -->
+                <div class="col-md-6">
+                    <label for="email_id" class="form-label">Email <span class="text-secondary small">(Optional)</span></label>
+                    <input type="email" class="form-control" id="email_id" name="email_id">
+                    <div class="error-text" id="emailError"></div>
+                </div>
+
+                <!-- State -->
+                <div class="col-md-6">
+                    <label for="state_id" class="form-label">State <span class="text-danger">*</span></label>
+                    <select class="form-select" id="state_id" name="state_id" required>
+                        <option value="">Select</option>
+                        <% if (typeof states !== 'undefined' && states.length > 0) { %>
+                            <% states.forEach(state => { %>
+                                <option value="<%= state.id %>"><%= state.name %></option>
+                            <% }); %>
+                        <% } %>
+                    </select>
+                    <div class="error-text" id="stateError"></div>
+                </div>
+
+                <!-- District -->
+                <div class="col-md-6">
+                    <label for="district_id" class="form-label">District <span class="text-danger">*</span></label>
+                    <select class="form-select" id="district_id" name="district_id" required>
+                        <option value="">Select</option>
+                    </select>
+                    <div class="error-text" id="districtError"></div>
+                </div>
+
+                <!-- Password -->
+                <div class="col-md-6">
+                    <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">Show</button>
+                    </div>
+                    <div class="error-text" id="passwordError"></div>
+                    <div class="password-strength mt-2">
+                        <div class="password-strength-item" id="lengthCheck">
+                            <i class="bx bx-check-circle"></i> At least 8 characters
+                        </div>
+                        <div class="password-strength-item" id="uppercaseCheck">
+                            <i class="bx bx-check-circle"></i> One uppercase letter
+                        </div>
+                        <div class="password-strength-item" id="lowercaseCheck">
+                            <i class="bx bx-check-circle"></i> One lowercase letter
+                        </div>
+                        <div class="password-strength-item" id="numberCheck">
+                            <i class="bx bx-check-circle"></i> One number
+                        </div>
+                        <div class="password-strength-item" id="specialCheck">
+                            <i class="bx bx-check-circle"></i> One special character (!@#$%^&*)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="col-md-6">
+                    <label for="confirm_password" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    <div class="error-text" id="confirmPasswordError"></div>
+                </div>
+
+                <!-- Payment Key -->
+                <div class="col-md-12">
+                    <label for="pay_key" class="form-label">Payment Key <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="pay_key" name="pay_key" maxlength="8" required>
+                    <div class="error-text" id="payKeyError"></div>
+                    <div class="success-text" id="payKeySuccess" style="display: none;">Payment key verified</div>
+                </div>
+
+                <!-- Terms & Conditions -->
+                <div class="col-md-12 mt-4 p-3 bg-light rounded">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="terms_accepted" name="terms_accepted" required>
+                        <label class="form-check-label" for="terms_accepted">
+                            I accept the 
+                            <a href="#" id="showTermsBtn" class="text-primary">terms and conditions</a>
+                        </label>
+                    </div>
+                    <div class="error-text" id="termsError"></div>
+                </div>
+
+                <!-- Error Alert -->
+                <div class="col-md-12">
+                    <div class="alert alert-danger" id="formErrors" style="display: none;"></div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="col-md-12 text-center mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn">
+                        <span id="submitBtnText">Register</span>
+                        <span id="submitSpinner" class="spinner-border spinner-border-sm ms-2" role="status" style="display: none;"></span>
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Terms Modal -->
+<div class="terms-modal" id="termsModal">
+    <div class="terms-modal-content">
+        <div class="terms-modal-header">
+            <h3 class="modal-title">Terms and Conditions</h3>
+            <button type="button" class="btn-close" id="closeTermsBtn"></button>
+        </div>
+        <div class="terms-modal-body">
+            <!-- Terms content will be added via JavaScript -->
+        </div>
+        <div class="terms-modal-footer">
+            <button type="button" class="btn btn-primary" id="acceptTermsBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Registration Successful</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-4">
+                    <i class="bx bx-check-circle text-success" style="font-size: 4rem;"></i>
+                </div>
+                <h4>Thank you for registering!</h4>
+                <p>Welcome to Vertex Finance Company as a valued member.</p>
+                <div class="bg-light p-3 rounded mt-3 text-start">
+                    <p><strong>Name:</strong> <span id="successName"></span></p>
+                    <p><strong>Account ID:</strong> <span id="successAccountId"></span></p>
+                    <p><strong>User ID:</strong> <span id="successUserId"></span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="/members/allmembers" class="btn btn-primary">Back to Members</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <%- contentFor('script') %>
 <script>
-document.getElementById('addMemberForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+    // DOM Elements
+    const form = document.getElementById('registrationForm');
+    const nameInput = document.getElementById('name');
+    const guardianNameInput = document.getElementById('guardian_name');
+    const dobInput = document.getElementById('date_of_birth');
+    const genderSelect = document.getElementById('gender');
+    const mobileInput = document.getElementById('mobile_number');
+    const emailInput = document.getElementById('email_id');
+    const stateSelect = document.getElementById('state_id');
+    const districtSelect = document.getElementById('district_id');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const payKeyInput = document.getElementById('pay_key');
+    const termsCheckbox = document.getElementById('terms_accepted');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitBtnText = document.getElementById('submitBtnText');
+    const submitSpinner = document.getElementById('submitSpinner');
+    const formErrors = document.getElementById('formErrors');
     
-    try {
-        const form = e.target;
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData.entries());
-
-        const response = await fetch('/members', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+    // Password strength elements
+    const lengthCheck = document.getElementById('lengthCheck');
+    const uppercaseCheck = document.getElementById('uppercaseCheck');
+    const lowercaseCheck = document.getElementById('lowercaseCheck');
+    const numberCheck = document.getElementById('numberCheck');
+    const specialCheck = document.getElementById('specialCheck');
+    
+    // Error message elements
+    const nameError = document.getElementById('nameError');
+    const guardianNameError = document.getElementById('guardianNameError');
+    const dobError = document.getElementById('dobError');
+    const genderError = document.getElementById('genderError');
+    const mobileError = document.getElementById('mobileError');
+    const emailError = document.getElementById('emailError');
+    const stateError = document.getElementById('stateError');
+    const districtError = document.getElementById('districtError');
+    const passwordError = document.getElementById('passwordError');
+    const confirmPasswordError = document.getElementById('confirmPasswordError');
+    const payKeyError = document.getElementById('payKeyError');
+    const payKeySuccess = document.getElementById('payKeySuccess');
+    const termsError = document.getElementById('termsError');
+    const ageDisplay = document.getElementById('ageDisplay');
+    
+    // Modal elements
+    const termsModal = document.getElementById('termsModal');
+    const showTermsBtn = document.getElementById('showTermsBtn');
+    const closeTermsBtn = document.getElementById('closeTermsBtn');
+    const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+    const termsModalBody = document.querySelector('.terms-modal-body');
+    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+    const successName = document.getElementById('successName');
+    const successAccountId = document.getElementById('successAccountId');
+    const successUserId = document.getElementById('successUserId');
+    
+    // Toggle password visibility
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    togglePasswordBtn.addEventListener('click', function() {
+        const type = passwordInput.type === 'password' ? 'text' : 'password';
+        passwordInput.type = type;
+        confirmPasswordInput.type = type;
+        this.textContent = type === 'password' ? 'Show' : 'Hide';
+    });
+    
+    // Terms and conditions modal
+    showTermsBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        termsModal.style.display = 'flex';
+        loadTermsAndConditions();
+    });
+    
+    closeTermsBtn.addEventListener('click', function() {
+        termsModal.style.display = 'none';
+    });
+    
+    acceptTermsBtn.addEventListener('click', function() {
+        termsModal.style.display = 'none';
+        termsCheckbox.checked = true;
+        termsError.textContent = '';
+    });
+    
+    // Load terms and conditions
+    function loadTermsAndConditions() {
+        // Sample terms and conditions - replace with your actual terms
+        const terms = [
+            {
+                title: "1. Introduction",
+                content: "Welcome to Vertex Finance Company. By registering, you agree to these terms and conditions."
             },
-            body: JSON.stringify(data)
+            {
+                title: "2. Eligibility",
+                content: "You must be at least 18 years old to register and use our services."
+            },
+            {
+                title: "3. Account Information",
+                content: "You are responsible for maintaining the confidentiality of your account information."
+            },
+            {
+                title: "4. Privacy Policy",
+                content: "Your personal information will be handled according to our Privacy Policy."
+            }
+        ];
+        
+        let termsHtml = '';
+        terms.forEach(section => {
+            termsHtml += `
+                <div class="mb-4">
+                    <h4 class="mb-2">${section.title}</h4>
+                    <p>${section.content}</p>
+                </div>
+            `;
         });
-
-        const result = await response.json();
-        if (result.success) {
-            window.location.href = '/members';
-        } else {
-            alert(result.message || 'Error creating member');
-        }
-    } catch (error) {
-        console.error('Error creating member:', error);
-        alert('Error creating member');
+        
+        termsModalBody.innerHTML = termsHtml;
     }
-});
+    
+    // State change event to fetch districts via AJAX
+    stateSelect.addEventListener('change', function() {
+        const selectedStateId = this.value;
+        
+        // Reset district dropdown
+        districtSelect.innerHTML = '<option value="">Select</option>';
+        districtError.textContent = '';
+        
+        if (!selectedStateId) return;
+        
+        // Fetch districts for the selected state via AJAX
+        fetch(`/locations/districts?stateId=${selectedStateId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(districts => {
+                if (districts && districts.length > 0) {
+                    districts.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                } else {
+                    districtError.textContent = 'No districts found for this state';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching districts:', error);
+                districtError.textContent = 'Error loading districts. Please try again.';
+            });
+    });
+    
+    // Calculate age from date of birth
+    dobInput.addEventListener('change', function() {
+        const dob = new Date(this.value);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        
+        const isUnderAge = age < 18;
+        
+        if (isUnderAge) {
+            ageDisplay.innerHTML = `<span class="text-danger">Age: ${age} years old (Must be at least 18)</span>`;
+            dobError.textContent = 'You must be at least 18 years old to register';
+        } else {
+            ageDisplay.innerHTML = `<span class="text-success">Age: ${age} years old</span>`;
+            dobError.textContent = '';
+        }
+    });
+    
+    // Validate name input
+    function validateNameInput(input, errorElement) {
+        const value = input.value.trim();
+        
+        if (value.length > 50) {
+            errorElement.textContent = 'Maximum 50 characters allowed';
+            return false;
+        }
+        
+        if (!/^[a-zA-Z\s]*$/.test(value)) {
+            errorElement.textContent = 'Only alphabets and spaces allowed';
+            return false;
+        }
+        
+        errorElement.textContent = '';
+        return true;
+    }
+    
+    // Validate mobile number
+    function validateMobile(input, errorElement) {
+        const value = input.value.trim();
+        
+        if (value && !/^[0-9]{10}$/.test(value)) {
+            errorElement.textContent = 'Enter valid 10-digit mobile number';
+            return false;
+        }
+        
+        errorElement.textContent = '';
+        return true;
+    }
+    
+    // Validate email
+    function validateEmail(input, errorElement) {
+        const value = input.value.trim();
+        
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+            errorElement.textContent = 'Enter a valid email address';
+            return false;
+        }
+        
+        errorElement.textContent = '';
+        return true;
+    }
+    
+    // Validate password strength
+    function validatePassword(input, errorElement) {
+        const value = input.value;
+        
+        const strengthChecks = {
+            length: value.length >= 8,
+            uppercase: /[A-Z]/.test(value),
+            lowercase: /[a-z]/.test(value),
+            number: /[0-9]/.test(value),
+            special: /[!@#$%^&*(),.?":{}|<>]/.test(value)
+        };
+        
+        // Update password strength indicators
+        lengthCheck.classList.toggle('valid', strengthChecks.length);
+        uppercaseCheck.classList.toggle('valid', strengthChecks.uppercase);
+        lowercaseCheck.classList.toggle('valid', strengthChecks.lowercase);
+        numberCheck.classList.toggle('valid', strengthChecks.number);
+        specialCheck.classList.toggle('valid', strengthChecks.special);
+        
+        // Check if all criteria are met
+        const isStrong = Object.values(strengthChecks).every(check => check);
+        
+        if (!isStrong) {
+            errorElement.textContent = 'Password must meet all requirements';
+            return false;
+        }
+        
+        errorElement.textContent = '';
+        return true;
+    }
+    
+    // Validate payment key
+    async function validatePaymentKey(input, errorElement, successElement) {
+        const value = input.value.trim();
+        
+        if (value.length !== 8) {
+            errorElement.textContent = 'Payment key must be 8 characters';
+            successElement.style.display = 'none';
+            return false;
+        }
+        
+        try {
+            errorElement.textContent = 'Validating payment key...';
+            
+            const response = await fetch('/auth/validate-payment-key', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ payment_key: value })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                errorElement.textContent = '';
+                successElement.style.display = 'block';
+                return true;
+            } else {
+                errorElement.textContent = 'Your payment key is incorrect';
+                successElement.style.display = 'none';
+                return false;
+            }
+        } catch (error) {
+            console.error('Error validating payment key:', error);
+            errorElement.textContent = 'Error validating payment key. Please try again.';
+            successElement.style.display = 'none';
+            return false;
+        }
+    }
+    
+    // Input event listeners
+    nameInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+        validateNameInput(this, nameError);
+    });
+    
+    guardianNameInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase();
+        validateNameInput(this, guardianNameError);
+    });
+    
+    mobileInput.addEventListener('input', function() {
+        // Allow only numbers
+        this.value = this.value.replace(/[^0-9]/g, '');
+        validateMobile(this, mobileError);
+    });
+    
+    emailInput.addEventListener('input', function() {
+        validateEmail(this, emailError);
+    });
+    
+    passwordInput.addEventListener('input', function() {
+        validatePassword(this, passwordError);
+        
+        // Check confirm password match if it's already entered
+        if (confirmPasswordInput.value) {
+            if (this.value !== confirmPasswordInput.value) {
+                confirmPasswordError.textContent = 'Passwords do not match';
+            } else {
+                confirmPasswordError.textContent = '';
+            }
+        }
+    });
+    
+    confirmPasswordInput.addEventListener('input', function() {
+        if (this.value !== passwordInput.value) {
+            confirmPasswordError.textContent = 'Passwords do not match';
+        } else {
+            confirmPasswordError.textContent = '';
+        }
+    });
+    
+    payKeyInput.addEventListener('input', function() {
+        if (this.value.length === 8) {
+            validatePaymentKey(this, payKeyError, payKeySuccess);
+        } else {
+            payKeyError.textContent = '';
+            payKeySuccess.style.display = 'none';
+        }
+    });
+    
+    termsCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            termsError.textContent = '';
+        }
+    });
+    
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Validate all fields
+        const isNameValid = validateNameInput(nameInput, nameError);
+        const isGuardianNameValid = validateNameInput(guardianNameInput, guardianNameError);
+        const isMobileValid = validateMobile(mobileInput, mobileError);
+        const isEmailValid = validateEmail(emailInput, emailError);
+        const isPasswordValid = validatePassword(passwordInput, passwordError);
+        const isConfirmPasswordValid = confirmPasswordInput.value === passwordInput.value;
+        
+        if (!isConfirmPasswordValid) {
+            confirmPasswordError.textContent = 'Passwords do not match';
+        }
+        
+        // Check age
+        const dob = new Date(dobInput.value);
+        const today = new Date();
+        let age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+            age--;
+        }
+        
+        const isAgeValid = age >= 18;
+        
+        if (!isAgeValid) {
+            dobError.textContent = 'You must be at least 18 years old to register';
+        }
+        
+        // Check state and district
+        const isStateValid = stateSelect.value !== '';
+        const isDistrictValid = districtSelect.value !== '';
+        
+        if (!isStateValid) {
+            stateError.textContent = 'Please select a state';
+        }
+        
+        if (!isDistrictValid) {
+            districtError.textContent = 'Please select a district';
+        }
+        
+        // Check terms acceptance
+        const isTermsAccepted = termsCheckbox.checked;
+        
+        if (!isTermsAccepted) {
+            termsError.textContent = 'You must accept the terms and conditions';
+        }
+        
+        // Validate payment key
+        const isPayKeyValid = await validatePaymentKey(payKeyInput, payKeyError, payKeySuccess);
+        
+        // Check if all validations pass
+        if (!isNameValid || !isGuardianNameValid || !isMobileValid || !isEmailValid || 
+            !isPasswordValid || !isConfirmPasswordValid || !isAgeValid || 
+            !isStateValid || !isDistrictValid || !isTermsAccepted || !isPayKeyValid) {
+            
+            formErrors.style.display = 'block';
+            formErrors.textContent = 'Please fix the validation errors before submitting.';
+            return;
+        }
+        
+        // All validations passed, submit the form
+        formErrors.style.display = 'none';
+        submitBtnText.textContent = 'Processing...';
+        submitSpinner.style.display = 'inline-block';
+        submitBtn.disabled = true;
+        
+        try {
+            const formData = new FormData(form);
+            
+            // Convert FormData to JSON object
+            const formDataObj = {};
+            formData.forEach((value, key) => {
+                formDataObj[key] = value;
+            });
+            
+            const response = await fetch('/members/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formDataObj)
+            });
+            
+            const data = await response.json();
+            
+            if (data.message === 'User registered successfully') {
+                // Show success modal
+                successName.textContent = data.user.name;
+                successAccountId.textContent = data.user.account_number;
+                successUserId.textContent = data.user.user_id;
+                
+                // Reset form
+                form.reset();
+                
+                // Show success modal
+                successModal.show();
+            } else {
+                formErrors.style.display = 'block';
+                formErrors.textContent = data.error || 'Registration failed. Please try again.';
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            formErrors.style.display = 'block';
+            formErrors.textContent = 'An error occurred. Please try again.';
+        } finally {
+            submitBtnText.textContent = 'Register';
+            submitSpinner.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    });
 </script>

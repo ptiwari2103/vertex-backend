@@ -1,6 +1,40 @@
-const { User, Profile, UserBank, UserAddress, VertexPin, Agent } = require("../models");
+const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District } = require("../models");
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
+
+
+const addMember = async (req, res) => {
+    const user = JSON.stringify(req.session.user, null, 2);
+    try {
+        const { id } = req.params;
+
+        // Fetch states and districts
+        const states = await State.findAll({
+            attributes: ['id', 'name'],
+            order: [['name', 'ASC']]
+        });
+
+        res.render('members/add', {
+            title: 'Add Member - Vertex Admin',
+            style: '',
+            script: '',
+            currentPage: 'members',
+            user: user,
+            parentId: id,
+            states: states
+        });
+    } catch (error) {
+        console.error('Add member error:', error);
+        res.render('error', {
+            title: 'Error - Vertex Admin',
+            message: 'Error adding member',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while adding the member.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+}
 
 const generateUserId = async (districtId) => {
     const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
@@ -12,7 +46,7 @@ const generateUserId = async (districtId) => {
         const randomPart = String(Math.floor(1000 + Math.random() * 9000)); // Always 4 digits
         userId = `${DD}${randomPart}`;
         // Check if this userId already exists
-        const existingUser = await User.findOne({ where: { user_id: userId } });        
+        const existingUser = await User.findOne({ where: { user_id: userId } });
         if (!existingUser) {
             isUnique = true;
         }
@@ -27,18 +61,18 @@ const generateUserId = async (districtId) => {
 const generateAccountNumber = async () => {
     let accountNumber;
     let isUnique = false;
-    
+
     while (!isUnique) {
         // Generate a random 10-digit number that doesn't start with 0
         accountNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-        
+
         // Check if this account number already exists
         const existingUser = await User.findOne({ where: { account_number: accountNumber } });
         if (!existingUser) {
             isUnique = true;
         }
     }
-    
+
     return accountNumber;
 };
 
@@ -66,7 +100,7 @@ const registerUser = async (req, res) => {
         const {
             parent_id,
             pay_key,
-            pay_type= 'pay_key',
+            pay_type = 'pay_key',
             name,
             guardian_name,
             date_of_birth,
@@ -80,15 +114,16 @@ const registerUser = async (req, res) => {
             is_email_verified = false,
             is_mobile_verified = false
         } = req.body;
+        // console.log("request body", req.body);
 
         // Validate required fields
-        const requiredFields = ['name', 'guardian_name', 'password', 
+        const requiredFields = ['name', 'guardian_name', 'password',
             'date_of_birth', 'gender', 'mobile_number', 'state_id', 'district_id'];
-        
+
         const missingFields = requiredFields.filter(field => !req.body[field]);
         if (missingFields.length > 0) {
-            return res.status(400).json({ 
-                error: `Missing required fields: ${missingFields.join(', ')}` 
+            return res.status(400).json({
+                error: `Missing required fields11: ${missingFields.join(', ')}`
             });
         }
 
@@ -105,8 +140,8 @@ const registerUser = async (req, res) => {
                 }
             });
             if (!pin) {
-                return res.status(400). json({ 
-                    error: 'Invalid pay key.' 
+                return res.status(400).json({
+                    error: 'Invalid pay key.'
                 });
             }
         }
@@ -138,11 +173,11 @@ const registerUser = async (req, res) => {
             account_number: accountNumber,
             status: 'Pending'
         });
-        
+
         // Create profile
         await Profile.create({
             user_id: user.id,
-            kyc_status: 'Pending',            
+            kyc_status: 'Pending',
         });
 
         // Update pin
@@ -155,50 +190,50 @@ const registerUser = async (req, res) => {
             }
         });
 
-        if(user.parent_id){            
+        if (user.parent_id) {
             // console.log("parent id",user.parent_id);
             // const userparent = await User.findOne({
             //     where: { id: user.parent_id }
             // });
             // //console.log("parent details",userparent);
-            
+
             // const userdata = await getUserDetails(userparent.user_id);
             // console.log("parent details",userdata);
-            
+
             const agentMemberCount = await User.count({
                 where: {
                     parent_id: user.parent_id
                 }
             });
-            
-            if(agentMemberCount==3){
+
+            if (agentMemberCount == 3) {
                 // Update the parent user's profile to set is_agent to Active
                 await Profile.update(
                     { is_agent: 'Active' },
                     { where: { user_id: user.parent_id } }
                 );
-                
+
                 // Update the agent status to Approved
                 await Agent.update(
-                    { 
+                    {
                         status: 'Approved',
                         approved_date: new Date(),
                         updated_at: new Date()
                     },
                     { where: { user_id: user.parent_id } }
                 );
-                
+
                 console.log(`User ID ${user.parent_id} has been automatically approved as an agent after registering 3 members`);
             }
-        }else{
-            console.log("parent id not found");            
+        } else {
+            console.log("parent id not found");
         }
 
         // Remove password from response
         const userResponse = user.toJSON();
         delete userResponse.id;
-        delete userResponse.guardian_name;         
-        delete userResponse.user_type;        
+        delete userResponse.guardian_name;
+        delete userResponse.user_type;
         delete userResponse.status;
         delete userResponse.terms_accepted;
         delete userResponse.date_of_birth;
@@ -241,7 +276,7 @@ const registerUser = async (req, res) => {
         if (error.name === 'SequelizeUniqueConstraintError') {
             return res.status(400).json({
                 error: "Duplicate entry found",
-                details: Object.keys(error.fields).map(field => 
+                details: Object.keys(error.fields).map(field =>
                     `${field} already exists`
                 )
             });
@@ -283,7 +318,7 @@ const login = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign(
-            { 
+            {
                 user_id: user.user_id,
                 account_number: user.account_number,
                 user_type: user.user_type
@@ -292,8 +327,8 @@ const login = async (req, res) => {
             { expiresIn: '15m' }
         );
 
-        const userdetails = await getUserDetails(user.user_id);      
-        
+        const userdetails = await getUserDetails(user.user_id);
+
         // Return user details and token
         res.json({
             success: true,
@@ -326,7 +361,7 @@ const prelogin = async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ 
+        const user = await User.findOne({
             where: { user_id, user_type: 'member' }
         });
 
@@ -341,8 +376,8 @@ const prelogin = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 message: `Hello ${user.name}, Your account is currently ${user.status.toLowerCase()}.`
-            });           
-        }else{
+            });
+        } else {
             return res.status(401).json({
                 success: false,
                 message: `Hello ${user.name}, Your account is currently ${user.status.toLowerCase()}. Please contact support.`
@@ -377,7 +412,7 @@ const getAllMembers = async (req, res) => {
 
         if (req.query.status) {
             whereClause.status = req.query.status;
-        }        
+        }
 
         if (req.query.user_id) {
             whereClause.user_id = req.query.user_id;
@@ -417,9 +452,9 @@ const getAllMembers = async (req, res) => {
             where: { user_type: 'admin' },
             attributes: ['user_id']
         });
-        
+
         const defaultReferralId = adminUser ? adminUser.user_id : 'ADMIN';
-        
+
         // Add referral_id to each member
         for (const member of members) {
             if (member.parent_id) {
@@ -433,15 +468,15 @@ const getAllMembers = async (req, res) => {
                 member.referral_id = defaultReferralId;
             }
         }
-        
+
         // console.log("count and limit = ", count, limit);
 
         const totalPages = Math.ceil(count / limit);
-        
+
         // console.log("totalPages", totalPages);  
 
         res.render('members/list', {
-            members,            
+            members,
             user: JSON.stringify(req.session.user, null, 2),
             currentPage: 'members',
             query: req.query,
@@ -456,7 +491,7 @@ const getAllMembers = async (req, res) => {
         });
     } catch (error) {
         console.error('Members error:', error);
-        res.render('error', { 
+        res.render('error', {
             title: 'Error - Vertex Admin',
             message: 'Error loading members',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while loading the members.',
@@ -472,7 +507,7 @@ const updateMemberStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        const member = await User.findOne({ 
+        const member = await User.findOne({
             where: { id, user_type: 'member' }
         });
 
@@ -503,7 +538,7 @@ const updatekycStatus = async (req, res) => {
         const { id } = req.params;
         const { kyc_status } = req.body;
 
-        const profile = await Profile.findOne({ 
+        const profile = await Profile.findOne({
             where: { id }
         });
 
@@ -527,7 +562,7 @@ const updatekycStatus = async (req, res) => {
             message: 'Failed to update profile kyc status'
         });
     }
-};  
+};
 
 
 const updateIsAgent = async (req, res) => {
@@ -535,9 +570,24 @@ const updateIsAgent = async (req, res) => {
         const { id } = req.params;
         const { is_agent } = req.body;
 
-        const profile = await Profile.findOne({ 
+        const profile = await Profile.findOne({
             where: { id }
         });
+
+        if (is_agent === 'Active') {
+            const agentmembercount = await User.count({
+                where: {
+                    parent_id: profile.user_id
+                }
+            });
+
+            if (agentmembercount < 3) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Make active agent required 3 members added first.'
+                });
+            }
+        }
 
         if (!profile) {
             return res.status(404).json({
@@ -559,7 +609,7 @@ const updateIsAgent = async (req, res) => {
             message: 'Failed to update profile is_agent status'
         });
     }
-};  
+};
 
 
 const updateIsFranchise = async (req, res) => {
@@ -567,7 +617,7 @@ const updateIsFranchise = async (req, res) => {
         const { id } = req.params;
         const { is_fanchise } = req.body;
 
-        const profile = await Profile.findOne({ 
+        const profile = await Profile.findOne({
             where: { id }
         });
 
@@ -591,7 +641,7 @@ const updateIsFranchise = async (req, res) => {
             message: 'Failed to update profile franchise status'
         });
     }
-};  
+};
 
 
 const updateIsEdit = async (req, res) => {
@@ -689,7 +739,7 @@ const verifyToken = (req, res, next) => {
             message: 'Unauthorized'
         });
     }
-    
+
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             return res.status(401).json({
@@ -709,7 +759,7 @@ const kycform = async (req, res) => {
         const user_id = req.user.user_id;
         const { pan_number, aadhar_number } = req.body;
         const { pan_number_image, aadhar_number_image_front, aadhar_number_image_back } = req.files;
-        
+
         // Validate input
         if (!pan_number || !aadhar_number) {
             return res.status(400).json({
@@ -725,7 +775,7 @@ const kycform = async (req, res) => {
                 {
                     model: Profile,
                     as: 'profile'
-                }                
+                }
             ]
         });
 
@@ -736,14 +786,14 @@ const kycform = async (req, res) => {
             });
         }
 
-        const panImagePath = Array.isArray(pan_number_image) && pan_number_image.length > 0 
-            ? pan_number_image[0]?.path 
+        const panImagePath = Array.isArray(pan_number_image) && pan_number_image.length > 0
+            ? pan_number_image[0]?.path
             : user?.profile?.pan_number_image || null;
-        const aadharFrontPath = Array.isArray(aadhar_number_image_front) && aadhar_number_image_front.length > 0 
-            ? aadhar_number_image_front[0]?.path 
+        const aadharFrontPath = Array.isArray(aadhar_number_image_front) && aadhar_number_image_front.length > 0
+            ? aadhar_number_image_front[0]?.path
             : user?.profile?.aadhar_number_image_front || null;
-        const aadharBackPath = Array.isArray(aadhar_number_image_back) && aadhar_number_image_back.length > 0 
-            ? aadhar_number_image_back[0]?.path 
+        const aadharBackPath = Array.isArray(aadhar_number_image_back) && aadhar_number_image_back.length > 0
+            ? aadhar_number_image_back[0]?.path
             : user?.profile?.aadhar_number_image_back || null;
 
         if (!panImagePath || !aadharFrontPath || !aadharBackPath) {
@@ -751,7 +801,7 @@ const kycform = async (req, res) => {
                 success: false,
                 message: 'Missing required image files'
             });
-        } 
+        }
 
         console.log(panImagePath, aadharFrontPath, aadharBackPath);
         // Update or create profile with KYC details
@@ -765,16 +815,16 @@ const kycform = async (req, res) => {
                 aadhar_number_image_back: aadharBackPath,
                 kyc_status: 'Submitted'
             });
-            
+
             const userdetails = await getUserDetails(user.user_id);
-    
+
             return res.json({
                 success: true,
                 message: "KYC details updated successfully",
                 data: userdetails
             });
-        
-        } else {            
+
+        } else {
             // Create new profile
             const newProfile = await Profile.create({
                 user_id: user.id,
@@ -785,16 +835,16 @@ const kycform = async (req, res) => {
                 aadhar_number_image_back: aadharBackPath,
                 kyc_status: 'Submitted'
             });
-            
+
             const userdetails = await getUserDetails(user.user_id);
-    
+
             return res.json({
                 success: true,
                 message: "KYC details added successfully",
                 data: userdetails
             });
         }
-        
+
     } catch (error) {
         console.error('KYC form error:', error);
         res.status(500).json({
@@ -809,14 +859,14 @@ const kycform = async (req, res) => {
 
 const profileform = async (req, res) => {
     try {
-        const {update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise, divyang_type, divyang_percentage } = req.body;
+        const { update_by, user_id, name, mobile_number, email_id, gender, date_of_birth, guardian_name, guardian_relation, nominee_name, nominee_relation, nominee_contact, nominee_email, is_divyang, is_senior_citizen, is_agent, is_fanchise, divyang_type, divyang_percentage } = req.body;
         // console.log("===========profileform==============");
         // console.log(req.body);
-        
+
         const { profile_image, divyang_certificate } = req.files;
         console.log("profile_image, divyang_certificate", profile_image, divyang_certificate);
-        
-        
+
+
         // console.log(req.body);
         // Validate input
         const requiredFields = {
@@ -857,19 +907,19 @@ const profileform = async (req, res) => {
             });
         }
 
-        
+
         // Get uploaded file paths
-        const profileImagePath = Array.isArray(profile_image) && profile_image.length > 0 
-            ? profile_image[0]?.path 
+        const profileImagePath = Array.isArray(profile_image) && profile_image.length > 0
+            ? profile_image[0]?.path
             : user?.profile?.profile_image || null;
 
-        const divyangCertificatePath = is_divyang === 'true' 
-            ? (Array.isArray(divyang_certificate) && divyang_certificate.length > 0 
-                ? divyang_certificate[0]?.path 
+        const divyangCertificatePath = is_divyang === 'true'
+            ? (Array.isArray(divyang_certificate) && divyang_certificate.length > 0
+                ? divyang_certificate[0]?.path
                 : user?.profile?.divyang_certificate || null)
             : null;
-        
-// console.log("is_divyang", is_divyang);
+
+        // console.log("is_divyang", is_divyang);
         console.log("profileImagePath2, divyangCertificatePath2", profileImagePath, divyangCertificatePath);
 
         // Ensure files are uploaded
@@ -881,20 +931,20 @@ const profileform = async (req, res) => {
         }
 
         // Update user details
-        if(update_by && update_by === 'admin') {
+        if (update_by && update_by === 'admin') {
             user.name = name;
             user.mobile_number = mobile_number;
             user.gender = gender;
             user.date_of_birth = date_of_birth;
-            user.guardian_name = guardian_name;            
-        }            
+            user.guardian_name = guardian_name;
+        }
         user.email_id = email_id;
         user.guardian_relation = guardian_relation;
-            
+
         // console.log("before Updated user details:", user);
         await user.save();
         // console.log("after Updated user details:", user);
-        
+
         // Update or create profile with KYC details
         if (user?.profile?.id) {
             const profile_status = 'Submitted';
@@ -913,17 +963,17 @@ const profileform = async (req, res) => {
                 divyang_percentage: is_divyang === 'true' ? req.body.divyang_percentage : null,
                 profile_status
             });
-            console.log("after Updated profile details:", updatedProfile);            
-            
+            console.log("after Updated profile details:", updatedProfile);
+
             const userdetails = await getUserDetails(user.user_id);
-    
+
             return res.json({
                 success: true,
                 message: "Profile details updated successfully",
                 data: userdetails
             });
-        
-        } else {            
+
+        } else {
             // Create new profile
             const newProfile = await Profile.create({
                 user_id: user.id,
@@ -939,9 +989,9 @@ const profileform = async (req, res) => {
                 divyang_type: is_divyang === 'true' ? req.body.divyang_type : null
             });
             console.log("after Created new profile:", newProfile);
-            
+
             const userdetails = await getUserDetails(user.user_id);
-    
+
             return res.json({
                 success: true,
                 message: "Profile details added successfully",
@@ -972,7 +1022,7 @@ const addUpdateAddress = async (req, res) => {
                 message: 'User not found in my records.'
             });
         }
-        
+
         if (id) {
             // Update existing address
             const address = await UserAddress.findByPk(id);
@@ -987,7 +1037,7 @@ const addUpdateAddress = async (req, res) => {
         } else {
             // Create new address
             await UserAddress.create({ user_id: user.id, ...addressData });
-            
+
             const userdetails = await getUserDetails(user.user_id);
 
             res.json({ success: true, data: userdetails, message: 'Address added successfully' });
@@ -1036,7 +1086,7 @@ const deleteAddress = async (req, res) => {
     try {
         const { id } = req.params;
         const address = await UserAddress.findByPk(id);
-        
+
         if (!address) {
             return res.status(404).json({ success: false, message: 'Address not found' });
         }
@@ -1051,7 +1101,7 @@ const deleteAddress = async (req, res) => {
 
 const addUpdateBank = async (req, res) => {
     try {
-        
+
         const { user_id, id, ...bankData } = req.body;
 
         // Check if user exists
@@ -1065,7 +1115,7 @@ const addUpdateBank = async (req, res) => {
                 message: 'User not found in my records.'
             });
         }
-        
+
         if (id) {
             // Update existing bank
             const bank = await UserBank.findByPk(id);
@@ -1080,7 +1130,7 @@ const addUpdateBank = async (req, res) => {
         } else {
             // Create new bank
             await UserBank.create({ user_id: user.id, ...bankData });
-            
+
             const userdetails = await getUserDetails(user.user_id);
 
             res.json({ success: true, data: userdetails, message: 'Bank details added successfully' });
@@ -1135,7 +1185,7 @@ const deleteBank = async (req, res) => {
     try {
         const { id } = req.params;
         const bank = await UserBank.findByPk(id);
-        
+
         if (!bank) {
             return res.status(404).json({ success: false, message: 'Bank details not found' });
         }
@@ -1152,7 +1202,7 @@ const deleteBank = async (req, res) => {
 const viewMemberDetails = async (req, res) => {
     try {
         const { id } = req.params;
-        const member = await User.findOne({      
+        const member = await User.findOne({
             where: { id, user_type: 'member' },
             include: [
                 {
@@ -1264,7 +1314,7 @@ const updatePinPasswordStatus = async (req, res) => {
         const { id } = req.params;
         const { pin_password_status } = req.body;
 
-        const user = await User.findOne({ 
+        const user = await User.findOne({
             where: { id }
         });
 
@@ -1274,18 +1324,18 @@ const updatePinPasswordStatus = async (req, res) => {
                 message: 'User not found in database.'
             });
         }
-        
+
         //console.log('Pin password status:', pin_password_status); 
         let updatedPinPassword;
         let updatedPinPasswordStatus;
-        
+
         if (pin_password_status === 'Reset') {
             updatedPinPassword = null;
             updatedPinPasswordStatus = 'Pending';
         } else {
             updatedPinPassword = user.pin_password;
             updatedPinPasswordStatus = pin_password_status;
-        }  
+        }
 
         await user.update({ pin_password_status: updatedPinPasswordStatus, pin_password: updatedPinPassword });
 
@@ -1332,15 +1382,15 @@ const createPinPassword = async (req, res) => {
 
         const userdata = await getUserDetails(user.user_id);
 
-        return res.status(201).json({ 
+        return res.status(201).json({
             success: true,
             data: userdata,
-            message: 'Your request was successfully added.' 
+            message: 'Your request was successfully added.'
         });
     } catch (error) {
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -1367,21 +1417,23 @@ const verifyPinPassword = async (req, res) => {
         const userdata = await getUserDetails(user.user_id);
 
         if (user.pin_password === pin_password) {
-            return res.status(200).json({ 
+            return res.status(200).json({
                 success: true,
                 data: userdata,
-                message: 'Your pin is correct.' });
-        }else{
-            return res.status(200).json({ 
-                success:false,
+                message: 'Your pin is correct.'
+            });
+        } else {
+            return res.status(200).json({
+                success: false,
                 data: userdata,
-                message: 'Your pin is incorrect.' });
+                message: 'Your pin is incorrect.'
+            });
         }
-        
+
     } catch (error) {
-        return res.status(500).json({ 
+        return res.status(500).json({
             success: false,
-            error: error.message 
+            error: error.message
         });
     }
 };
@@ -1389,7 +1441,7 @@ const verifyPinPassword = async (req, res) => {
 
 
 const getUserDetailsBCK = async (userId) => {
-    
+
     const userDetails = await User.findOne({
         where: {
             user_id: userId,
@@ -1411,21 +1463,21 @@ const getUserDetailsBCK = async (userId) => {
     const activeAddress = await UserAddress.findOne({
         where: { user_id: userDetails.id, status: 'Active' }
     });
-    
+
     // console.log('Searching for inactive address with user_id:', userDetails.id);
     // Fetch latest inactive address with proper ordering
     const latestInactiveAddress = await UserAddress.findOne({
-        where: { 
-            user_id: userDetails.id, 
-            status: 'Inactive' 
+        where: {
+            user_id: userDetails.id,
+            status: 'Inactive'
         },
         order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
     });
 
     // console.log('Active Address:', activeAddress);
     // console.log('Latest Inactive Address:', latestInactiveAddress);
-    
-       
+
+
     // Attach structured address data
     userResponse.userAddress = {
         activeAddress: activeAddress ? activeAddress.toJSON() : null,
@@ -1438,20 +1490,20 @@ const getUserDetailsBCK = async (userId) => {
     const activeBank = await UserBank.findOne({
         where: { user_id: userDetails.id, status: 'Active' }
     });
-    
+
     // console.log('Searching for inactive bank with user_id:', userDetails.id);
     // Fetch latest inactive bank with proper ordering
     const latestInactiveBank = await UserBank.findOne({
-        where: { 
-            user_id: userDetails.id, 
-            status: 'Inactive' 
+        where: {
+            user_id: userDetails.id,
+            status: 'Inactive'
         },
         order: [['created_date', 'DESC']]  // Changed to created_date since it's defined in model
     });
 
     // console.log('Active Bank:', activeBank);
     // console.log('Latest Inactive Bank:', latestInactiveBank);
-    
+
     // Attach structured bank data
     userResponse.userBank = {
         activeBank: activeBank ? activeBank.toJSON() : null,
@@ -1470,7 +1522,7 @@ const getUserDetailsBCK = async (userId) => {
 
 // Utility function to fetch user details with associated models
 const getUserDetails = async (userId) => {
-    
+
     const userDetails = await User.findOne({
         where: {
             user_id: userId,
@@ -1493,9 +1545,9 @@ const getUserDetails = async (userId) => {
 
     // First try to get the latest active address
     let address = await UserAddress.findOne({
-        where: { 
-            user_id: userDetails.id, 
-            status: 'Active' 
+        where: {
+            user_id: userDetails.id,
+            status: 'Active'
         },
         order: [['created_date', 'DESC']]
     });
@@ -1503,9 +1555,9 @@ const getUserDetails = async (userId) => {
     // If no active address exists, get the latest inactive address
     if (!address) {
         address = await UserAddress.findOne({
-            where: { 
-                user_id: userDetails.id, 
-                status: 'Inactive' 
+            where: {
+                user_id: userDetails.id,
+                status: 'Inactive'
             },
             order: [['created_date', 'DESC']]
         });
@@ -1514,12 +1566,12 @@ const getUserDetails = async (userId) => {
     // Add the address to the user response
     userResponse.address = address ? address.toJSON() : null;
 
-    
+
     // First try to get the latest active bank
     let bank = await UserBank.findOne({
-        where: { 
-            user_id: userDetails.id, 
-            status: 'Active' 
+        where: {
+            user_id: userDetails.id,
+            status: 'Active'
         },
         order: [['created_date', 'DESC']]
     });
@@ -1527,9 +1579,9 @@ const getUserDetails = async (userId) => {
     // If no active bank exists, get the latest inactive bank
     if (!bank) {
         bank = await UserBank.findOne({
-            where: { 
-                user_id: userDetails.id, 
-                status: 'Inactive' 
+            where: {
+                user_id: userDetails.id,
+                status: 'Inactive'
             },
             order: [['created_date', 'DESC']]
         });
@@ -1541,22 +1593,22 @@ const getUserDetails = async (userId) => {
 
     //Get user agent data
     const agent = await Agent.findOne({
-        where: { 
-            user_id: userDetails.id 
+        where: {
+            user_id: userDetails.id
         }
     });
     userResponse.agent = agent ? agent.toJSON() : null;
 
     //Get user agent member count
     const agentmembercount = await User.count({
-        where: { 
-            parent_id: userDetails.id 
+        where: {
+            parent_id: userDetails.id
         }
     });
     userResponse.agentmembercount = agentmembercount;
 
 
-    
+
     // Get user agent member data
     // const agentmembers = await User.findAll({
     //     where: { 
@@ -1572,7 +1624,7 @@ const getUserDetails = async (userId) => {
     //     ]
     // });
     // userResponse.agentmembers = agentmembers.map(member => member.toJSON());
-    
+
     return userResponse;
 };
 
@@ -1586,34 +1638,34 @@ const getMemberData = async (req, res) => {
         success: true,
         message: "User details retrieved successfully",
         data: user
-    });    
+    });
 };
 
 const requestAgent = async (req, res) => {
     try {
         const { user_id } = req.body;
-        
+
         // Check if user exists
         const user = await User.findOne({ where: { id: user_id } });
         if (!user) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'User not found' 
+                message: 'User not found'
             });
         }
-        
+
         // Check if agent record already exists for this user
-        const existingAgent = await Agent.findOne({ 
-            where: { user_id: user.id } 
+        const existingAgent = await Agent.findOne({
+            where: { user_id: user.id }
         });
-        
+
         if (existingAgent) {
             return res.status(400).json({
                 success: false,
                 message: 'Already requested.'
             });
         }
-        
+
         // Create new agent record
         await Agent.create({
             user_id: user.id,
@@ -1627,7 +1679,7 @@ const requestAgent = async (req, res) => {
         // }, { where: { user_id: user.id } });
 
         const userdata = await getUserDetails(user.user_id);
-        
+
         return res.status(201).json({
             success: true,
             message: 'Successfully created',
@@ -1646,24 +1698,24 @@ const requestAgent = async (req, res) => {
 const updateAgentStatus = async (req, res) => {
     try {
         const userId = req.params.id;
-                       
+
         // Check if agent record exists for this user
-        const agent = await Agent.findOne({ 
-            where: { user_id: userId } 
+        const agent = await Agent.findOne({
+            where: { user_id: userId }
         });
-        
+
         if (!agent) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Agent request not found' 
+                message: 'Agent request not found'
             });
-        }else{
+        } else {
             return res.status(200).json({
                 success: true,
                 message: 'Agent created'
             });
-        }       
-        
+        }
+
     } catch (error) {
         console.error('Error in updateAgentStatus:', error);
         return res.status(500).json({
@@ -1678,25 +1730,25 @@ const updateAgentStatus = async (req, res) => {
 const getAgentmembers = async (req, res) => {
     try {
         const userId = req.params.id;
-                       
+
         // Check if agent record exists for this user
-        const members = await User.findAll({ 
-            where: { parent_id: userId } 
+        const members = await User.findAll({
+            where: { parent_id: userId }
         });
-        
+
         if (!members) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'No members found' 
+                message: 'No members found'
             });
-        }else{
+        } else {
             return res.status(200).json({
                 success: true,
                 message: 'Members found',
                 data: members
             });
-        }       
-        
+        }
+
     } catch (error) {
         console.error('Error in getAgentmembers:', error);
         return res.status(500).json({
@@ -1708,6 +1760,7 @@ const getAgentmembers = async (req, res) => {
 };
 
 module.exports = {
+    addMember,
     getAllMembers,
     registerUser,
     login,

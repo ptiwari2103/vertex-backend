@@ -41,6 +41,8 @@ const upload = multer({
     { name: 'divyang_certificate', maxCount: 1 }
 ]);
 
+router.get('/add/:id', userController.addMember);
+
 // Protected routes - require API authentication
 router.post('/kyc', verifyApiToken, upload, userController.kycform);
 router.post('/profile', verifyApiToken, upload, userController.profileform);

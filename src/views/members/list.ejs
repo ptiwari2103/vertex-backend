@@ -216,6 +216,15 @@ margin: 0 2px;
                                 <a href="/members/edit/<%= member.id %>" class="btn btn-sm btn-primary action-btn">
                                     <i class="bx bx-edit"></i> Edit
                                 </a>
+                                <% if (member.profile && member.profile.is_agent === 'Active') { %>
+                                    <a href="/members/add/<%= member.id %>" class="btn btn-sm btn-success action-btn">
+                                        <i class="bx bx-plus"></i> Add Member
+                                    </a>
+                                <% } else { %>
+                                    <button class="btn btn-sm btn-secondary action-btn" disabled>
+                                        <i class="bx bx-plus"></i> Add Member
+                                    </button>
+                                <% } %>
                             </td>
                         </tr>
                     <% }); %>

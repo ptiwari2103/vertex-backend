@@ -67,10 +67,8 @@ app.get('/', (req, res) => {
 
 // Auth routes (public)
 app.use('/auth', authRoutes);
-
 // Message routes (public)
 app.use('/messages', messageRoutes);
-
 // Protected routes
 app.use('/dashboard', dashboardRoutes);
 app.use('/members', userRoutes);
