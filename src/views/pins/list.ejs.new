@@ -1,0 +1,376 @@
+<%- contentFor('title') %>Pin Management - Vertex Admin
+
+<%- contentFor('style') %>
+<style>
+.main-content {
+padding: 20px;
+}
+
+.welcome-section {
+background: white;
+padding: 20px;
+border-radius: 10px;
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+margin-bottom: 20px;
+}
+
+.table-section {
+background: #fff;
+padding: 20px;
+border-radius: 8px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.date-filter {
+max-width: 150px;
+}
+
+.status-badge {
+padding: 5px 10px;
+border-radius: 15px;
+font-size: 12px;
+font-weight: 500;
+cursor: pointer;
+}
+
+.status-active {
+background-color: #d4edda;
+color: #155724;
+}
+
+.status-pending {
+background-color: #fff3cd;
+color: #856404;
+}
+
+.status-inactive {
+background-color: #f8d7da;
+color: #721c24;
+}
+
+.action-btn {
+padding: 5px 10px;
+font-size: 14px;
+margin: 0 2px;
+}
+</style>
+
+<%- contentFor('body') %>
+<div class="main-content">
+    <div class="welcome-section">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Pin Management</h2>
+            <div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPinModal">
+                    <i class="bx bx-plus"></i> Generate Pins
+                </button>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bulkAssignModal">
+                    <i class="bx bx-user-plus"></i> Bulk Assign
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <form id="filterForm" class="row g-3 mt-3">
+            <div class="col-md-3">
+                <label class="form-label">Pin</label>
+                <input type="text" class="form-control" id="pinFilter" placeholder="Search by pin">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Assigned To</label>
+                <input type="text" class="form-control" id="assignedToFilter" placeholder="Search by assigned user">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Used By</label>
+                <input type="text" class="form-control" id="usedByFilter" placeholder="Search by used user">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">All</option>
+                    <option value="assigned">Assigned</option>
+                    <option value="used">Used</option>
+                    <option value="unassigned">Unassigned</option>
+                </select>
+            </div>
+            <div class="col-md-12 d-flex justify-content-end">
+                <button type="button" class="btn btn-primary me-2" id="applyFilters">Apply Filters</button>
+                <button type="button" class="btn btn-secondary" id="resetFilters">Reset</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+        <table class="table table-hover">
+            <thead>
+                <th>S.No.</th>
+                <th>Pin</th>
+                <th>Assigned To</th>
+                <th>Used By</th>
+                <th>Created Date</th>
+                <th>Assigned Date</th>
+                <th>Used Date</th>
+            </tr>
+        </thead>
+        <tbody id="pinsTableBody">
+            <% const startingIndex=(pagination.currentPage - 1) * 10; %>
+                <% pins.forEach((pin, index)=> { %>
+                    <tr class="<%= pin.assignedUser ? 'status-active' : 'status-pending' %>">
+                        <td>
+                            <%= startingIndex + index + 1 %>
+                        </td>
+                        <td>
+                            <%= pin.pin %>
+                        </td>
+                        <td>
+                            <% if (pin.assignedUser) { %>
+                                <%= pin.assignedUser.name %> (<%= pin.assignedUser.user_id %>)
+                                        <% } else { %>
+                                            -
+                                            <% } %>
+                        </td>
+                        <td>
+                            <% if (pin.usedUser) { %>
+                                <%= pin.usedUser.name %> (<%= pin.usedUser.user_id %>)
+                                        <% } else { %>
+                                            -
+                                            <% } %>
+                        </td>
+                        <td>
+                            <%= new Date(pin.created_at).toLocaleDateString() %>
+                        </td>
+                        <td>
+                            <%= pin.assigned_date ? new Date(pin.assigned_date).toLocaleDateString()
+                                : '-' %>
+                        </td>
+                        <td>
+                            <%= pin.used_date ? new Date(pin.used_date).toLocaleDateString() : '-'
+                                %>
+                        </td>
+                    </tr>
+                    <% }); %>
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <div>
+            Showing <span id="startRecord">1</span> to <span id="endRecord">10</span> of <span
+                id="totalRecords">
+                <%= pagination.totalPins %>
+            </span> records
+        </div>
+        <nav>
+            <ul class="pagination">
+                <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                    <a class="page-link" href="?page=<%= pagination.currentPage - 1 %>"
+                        tabindex="-1">Previous</a>
+                </li>
+                <% for(let i=1; i <=pagination.totalPages; i++) { %>
+                    <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                        <a class="page-link" href="?page=<%= i %>">
+                            <%= i %>
+                        </a>
+                    </li>
+                    <% } %>
+                        <li
+                            class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                            <a class="page-link" href="?page=<%= pagination.currentPage + 1 %>">Next</a>
+                        </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Add Pin Modal -->
+<div class="modal fade" id="addPinModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Generate Pins</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPinForm">
+                    <div class="mb-3">
+                        <label for="pinCount" class="form-label">Number of Pins</label>
+                        <input type="number" class="form-control" id="pinCount" min="1" max="100" value="10">
+                    </div>
+                    <div class="mb-3">
+                        <label for="pinLength" class="form-label">Pin Length</label>
+                        <select class="form-select" id="pinLength">
+                            <option value="6">6 digits</option>
+                            <option value="8" selected>8 digits</option>
+                            <option value="10">10 digits</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="generatePinsBtn">Generate</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Assign Modal -->
+<div class="modal fade" id="bulkAssignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Assign Pins</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkAssignForm">
+                    <div class="mb-3">
+                        <label for="assignToUser" class="form-label">Assign to User</label>
+                        <select class="form-select" id="assignToUser">
+                            <option value="">Select User</option>
+                            <% users.forEach(user=> { %>
+                                <option value="<%= user.id %>">
+                                    <%= user.name %> (<%= user.user_id %>)
+                                </option>
+                                <% }); %>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="pinCountToAssign" class="form-label">Number of Pins</label>
+                        <input type="number" class="form-control" id="pinCountToAssign" min="1" max="100" value="5">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="assignPinsBtn">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('script') %>
+<script>
+    // Initialize Bootstrap modals
+    const addPinModal = new bootstrap.Modal(document.getElementById('addPinModal'));
+    const bulkAssignModal = new bootstrap.Modal(document.getElementById('bulkAssignModal'));
+
+    // Generate Pins
+    document.getElementById('generatePinsBtn').addEventListener('click', async () => {
+        const pinCount = document.getElementById('pinCount').value;
+        const pinLength = document.getElementById('pinLength').value;
+
+        try {
+            const response = await fetch('/pins/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ count: pinCount, length: pinLength })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                addPinModal.hide();
+                alert(`Successfully generated ${pinCount} pins.`);
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to generate pins.');
+            }
+        } catch (error) {
+            console.error('Error generating pins:', error);
+            alert('Failed to generate pins.');
+        }
+    });
+
+    // Assign Pins
+    document.getElementById('assignPinsBtn').addEventListener('click', async () => {
+        const userId = document.getElementById('assignToUser').value;
+        const pinCount = document.getElementById('pinCountToAssign').value;
+
+        if (!userId) {
+            alert('Please select a user.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/pins/assign', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ user_id: userId, count: pinCount })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                bulkAssignModal.hide();
+                alert(`Successfully assigned ${pinCount} pins to the selected user.`);
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to assign pins.');
+            }
+        } catch (error) {
+            console.error('Error assigning pins:', error);
+            alert('Failed to assign pins.');
+        }
+    });
+
+    // Filter functionality
+    document.getElementById('applyFilters').addEventListener('click', () => {
+        const pinFilter = document.getElementById('pinFilter').value.toLowerCase();
+        const assignedToFilter = document.getElementById('assignedToFilter').value.toLowerCase();
+        const usedByFilter = document.getElementById('usedByFilter').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+
+        const rows = document.querySelectorAll('#pinsTableBody tr');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const pin = row.cells[1].textContent.trim().toLowerCase();
+            const assignedTo = row.cells[2].textContent.trim().toLowerCase();
+            const usedBy = row.cells[3].textContent.trim().toLowerCase();
+            
+            let statusMatch = true;
+            if (statusFilter === 'assigned') {
+                statusMatch = assignedTo !== '-' && usedBy === '-';
+            } else if (statusFilter === 'used') {
+                statusMatch = usedBy !== '-';
+            } else if (statusFilter === 'unassigned') {
+                statusMatch = assignedTo === '-';
+            }
+
+            const match = pin.includes(pinFilter) &&
+                assignedTo.includes(assignedToFilter) &&
+                usedBy.includes(usedByFilter) &&
+                statusMatch;
+
+            row.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+        });
+
+        // Update pagination info
+        document.getElementById('startRecord').textContent = visibleCount > 0 ? '1' : '0';
+        document.getElementById('endRecord').textContent = visibleCount;
+        document.getElementById('totalRecords').textContent = visibleCount;
+    });
+
+    // Reset filters
+    document.getElementById('resetFilters').addEventListener('click', () => {
+        document.getElementById('pinFilter').value = '';
+        document.getElementById('assignedToFilter').value = '';
+        document.getElementById('usedByFilter').value = '';
+        document.getElementById('statusFilter').value = '';
+
+        const rows = document.querySelectorAll('#pinsTableBody tr');
+        rows.forEach(row => {
+            row.style.display = '';
+        });
+
+        // Reset pagination info
+        document.getElementById('startRecord').textContent = '1';
+        document.getElementById('endRecord').textContent = Math.min(<%= pins.length %>, 10);
+        document.getElementById('totalRecords').textContent = '<%= pagination.totalPins %>';
+    });
+</script>

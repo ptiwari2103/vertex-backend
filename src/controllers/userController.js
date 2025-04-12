@@ -412,6 +412,27 @@ const getAllMembers = async (req, res) => {
             order: [['created_date', 'DESC']]
         });
 
+        // Get admin user_id for members without parent
+        const adminUser = await User.findOne({
+            where: { user_type: 'admin' },
+            attributes: ['user_id']
+        });
+        
+        const defaultReferralId = adminUser ? adminUser.user_id : 'ADMIN';
+        
+        // Add referral_id to each member
+        for (const member of members) {
+            if (member.parent_id) {
+                // Find parent's user_id
+                const parent = await User.findOne({
+                    where: { id: member.parent_id },
+                    attributes: ['user_id']
+                });
+                member.referral_id = parent ? parent.user_id : defaultReferralId;
+            } else {
+                member.referral_id = defaultReferralId;
+            }
+        }
         
         // console.log("count and limit = ", count, limit);
 

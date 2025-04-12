@@ -93,6 +93,6 @@ router.post('/request-agent', verifyApiToken, userController.requestAgent);
 // Agent status
 router.get('/:id/agent-status', verifyApiToken, userController.updateAgentStatus);
 
-router.get('/:id/agent-members', verifyApiToken, userController.getAgentmembers);
+router.get('/:id/agent-members', userController.getAgentmembers);
 
 module.exports = router;
