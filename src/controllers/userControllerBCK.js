@@ -155,15 +155,16 @@ const registerUser = async (req, res) => {
             }
         });
 
-        if(user.parent_id){            
-            // console.log("parent id",user.parent_id);
-            // const userparent = await User.findOne({
-            //     where: { id: user.parent_id }
-            // });
-            // //console.log("parent details",userparent);
+        if(user.parent_id){
             
-            // const userdata = await getUserDetails(userparent.user_id);
-            // console.log("parent details",userdata);
+            console.log("parent id",user.parent_id);
+            const userparent = await User.findOne({
+                where: { id: user.parent_id }
+            });
+            //console.log("parent details",userparent);
+            
+            const userdata = await getUserDetails(userparent.user_id);
+            console.log("parent details",userdata);
             
             const agentMemberCount = await User.count({
                 where: {
@@ -191,7 +192,8 @@ const registerUser = async (req, res) => {
                 console.log(`User ID ${user.parent_id} has been automatically approved as an agent after registering 3 members`);
             }
         }else{
-            console.log("parent id not found");            
+            console.log("parent id not found");
+            const userdata = null;
         }
 
         // Remove password from response
@@ -212,29 +214,10 @@ const registerUser = async (req, res) => {
         delete userResponse.updated_date;
         //userResponse.password=password;
 
-        // if(user.parent_id){ 
-        //     const userparent = await User.findOne({
-        //         where: { id: user.parent_id }
-        //     });
-        //     console.log("parent details",userparent);            
-        //     const userdata = await getUserDetails(userparent.user_id);
-        //     console.log("parent details",userdata);
-        //     res.status(201).json({
-        //         message: 'User registered successfully',
-        //         user: userResponse,
-        //         data: userdata
-        //     });
-        // }else{
-        //     res.status(201).json({
-        //         message: 'User registered successfully',
-        //         user: userResponse,
-        //         data: null
-        //     });
-        // }
-
         res.status(201).json({
             message: 'User registered successfully',
-            user: userResponse
+            user: userResponse,
+            data: userdata
         });
 
     } catch (error) {
@@ -1526,31 +1509,22 @@ const getUserDetails = async (userId) => {
     });
     userResponse.agent = agent ? agent.toJSON() : null;
 
-    //Get user agent member count
-    const agentmembercount = await User.count({
-        where: { 
-            parent_id: userDetails.id 
-        }
-    });
-    userResponse.agentmembercount = agentmembercount;
-
-
     
     // Get user agent member data
-    // const agentmembers = await User.findAll({
-    //     where: { 
-    //         parent_id: userDetails.id 
-    //     },
-    //     attributes: ['name', 'mobile_number', 'status', 'created_date', 'user_id', 'account_number'],
-    //     include: [
-    //         {
-    //             model: Profile,
-    //             as: 'profile',
-    //             attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status']
-    //         }
-    //     ]
-    // });
-    // userResponse.agentmembers = agentmembers.map(member => member.toJSON());
+    const agentmembers = await User.findAll({
+        where: { 
+            parent_id: userDetails.id 
+        },
+        attributes: ['name', 'mobile_number', 'status', 'created_date', 'user_id', 'account_number'],
+        include: [
+            {
+                model: Profile,
+                as: 'profile',
+                attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status']
+            }
+        ]
+    });
+    userResponse.agentmembers = agentmembers.map(member => member.toJSON());
     
     return userResponse;
 };
@@ -1600,17 +1574,10 @@ const requestAgent = async (req, res) => {
             created_at: new Date(),
             updated_at: new Date()
         });
-
-        // await Profile.update({
-        //     is_agent: 'Active'
-        // }, { where: { user_id: user.id } });
-
-        const userdata = await getUserDetails(user.user_id);
         
         return res.status(201).json({
             success: true,
-            message: 'Successfully created',
-            data: userdata
+            message: 'Successfully created'
         });
     } catch (error) {
         console.error('Error in requestAgent:', error);
@@ -1653,39 +1620,6 @@ const updateAgentStatus = async (req, res) => {
     }
 };
 
-
-const getAgentmembers = async (req, res) => {
-    try {
-        const userId = req.params.id;
-                       
-        // Check if agent record exists for this user
-        const members = await User.findAll({ 
-            where: { parent_id: userId } 
-        });
-        
-        if (!members) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'No members found' 
-            });
-        }else{
-            return res.status(200).json({
-                success: true,
-                message: 'Members found',
-                data: members
-            });
-        }       
-        
-    } catch (error) {
-        console.error('Error in getAgentmembers:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            error: error.message
-        });
-    }
-};
-
 module.exports = {
     getAllMembers,
     registerUser,
@@ -1714,6 +1648,5 @@ module.exports = {
     verifyPinPassword,
     getMemberData,
     requestAgent,
-    updateAgentStatus,
-    getAgentmembers
+    updateAgentStatus
 };

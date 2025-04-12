@@ -143,6 +143,7 @@ margin: 0 2px;
                         <th>S.No.</th>
                         <th>Name</th>
                         <th>User ID</th>
+                        <th>Referral ID</th>
                         <th>Account ID</th>
                         <th>Aadhar Number</th>
                         <th>Gender</th>
@@ -163,6 +164,7 @@ margin: 0 2px;
                             <td><%= (pagination.currentPage - 1) * 10 + index + 1 %></td>
                             <td><%= member.name %></td>
                             <td><%= member.user_id %></td>
+                            <td><%= member.referral_id %></td>
                             <td><%= member.account_number %></td>
                             <td><%= member.profile?.aadhar_number %></td>
                             <td><%= member?.gender %></td>

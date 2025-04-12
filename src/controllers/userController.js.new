@@ -1,169 +1,16 @@
-const { User, Profile, UserBank, UserAddress, VertexPin, Agent } = require("../models");
-const jwt = require('jsonwebtoken');
-const { Op } = require('sequelize');
-
-const generateUserId = async (districtId) => {
-    const DD = String(districtId).padStart(2, '0'); // Ensure 2-digit district ID
-
-    let userId;
-    let isUnique = false;
-
-    while (!isUnique) {
-        const randomPart = String(Math.floor(1000 + Math.random() * 9000)); // Always 4 digits
-        userId = `${DD}${randomPart}`;
-        // Check if this userId already exists
-        const existingUser = await User.findOne({ where: { user_id: userId } });        
-        if (!existingUser) {
-            isUnique = true;
-        }
-    }
-
-    return userId; // Returns a 6-digit unique integer
-};
-
-
-
-// Generate unique 10-digit account number
-const generateAccountNumber = async () => {
-    let accountNumber;
-    let isUnique = false;
-    
-    while (!isUnique) {
-        // Generate a random 10-digit number that doesn't start with 0
-        accountNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
-        
-        // Check if this account number already exists
-        const existingUser = await User.findOne({ where: { account_number: accountNumber } });
-        if (!existingUser) {
-            isUnique = true;
-        }
-    }
-    
-    return accountNumber;
-};
-
-
-// Get all users
-const getAllUsers = async (req, res) => {
-    try {
-        const users = await User.findAll({
-            attributes: { exclude: ['password'] },
-            include: [{
-                model: Profile,
-                as: 'profile',
-                attributes: ['email_id', 'state', 'district', 'profile_image']
-            }]
-        });
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Register a new user
-const registerUser = async (req, res) => {
-    try {
-        const {
-            parent_id,
-            pay_key,
-            pay_type= 'pay_key',
-            name,
-            guardian_name,
-            date_of_birth,
-            gender,
-            mobile_number,
-            email_id,
-            state_id,
-            district_id,
-            password,
-            terms_accepted,
-            is_email_verified = false,
-            is_mobile_verified = false
-        } = req.body;
-
-        // Validate required fields
-        const requiredFields = ['name', 'guardian_name', 'password', 
-            'date_of_birth', 'gender', 'mobile_number', 'state_id', 'district_id'];
-        
-        const missingFields = requiredFields.filter(field => !req.body[field]);
-        if (missingFields.length > 0) {
-            return res.status(400).json({ 
-                error: `Missing required fields: ${missingFields.join(', ')}` 
-            });
-        }
-
-        // Validate pay key
-        if (pay_key) {
-            const pin = await VertexPin.findOne({
-                where: {
-                    pin: pay_key,
-                    assigned_to: {
-                        [Op.gt]: 0  // assigned_to greater than 0
-                    },
-                    used_by: null,  // not used yet
-                    used_date: null // no used date
-                }
-            });
-            if (!pin) {
-                return res.status(400). json({ 
-                    error: 'Invalid pay key.' 
-                });
-            }
-        }
-
-        // Generate account number and user ID
-        const accountNumber = await generateAccountNumber();
-        const userId = await generateUserId(district_id);
-
-        // Create user
-        const user = await User.create({
-            parent_id,
-            pay_key,
-            pay_type: 'pay_key',
-            name,
-            guardian_name,
-            password: password,
-            plain_password: password,
-            date_of_birth: date_of_birth,
-            gender,
-            mobile_number,
-            is_mobile_verified,
-            email_id,
-            is_email_verified,
-            state_id,
-            district_id,
-            terms_accepted,
-            user_type: 'member',
-            user_id: userId,
-            account_number: accountNumber,
-            status: 'Pending'
-        });
-        
-        // Create profile
-        await Profile.create({
-            user_id: user.id,
-            kyc_status: 'Pending',            
         });
 
-        // Update pin
-        await VertexPin.update({
-            used_by: user.id,
-            used_date: new Date()
-        }, {
-            where: {
-                pin: pay_key
-            }
-        });
-
-        if(user.parent_id){            
-            // console.log("parent id",user.parent_id);
-            // const userparent = await User.findOne({
-            //     where: { id: user.parent_id }
-            // });
-            // //console.log("parent details",userparent);
+        let userdata = null;
+        if(user.parent_id){
             
-            // const userdata = await getUserDetails(userparent.user_id);
-            // console.log("parent details",userdata);
+            console.log("parent id",user.parent_id);
+            const userparent = await User.findOne({
+                where: { id: user.parent_id }
+            });
+            //console.log("parent details",userparent);
+            
+            userdata = await getUserDetails(userparent.user_id);
+            console.log("parent details",userdata);
             
             const agentMemberCount = await User.count({
                 where: {
@@ -191,8 +38,10 @@ const registerUser = async (req, res) => {
                 console.log(`User ID ${user.parent_id} has been automatically approved as an agent after registering 3 members`);
             }
         }else{
-            console.log("parent id not found");            
+            console.log("parent id not found");
         }
+
+        // Remove password from response
 
         // Remove password from response
         const userResponse = user.toJSON();
@@ -212,29 +61,10 @@ const registerUser = async (req, res) => {
         delete userResponse.updated_date;
         //userResponse.password=password;
 
-        // if(user.parent_id){ 
-        //     const userparent = await User.findOne({
-        //         where: { id: user.parent_id }
-        //     });
-        //     console.log("parent details",userparent);            
-        //     const userdata = await getUserDetails(userparent.user_id);
-        //     console.log("parent details",userdata);
-        //     res.status(201).json({
-        //         message: 'User registered successfully',
-        //         user: userResponse,
-        //         data: userdata
-        //     });
-        // }else{
-        //     res.status(201).json({
-        //         message: 'User registered successfully',
-        //         user: userResponse,
-        //         data: null
-        //     });
-        // }
-
         res.status(201).json({
             message: 'User registered successfully',
-            user: userResponse
+            user: userResponse,
+            data: userdata
         });
 
     } catch (error) {
@@ -1526,31 +1356,22 @@ const getUserDetails = async (userId) => {
     });
     userResponse.agent = agent ? agent.toJSON() : null;
 
-    //Get user agent member count
-    const agentmembercount = await User.count({
-        where: { 
-            parent_id: userDetails.id 
-        }
-    });
-    userResponse.agentmembercount = agentmembercount;
-
-
     
     // Get user agent member data
-    // const agentmembers = await User.findAll({
-    //     where: { 
-    //         parent_id: userDetails.id 
-    //     },
-    //     attributes: ['name', 'mobile_number', 'status', 'created_date', 'user_id', 'account_number'],
-    //     include: [
-    //         {
-    //             model: Profile,
-    //             as: 'profile',
-    //             attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status']
-    //         }
-    //     ]
-    // });
-    // userResponse.agentmembers = agentmembers.map(member => member.toJSON());
+    const agentmembers = await User.findAll({
+        where: { 
+            parent_id: userDetails.id 
+        },
+        attributes: ['name', 'mobile_number', 'status', 'created_date', 'user_id', 'account_number'],
+        include: [
+            {
+                model: Profile,
+                as: 'profile',
+                attributes: ['id', 'pan_number', 'aadhar_number', 'kyc_status']
+            }
+        ]
+    });
+    userResponse.agentmembers = agentmembers.map(member => member.toJSON());
     
     return userResponse;
 };
@@ -1600,17 +1421,10 @@ const requestAgent = async (req, res) => {
             created_at: new Date(),
             updated_at: new Date()
         });
-
-        // await Profile.update({
-        //     is_agent: 'Active'
-        // }, { where: { user_id: user.id } });
-
-        const userdata = await getUserDetails(user.user_id);
         
         return res.status(201).json({
             success: true,
-            message: 'Successfully created',
-            data: userdata
+            message: 'Successfully created'
         });
     } catch (error) {
         console.error('Error in requestAgent:', error);
@@ -1653,39 +1467,6 @@ const updateAgentStatus = async (req, res) => {
     }
 };
 
-
-const getAgentmembers = async (req, res) => {
-    try {
-        const userId = req.params.id;
-                       
-        // Check if agent record exists for this user
-        const members = await User.findAll({ 
-            where: { parent_id: userId } 
-        });
-        
-        if (!members) {
-            return res.status(404).json({ 
-                success: false,
-                message: 'No members found' 
-            });
-        }else{
-            return res.status(200).json({
-                success: true,
-                message: 'Members found',
-                data: members
-            });
-        }       
-        
-    } catch (error) {
-        console.error('Error in getAgentmembers:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-            error: error.message
-        });
-    }
-};
-
 module.exports = {
     getAllMembers,
     registerUser,
@@ -1714,6 +1495,5 @@ module.exports = {
     verifyPinPassword,
     getMemberData,
     requestAgent,
-    updateAgentStatus,
-    getAgentmembers
+    updateAgentStatus
 };

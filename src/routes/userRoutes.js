@@ -84,6 +84,15 @@ router.delete('/:id', userController.deleteMember);
 router.post('/create-pin-password', verifyApiToken, userController.createPinPassword);
 router.post('/verify-pin-password', verifyApiToken, userController.verifyPinPassword);
 
+// Member data
 router.post('/getmemberdata', verifyApiToken, userController.getMemberData);
+
+// Agent routes
+router.post('/request-agent', verifyApiToken, userController.requestAgent);
+
+// Agent status
+router.get('/:id/agent-status', verifyApiToken, userController.updateAgentStatus);
+
+router.get('/:id/agent-members', verifyApiToken, userController.getAgentmembers);
 
 module.exports = router;

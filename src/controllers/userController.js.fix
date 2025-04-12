@@ -1,0 +1,44 @@
+        });
+
+        let userdata = null;
+        if(user.parent_id){
+            
+            console.log("parent id",user.parent_id);
+            const userparent = await User.findOne({
+                where: { id: user.parent_id }
+            });
+            //console.log("parent details",userparent);
+            
+            userdata = await getUserDetails(userparent.user_id);
+            console.log("parent details",userdata);
+            
+            const agentMemberCount = await User.count({
+                where: {
+                    parent_id: user.parent_id
+                }
+            });
+            
+            if(agentMemberCount==3){
+                // Update the parent user's profile to set is_agent to Active
+                await Profile.update(
+                    { is_agent: 'Active' },
+                    { where: { user_id: user.parent_id } }
+                );
+                
+                // Update the agent status to Approved
+                await Agent.update(
+                    { 
+                        status: 'Approved',
+                        approved_date: new Date(),
+                        updated_at: new Date()
+                    },
+                    { where: { user_id: user.parent_id } }
+                );
+                
+                console.log(`User ID ${user.parent_id} has been automatically approved as an agent after registering 3 members`);
+            }
+        }else{
+            console.log("parent id not found");
+        }
+
+        // Remove password from response
