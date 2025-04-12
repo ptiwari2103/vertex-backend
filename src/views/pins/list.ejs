@@ -53,6 +53,33 @@ padding: 5px 10px;
 font-size: 14px;
 margin: 0 2px;
 }
+
+/* Style for pins table rows - with increased specificity */
+.table-section .table tbody#pinsTableBody tr {
+  background-color: #b6e4ba !important; /* Light green color */
+}
+
+/* Add hover effect for better user experience */
+.table-section .table tbody#pinsTableBody tr:hover {
+  background-color: #c8e6c9 !important; /* Slightly darker green on hover */
+  transition: background-color 0.2s ease;
+}
+
+/* Ensure TD elements also have the background color */
+.table-section .table tbody#pinsTableBody tr td {
+  background-color: inherit !important;
+}
+
+/* Style for unused pins (yellow background) */
+.table-section .table tbody#pinsTableBody tr.unused-pin {
+  background-color: #fff9c4 !important; /* Light yellow color */
+}
+
+/* Hover effect for unused pins */
+.table-section .table tbody#pinsTableBody tr.unused-pin:hover {
+  background-color: #fff59d !important; /* Slightly darker yellow on hover */
+  transition: background-color 0.2s ease;
+}
 </style>
 
 <%- contentFor('body') %>
@@ -110,7 +137,7 @@ margin: 0 2px;
         <tbody id="pinsTableBody">
             <% const startingIndex=(pagination.currentPage - 1) * 10; %>
                 <% pins.forEach((pin, index)=> { %>
-                    <tr>
+                    <tr class="<%= !pin.usedUser ? 'unused-pin' : '' %>">
                         <td>
                             <%= startingIndex + index + 1 %>
                         </td>
