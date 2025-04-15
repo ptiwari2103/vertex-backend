@@ -32,14 +32,22 @@ UserAddress.init({
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  permanent_state: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  permanent_district: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
+  permanent_state_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+        model: 'states',
+        key: 'id'
+    }
+},
+permanent_district_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+        model: 'districts',
+        key: 'id'
+    }
+},
   permanent_pincode: {
     type: DataTypes.STRING(10),
     allowNull: true
@@ -53,14 +61,22 @@ UserAddress.init({
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  correspondence_state: {
-    type: DataTypes.STRING(255),
-    allowNull: true
+  correspondence_state_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+        model: 'states',
+        key: 'id'
+    }
   },
-  correspondence_district: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
+correspondence_district_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+        model: 'districts',
+        key: 'id'
+    }
+},
   correspondence_pincode: {
     type: DataTypes.STRING(10),
     allowNull: true

@@ -146,6 +146,31 @@ const registerUser = async (req, res) => {
             }
         }
 
+
+        // Agent Account test
+        if (parent_id>0) {
+            const agent = await Agent.findOne({
+                where: {
+                    user_id: parent_id
+                }
+            });
+            const parentdetail = await User.findOne({
+                include: [{
+                    model: Profile,
+                    as: 'profile'
+                }],
+                where:{
+                    id: parent_id
+                }
+            })
+            if(parentdetail?.profile?.is_agent==='Inactive' && agent?.status==='Approved'){
+                return res.status(400).json({
+                    error: 'Parent agent is inactive or not approved.'
+                });
+            }
+            
+        }
+
         // Generate account number and user ID
         const accountNumber = await generateAccountNumber();
         const userId = await generateUserId(district_id);
@@ -324,7 +349,7 @@ const login = async (req, res) => {
                 user_type: user.user_type
             },
             process.env.JWT_SECRET,
-            { expiresIn: '15m' }
+            { expiresIn: process.env.JWT_EXPIRATION }
         );
 
         const userdetails = await getUserDetails(user.user_id);
@@ -661,6 +686,34 @@ const updateIsEdit = async (req, res) => {
 
         if (!member) {
             return res.status(404).json({ success: false, message: 'Member not found' });
+        }
+
+        //First approved check address
+        const address = await UserAddress.findOne({
+            where: { user_id: id, status: 'Active' }
+        });
+        if(is_edit === 'Approved' && !address) {
+            const addressupdate = await UserAddress.findOne({
+                where: { user_id: id }
+            });
+            if(!addressupdate){
+            return res.status(404).json({ success: false, message: 'Address not found, before approved add one address.' });
+            }
+            await addressupdate.update({ status: 'Active' });
+        }
+
+        //First approved check bank
+        const bank = await UserBank.findOne({
+            where: { user_id: id, status: 'Active' }
+        });
+        if(is_edit === 'Approved' && !bank) {
+            const bankupdate = await UserBank.findOne({
+                where: { user_id: id }
+            });
+            if(!bankupdate){
+            return res.status(404).json({ success: false, message: 'Bank not found, before approved add one bank details.' });
+            }
+            await bankupdate.update({ status: 'Active' });
         }
 
         // Update the is_edit status
