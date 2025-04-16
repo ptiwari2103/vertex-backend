@@ -362,17 +362,21 @@
                                         <div class="col-4">
                                             <label class="form-label">Divyang Percentage*</label>
                                             <input type="number" name="divyang_percentage" class="form-control"
-                                                <%=member.profile?.is_divyang ? 'required' : '' %> value="<%= member.profile?.divyang_percentage %>" min="0" max="100">
+                                                <%=member.profile?.is_divyang ? 'required' : '' %> value="<%=
+                                                member.profile?.divyang_percentage %>" min="0" max="100">
                                         </div>
 
                                         <!-- Divyang Certificate -->
                                         <div class="col-4">
                                             <label class="form-label">Divyang Certificate*</label>
                                             <input type="file" name="divyang_certificate" class="form-control"
-                                                accept="image/*,.pdf" <%= (member.profile?.is_divyang && !member.profile?.divyang_certificate) ? 'required' : '' %>>
+                                                accept="image/*,.pdf" <%=(member.profile?.is_divyang &&
+                                                !member.profile?.divyang_certificate) ? 'required' : '' %>>
                                             <% if (member.profile?.divyang_certificate) { %>
-                                                <div class="mt-3 text-center p-2" style="border: 1px dashed #dee2e6; border-radius: 4px;">
-                                                    <a href="/<%= member.profile.divyang_certificate %>" target="_blank" class="d-inline-block">
+                                                <div class="mt-3 text-center p-2"
+                                                    style="border: 1px dashed #dee2e6; border-radius: 4px;">
+                                                    <a href="/<%= member.profile.divyang_certificate %>" target="_blank"
+                                                        class="d-inline-block">
                                                         <img src="/<%= member.profile.divyang_certificate %>"
                                                             class="document-preview" alt="Divyang Certificate"
                                                             style="height: 150px; width: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -381,7 +385,7 @@
                                                         <small class="text-muted">Click image to view full size</small>
                                                     </div>
                                                 </div>
-                                            <% } %>
+                                                <% } %>
                                         </div>
                                     </div>
                                 </div>
@@ -564,9 +568,12 @@
                                                 <label class="form-label">Account Type</label>
                                                 <select name="account_type" class="form-control" required>
                                                     <option value="">Select Account Type</option>
-                                                    <option value="Savings" <%= bank.account_type === 'Savings' ? 'selected' : '' %>>Savings</option>
-                                                    <option value="Current" <%= bank.account_type === 'Current' ? 'selected' : '' %>>Current</option>
-                                                    <option value="Salary" <%= bank.account_type === 'Salary' ? 'selected' : '' %>>Salary</option>
+                                                    <option value="Savings" <%=bank.account_type==='Savings'
+                                                        ? 'selected' : '' %>>Savings</option>
+                                                    <option value="Current" <%=bank.account_type==='Current'
+                                                        ? 'selected' : '' %>>Current</option>
+                                                    <option value="Salary" <%=bank.account_type==='Salary' ? 'selected'
+                                                        : '' %>>Salary</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -586,26 +593,28 @@
 
                 <!-- Address Modal -->
                 <div class="modal fade" id="addressModal" tabindex="-1">
-                    <div class="modal-dialog modal-md">
+                    <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title">Add New Address</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body">
-                                <form id="newAddressForm" class="needs-validation mx-auto" style="max-width: 95%;" novalidate>
+                                <form id="newAddressForm" class="needs-validation" novalidate>
                                     <input type="hidden" name="user_id" value="<%= member.id %>">
                                     <div class="row g-3">
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <h6>Permanent Address</h6>
                                             <div class="mb-3">
                                                 <label class="form-label">Address</label>
-                                                <input type="text" class="form-control" name="permanent_address">
+                                                <textarea class="form-control" name="permanent_address"
+                                                    rows="3"></textarea>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">City</label>
                                                 <input type="text" class="form-control" name="permanent_city" value="">
                                             </div>
+                                            
                                             <div class="mb-3">
                                                 <label class="form-label">State</label>
                                                 <select class="form-select" id="permanent_state_id" name="permanent_state_id">
@@ -626,38 +635,31 @@
                                                 <select class="form-select" id="permanent_district_id" name="permanent_district_id" required>
                                                     <option value="">Select</option>
                                                 </select>
-                                                <div class="error-text" id="permanent_districtError"></div>
+                                                <div class="error-text" id="districtError"></div>
                                             </div>
-                                            
+
                                             <div class="mb-3">
                                                 <label class="form-label">Pincode</label>
                                                 <input type="text" class="form-control" name="permanent_pincode"
-                                                    value="">
+                                                    value="" pattern="[0-9]{6}">
                                             </div>
                                         </div>
-                                        
-                                        <!-- Same as Permanent Address Checkbox -->
-                                        <div class="col-12 mb-3">
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" id="same_as_permanent" name="same_as_permanent">
-                                                <label class="form-check-label" for="same_as_permanent">Same as Permanent Address</label>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <h6>Correspondence Address</h6>
                                             <div class="mb-3">
                                                 <label class="form-label">Address</label>
-                                                <input type="text" class="form-control" name="correspondence_address">
+                                                <textarea class="form-control" name="correspondence_address"
+                                                    rows="3"></textarea>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">City</label>
                                                 <input type="text" class="form-control" name="correspondence_city"
                                                     value="">
                                             </div>
+                                            
                                             <div class="mb-3">
-                                                <label class="form-label">District</label>
-                                                <select class="form-select" id="correspondence_state_id" name="correspondence_state_id">
+                                                <label class="form-label">State</label>
+                                                <select class="form-select" id="correspondence_state_id" name="correspondence_state_id" required>
                                                     <option value="">Select State</option>
                                                     <% if (typeof states !=='undefined' && states && states.length> 0) {
                                                         %>
@@ -668,19 +670,20 @@
                                                             <% }); %>
                                                                 <% } %>
                                                 </select>
-                                                <div class="error-text" id="correspondence_stateError"></div>
                                             </div>
+
                                             <div class="mb-3">
                                                 <label class="form-label">District</label>
-                                                <select class="form-select" id="correspondence_district_id" name="correspondence_district_id">
+                                                <select class="form-select" id="correspondence_district_id" name="correspondence_district_id" required>
                                                     <option value="">Select</option>
                                                 </select>
-                                                <div class="error-text" id="correspondence_districtError"></div>
+                                                <div class="error-text" id="districtError"></div>
                                             </div>
+
                                             <div class="mb-3">
                                                 <label class="form-label">Pincode</label>
                                                 <input type="text" class="form-control" name="correspondence_pincode"
-                                                    value="">
+                                                    value="" pattern="[0-9]{6}">
                                             </div>
                                         </div>
                                     </div>
@@ -710,7 +713,8 @@
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="form-label">Account Holder Name *</label>
-                                                <input type="text" class="form-control" value="<%= member.name %>" name="account_holder" required readonly>
+                                                <input type="text" class="form-control" name="account_holder"
+                                                    value="<%= member.name %>" required readonly>
                                                 <div class="invalid-feedback">Account Holder Name is required</div>
                                             </div>
                                             <div class="mb-3">
@@ -762,458 +766,127 @@
                 </div>
             </div>
 
-                <script>
-                    document.addEventListener('DOMContentLoaded', function () {
-                        // Handle permanent state change in the address modal
-                        const permanentStateSelect = document.getElementById('permanent_state_id');
-                        const permanentDistrictSelect = document.getElementById('permanent_district_id');
-                        const permanentDistrictError = document.getElementById('permanent_districtError');
-                        
-                        if (permanentStateSelect) {
-                            permanentStateSelect.addEventListener('change', function() {
-                                const selectedStateId = this.value;
-                                
-                                // Reset district dropdown
-                                permanentDistrictSelect.innerHTML = '<option value="">Select</option>';
-                                permanentDistrictError.textContent = '';
-                
-                                if (!selectedStateId) return;
-                
-                                // Fetch districts for the selected state via AJAX
-                                fetch(`/locations/districts?stateId=${selectedStateId}`)
-                                    .then(response => {
-                                        if (!response.ok) {
-                                            throw new Error('Network response was not ok');
-                                        }
-                                        return response.json();
-                                    })
-                                    .then(districts => {
-                                        if (districts && districts.length > 0) {
-                                            districts.forEach(district => {
-                                                const option = document.createElement('option');
-                                                option.value = district.id;
-                                                option.textContent = district.name;
-                                                permanentDistrictSelect.appendChild(option);
-                                            });
-                                        } else {
-                                            permanentDistrictError.textContent = 'No districts found for this state';
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error fetching districts:', error);
-                                        permanentDistrictError.textContent = 'Error loading districts. Please try again.';
-                                    });
-                            });
-                        }
+            <script>
+                function updateDivyangValue() {
+                    const checkbox = document.getElementById("isDivyang");
+                    const hiddenInput = document.getElementById("is_divyang_hidden");
+                    hiddenInput.value = checkbox.checked ? "true" : "false";
+                    const divyangDiv = document.getElementById("divyangFields");
+                    if (checkbox.checked) {
+                        divyangDiv.classList.remove("d-none");
+                    } else {
+                        divyangDiv.classList.add("d-none");
+                    }
+                }
 
-                        // Handle correspondence state change in the address modal
-                        const correspondenceStateSelect = document.getElementById('correspondence_state_id');
-                        const correspondenceDistrictSelect = document.getElementById('correspondence_district_id');
-                        const correspondenceDistrictError = document.getElementById('correspondence_districtError');
-                        
-                        if (correspondenceStateSelect) {
-                            correspondenceStateSelect.addEventListener('change', function() {
-                                const selectedStateId = this.value;
-                                
-                                // Reset district dropdown
-                                correspondenceDistrictSelect.innerHTML = '<option value="">Select</option>';
-                                correspondenceDistrictError.textContent = '';
-                
-                                if (!selectedStateId) return;
-                
-                                // Fetch districts for the selected state via AJAX
-                                fetch(`/locations/districts?stateId=${selectedStateId}`)
-                                    .then(response => {
-                                        if (!response.ok) {
-                                            throw new Error('Network response was not ok');
-                                        }
-                                        return response.json();
-                                    })
-                                    .then(districts => {
-                                        if (districts && districts.length > 0) {
-                                            districts.forEach(district => {
-                                                const option = document.createElement('option');
-                                                option.value = district.id;
-                                                option.textContent = district.name;
-                                                correspondenceDistrictSelect.appendChild(option);
-                                            });
-                                        } else {
-                                            correspondenceDistrictError.textContent = 'No districts found for this state';
-                                        }
-                                    })
-                                    .catch(error => {
-                                        console.error('Error fetching districts:', error);
-                                        correspondenceDistrictError.textContent = 'Error loading districts. Please try again.';
-                                    });
-                            });
-                        }
+                function updateSeniorCitizenValue() {
+                    const checkbox = document.getElementById("is_senior_citizen");
+                    const hiddenInput = document.getElementById("is_senior_citizen_hidden");
+                    hiddenInput.value = checkbox.checked ? "true" : "false";
+                }
 
-                        // Add "Same as Permanent" checkbox functionality
-                        const sameAsCheckbox = document.getElementById('same_as_permanent');
-                        if (sameAsCheckbox) {
-                            sameAsCheckbox.addEventListener('change', function() {
-                                if (this.checked) {
-                                    // Get the modal form container to scope our selectors
-                                    const modalForm = document.getElementById('newAddressForm');
-                                    
-                                    // Copy permanent address values to correspondence
-                                    const permanentAddress = modalForm.querySelector('input[name="permanent_address"]').value;
-                                    const permanentCity = modalForm.querySelector('input[name="permanent_city"]').value;
-                                    const permanentStateId = modalForm.querySelector('#permanent_state_id').value;
-                                    const permanentDistrictId = modalForm.querySelector('#permanent_district_id').value;
-                                    const permanentPincode = modalForm.querySelector('input[name="permanent_pincode"]').value;
+                function updateAgentValue() {
+                    const checkbox = document.getElementById("is_agent");
+                    const hiddenInput = document.getElementById("is_agent_hidden");
+                    hiddenInput.value = checkbox.checked ? "true" : "false";
+                }
 
-                                    console.log('Permanent values:', {
-                                        address: permanentAddress,
-                                        city: permanentCity,
-                                        stateId: permanentStateId,
-                                        districtId: permanentDistrictId,
-                                        pincode: permanentPincode
-                                    });
+                function updateFanchiseValue() {
+                    const checkbox = document.getElementById("is_fanchise");
+                    const hiddenInput = document.getElementById("is_fanchise_hidden");
+                    hiddenInput.value = checkbox.checked ? "true" : "false";
+                }
 
-                                    // Set correspondence values
-                                    modalForm.querySelector('input[name="correspondence_address"]').value = permanentAddress;
-                                    modalForm.querySelector('input[name="correspondence_city"]').value = permanentCity;
-                                    modalForm.querySelector('#correspondence_state_id').value = permanentStateId;
-                                    modalForm.querySelector('input[name="correspondence_pincode"]').value = permanentPincode;
+                // KYC Form Submission
+                document.getElementById('kycForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    try {
+                        const response = await fetch('/members/adminkyc', {
+                            method: 'POST',
+                            body: formData
+                        });
 
-                                    console.log('Values set for correspondence fields');
-
-                                    // Trigger state change event to load districts
-                                    if (permanentStateId) {
-                                        const event = new Event('change');
-                                        modalForm.querySelector('#correspondence_state_id').dispatchEvent(event);
-                                        
-                                        // Set the district value after districts are loaded
-                                        setTimeout(() => {
-                                            if (permanentDistrictId && modalForm.querySelector('#correspondence_district_id').options.length > 1) {
-                                                modalForm.querySelector('#correspondence_district_id').value = permanentDistrictId;
-                                            }
-                                        }, 500);
-                                    }
-                                }
-                            });
-                        }
-                    });
-
-                    function updateDivyangValue() {
-                        const checkbox = document.getElementById("isDivyang");
-                        const hiddenInput = document.getElementById("is_divyang_hidden");
-                        hiddenInput.value = checkbox.checked ? "true" : "false";
-                        const divyangDiv = document.getElementById("divyangFields");
-                        if (checkbox.checked) {
-                            divyangDiv.classList.remove("d-none");
+                        const data = await response.json();
+                        if (data.success) {
+                            alert('KYC details updated successfully');
+                            location.reload();
                         } else {
-                            divyangDiv.classList.add("d-none");
+                            alert(data.message || 'Failed to update KYC details');
                         }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to update KYC details');
                     }
+                });
 
-                    function updateSeniorCitizenValue() {
-                        const checkbox = document.getElementById("is_senior_citizen");
-                        const hiddenInput = document.getElementById("is_senior_citizen_hidden");
-                        hiddenInput.value = checkbox.checked ? "true" : "false";
-                    }
+                // Profile Form Submission
+                document.getElementById('profileForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    try {
+                        // const response = await fetch('/members/profile', {
+                        //     method: 'POST',
+                        //     headers: {
+                        //         'Content-Type': 'application/json',
+                        //     },
+                        //     body: JSON.stringify(Object.fromEntries(formData)),
+                        // });
 
-                    function updateAgentValue() {
-                        const checkbox = document.getElementById("is_agent");
-                        const hiddenInput = document.getElementById("is_agent_hidden");
-                        hiddenInput.value = checkbox.checked ? "true" : "false";
-                    }
+                        const response = await fetch('/members/adminprofile', {
+                            method: 'POST',
+                            body: formData
+                        });
 
-                    function updateFanchiseValue() {
-                        const checkbox = document.getElementById("is_fanchise");
-                        const hiddenInput = document.getElementById("is_fanchise_hidden");
-                        hiddenInput.value = checkbox.checked ? "true" : "false";
+                        const data = await response.json();
+                        if (data.success) {
+                            alert('Profile details updated successfully');
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Failed to update profile details');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to update profile details');
                     }
-                    // KYC Form Submission
-                    document.getElementById('kycForm').addEventListener('submit', async (e) => {
+                });
+
+                // Address form handling
+                document.querySelectorAll('.addressForm').forEach(form => {
+                    form.addEventListener('submit', async (e) => {
                         e.preventDefault();
                         const formData = new FormData(e.target);
-                        try {
-                            const response = await fetch('/members/adminkyc', {
-                                method: 'POST',
-                                body: formData
-                            });
+                        const addressId = e.target.dataset.id;
 
-                            const data = await response.json();
-                            if (data.success) {
-                                alert('KYC details updated successfully');
-                                location.reload();
-                            } else {
-                                alert(data.message || 'Failed to update KYC details');
-                            }
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('Failed to update KYC details');
-                        }
-                    });
-
-                    // Profile Form Submission
-                    document.getElementById('profileForm').addEventListener('submit', async (e) => {
-                        e.preventDefault();
-                        const formData = new FormData(e.target);
-                        try {
-                            // const response = await fetch('/members/profile', {
-                            //     method: 'POST',
-                            //     headers: {
-                            //         'Content-Type': 'application/json',
-                            //     },
-                            //     body: JSON.stringify(Object.fromEntries(formData)),
-                            // });
-
-                            const response = await fetch('/members/adminprofile', {
-                                method: 'POST',
-                                body: formData
-                            });
-
-                            const data = await response.json();
-                            if (data.success) {
-                                alert('Profile details updated successfully');
-                                location.reload();
-                            } else {
-                                alert(data.message || 'Failed to update profile details');
-                            }
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('Failed to update profile details');
-                        }
-                    });
-
-                    // Address form handling
-                    document.querySelectorAll('.addressForm').forEach(form => {
-                        form.addEventListener('submit', async (e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.target);
-                            const addressId = e.target.dataset.id;
-
-                            try {
-                                const response = await fetch('/members/adminaddupdateaddress', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify(Object.fromEntries(formData)),
-                                });
-
-                                const data = await response.json();
-                                if (data.success) {
-                                    alert('Address updated successfully');
-                                    location.reload();
-                                } else {
-                                    alert(data.message || 'Failed to update address');
-                                }
-                            } catch (error) {
-                                console.error('Error:', error);
-                                alert('Failed to update address');
-                            }
-                        });
-                    });
-
-                    // Bank form handling
-                    document.querySelectorAll('.bankForm').forEach(form => {
-                        form.addEventListener('submit', async (e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.target);
-                            const bankId = e.target.dataset.id;
-
-                            try {
-                                const response = await fetch('/members/adminaddupdatebank', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify(Object.fromEntries(formData)),
-                                });
-
-                                const data = await response.json();
-                                if (data.success) {
-                                    alert('Bank details updated successfully');
-                                    location.reload();
-                                } else {
-                                    alert(data.message || 'Failed to update bank details');
-                                }
-                            } catch (error) {
-                                console.error('Error:', error);
-                                alert('Failed to update bank details');
-                            }
-                        });
-                    });
-
-                    // Address status update
-                    async function setAddressStatus(addressId, status) {
-                        try {
-                            const response = await fetch(`/members/address/${addressId}/status`, {
-                                method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({ status }),
-                            });
-
-                            const data = await response.json();
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert(data.message || 'Failed to update status');
-                            }
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('Failed to update status');
-                        }
-                    }
-
-                    // Bank status update
-                    async function setBankStatus(bankId, status) {
-                        try {
-                            const response = await fetch(`/members/bank/${bankId}/status`, {
-                                method: 'PUT',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({ status }),
-                            });
-
-                            const data = await response.json();
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert(data.message || 'Failed to update status');
-                            }
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('Failed to update status');
-                        }
-                    }
-
-                    
-                    // Add new bank
-                    async function addNewBank() {
-                        const formData = {
-                            user_id: '<%= member.user_id %>',
-                            bank_name: '',
-                            branch_name: '',
-                            account_number: '',
-                            ifsc_code: '',
-                            account_type: 'Saving',
-                            status: 'Active',
-                        };
-
-                        try {
-                            const response = await fetch('/members/adminaddupdatebank', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify(formData),
-                            });
-
-                            const data = await response.json();
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert(data.message || 'Failed to add bank account');
-                            }
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('Failed to add bank account');
-                        }
-                    }
-
-                    // Delete address
-                    async function deleteAddress(addressId) {
-                        if (!confirm('Are you sure you want to delete this address?')) return;
-
-                        try {
-                            const response = await fetch(`/members/address/${addressId}`, {
-                                method: 'DELETE',
-                            });
-
-                            const data = await response.json();
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert(data.message || 'Failed to delete address');
-                            }
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('Failed to delete address');
-                        }
-                    }
-
-                    // Delete bank
-                    async function deleteBank(bankId) {
-                        if (!confirm('Are you sure you want to delete this bank account?')) return;
-
-                        try {
-                            const response = await fetch(`/members/bank/${bankId}`, {
-                                method: 'DELETE',
-                            });
-
-                            const data = await response.json();
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert(data.message || 'Failed to delete bank account');
-                            }
-                        } catch (error) {
-                            console.error('Error:', error);
-                            alert('Failed to delete bank account');
-                        }
-                    }
-
-                    // Initialize Bootstrap modals
-                    const addressModal = new bootstrap.Modal(document.getElementById('addressModal'));
-                    const bankModal = new bootstrap.Modal(document.getElementById('bankModal'));
-
-                    function addNewAddress() {
-                        document.getElementById('newAddressForm').reset();
-                        addressModal.show();
-                    }
-
-                    function addNewBank() {
-                        document.getElementById('newBankForm').reset();
-                        bankModal.show();
-                    }
-
-                    async function submitNewAddress() {
-                        const form = document.getElementById('newAddressForm');
-                        if (!form.checkValidity()) {
-                            form.classList.add('was-validated');
-                            return;
-                        }
-
-                        const formData = new FormData(form);
-                        const data = Object.fromEntries(formData.entries());
-                        
                         try {
                             const response = await fetch('/members/adminaddupdateaddress', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
                                 },
-                                body: JSON.stringify(data),
+                                body: JSON.stringify(Object.fromEntries(formData)),
                             });
 
-                            if (!response.ok) {
-                                throw new Error('Failed to add address');
+                            const data = await response.json();
+                            if (data.success) {
+                                alert('Address updated successfully');
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to update address');
                             }
-
-                            // Refresh the page to show new address
-                            window.location.reload();
                         } catch (error) {
-                            alert('Error adding address: ' + error.message);
+                            console.error('Error:', error);
+                            alert('Failed to update address');
                         }
-                    }
+                    });
+                });
 
-                    async function submitNewBank() {
-                        const form = document.getElementById('newBankForm');
-                        if (!form.checkValidity()) {
-                            form.classList.add('was-validated');
-                            return;
-                        }
-
-                        const formData = new FormData(form);
-                        const data = Object.fromEntries(formData.entries());
+                // Bank form handling
+                document.querySelectorAll('.bankForm').forEach(form => {
+                    form.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.target);
+                        const bankId = e.target.dataset.id;
 
                         try {
                             const response = await fetch('/members/adminaddupdatebank', {
@@ -1221,19 +894,509 @@
                                 headers: {
                                     'Content-Type': 'application/json',
                                 },
-                                body: JSON.stringify(data),
+                                body: JSON.stringify(Object.fromEntries(formData)),
                             });
 
-                            if (!response.ok) {
-                                throw new Error('Failed to add bank account');
+                            const data = await response.json();
+                            if (data.success) {
+                                alert('Bank details updated successfully');
+                                location.reload();
+                            } else {
+                                alert(data.message || 'Failed to update bank details');
                             }
-
-                            // Refresh the page to show new bank account
-                            window.location.reload();
                         } catch (error) {
-                            alert('Error adding bank account: ' + error.message);
+                            console.error('Error:', error);
+                            alert('Failed to update bank details');
                         }
-                    }
-                </script>
+                    });
+                });
 
-                <%- contentFor('script') %>
+                // Address status update
+                async function setAddressStatus(addressId, status) {
+                    try {
+                        const response = await fetch(`/members/address/${addressId}/status`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ status }),
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Failed to update status');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to update status');
+                    }
+                }
+
+                // Bank status update
+                async function setBankStatus(bankId, status) {
+                    try {
+                        const response = await fetch(`/members/bank/${bankId}/status`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ status }),
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Failed to update status');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to update status');
+                    }
+                }
+
+                // Add new address
+                async function addNewAddress() {
+                    const formData = {
+                        user_id: '<%= member.user_id %>',
+                        permanent_address: '',
+                        permanent_city: '',
+                        permanent_district: '',
+                        permanent_state: '',
+                        permanent_pincode: '',
+                        correspondence_address: '',
+                        correspondence_city: '',
+                        correspondence_district: '',
+                        correspondence_state: '',
+                        correspondence_pincode: '',
+                        status: 'Active',
+                    };
+
+                    try {
+                        const response = await fetch('/members/addupdateaddress', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData),
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Failed to add address');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to add address');
+                    }
+                }
+
+                // Add new bank
+                async function addNewBank() {
+                    const formData = {
+                        user_id: '<%= member.user_id %>',
+                        bank_name: '',
+                        branch_name: '',
+                        account_number: '',
+                        ifsc_code: '',
+                        account_type: 'Saving',
+                        status: 'Active',
+                    };
+
+                    try {
+                        const response = await fetch('/members/addupdatebank', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(formData),
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Failed to add bank account');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to add bank account');
+                    }
+                }
+
+                // Delete address
+                async function deleteAddress(addressId) {
+                    if (!confirm('Are you sure you want to delete this address?')) return;
+
+                    try {
+                        const response = await fetch(`/members/address/${addressId}`, {
+                            method: 'DELETE',
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Failed to delete address');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to delete address');
+                    }
+                }
+
+                // Delete bank
+                async function deleteBank(bankId) {
+                    if (!confirm('Are you sure you want to delete this bank account?')) return;
+
+                    try {
+                        const response = await fetch(`/members/bank/${bankId}`, {
+                            method: 'DELETE',
+                        });
+
+                        const data = await response.json();
+                        if (data.success) {
+                            location.reload();
+                        } else {
+                            alert(data.message || 'Failed to delete bank account');
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Failed to delete bank account');
+                    }
+                }
+
+                // Initialize Bootstrap modals
+                const addressModal = new bootstrap.Modal(document.getElementById('addressModal'));
+                const bankModal = new bootstrap.Modal(document.getElementById('bankModal'));
+
+                function addNewAddress() {
+                    document.getElementById('newAddressForm').reset();
+                    addressModal.show();
+                }
+
+                function addNewBank() {
+                    document.getElementById('newBankForm').reset();
+                    bankModal.show();
+                }
+
+                async function submitNewAddress() {
+                    const form = document.getElementById('newAddressForm');
+                    if (!form.checkValidity()) {
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    const formData = new FormData(form);
+                    const data = Object.fromEntries(formData.entries());
+
+                    try {
+                        const response = await fetch('/members/adminaddupdateaddress', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to add address');
+                        }
+
+                        // Refresh the page to show new address
+                        window.location.reload();
+                    } catch (error) {
+                        alert('Error adding address: ' + error.message);
+                    }
+                }
+
+                async function submitNewBank() {
+                    const form = document.getElementById('newBankForm');
+                    if (!form.checkValidity()) {
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    const formData = new FormData(form);
+                    const data = Object.fromEntries(formData.entries());
+
+                    try {
+                        const response = await fetch('/members/adminaddupdatebank', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to add bank account');
+                        }
+
+                        // Refresh the page to show new bank account
+                        window.location.reload();
+                    } catch (error) {
+                        alert('Error adding bank account: ' + error.message);
+                    }
+                }
+            </script>
+
+            <script>
+                async function submitNewBank() {
+                    const form = document.getElementById('newBankForm');
+                    if (!form.checkValidity()) {
+                        form.classList.add('was-validated');
+                        return;
+                    }
+
+                    const formData = new FormData(form);
+                    const data = Object.fromEntries(formData.entries());
+
+                    try {
+                        const response = await fetch('/members/addupdatebank', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(data),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to add bank account');
+                        }
+
+                        // Refresh the page to show new bank account
+                        window.location.reload();
+                    } catch (error) {
+                        alert('Error adding bank account: ' + error.message);
+                    }
+                }
+
+                // Function to toggle "same as permanent address" checkbox
+                function toggleSameAddress(addressId) {
+                    const checkbox = document.getElementById(`is_same_address_${addressId}`);
+                    const correspondenceFields = document.getElementById(`correspondence_fields_${addressId}`);
+
+                    if (checkbox.checked) {
+                        // Hide correspondence fields
+                        correspondenceFields.classList.add('d-none');
+
+                        // Copy permanent address values to correspondence
+                        const permanentAddress = document.querySelector(`textarea[name="permanent_address"]`).value;
+                        const permanentCity = document.querySelector(`input[name="permanent_city"]`).value;
+                        const permanentStateId = document.querySelector(`select[name="permanent_state_id"]`).value;
+                        const permanentStateName = document.getElementById(`permanent_state_name_${addressId}`).value;
+                        const permanentDistrictId = document.getElementById(`permanent_district_${addressId}`).value;
+                        const permanentDistrictName = document.getElementById(`permanent_district_name_${addressId}`).value;
+                        const permanentPincode = document.querySelector(`input[name="permanent_pincode"]`).value;
+
+                        // Set correspondence values
+                        document.querySelector(`textarea[name="correspondence_address"]`).value = permanentAddress;
+                        document.querySelector(`input[name="correspondence_city"]`).value = permanentCity;
+
+                        const corrStateSelect = document.querySelector(`select[name="correspondence_state_id"]`);
+                        if (corrStateSelect) {
+                            corrStateSelect.value = permanentStateId;
+                            document.getElementById(`correspondence_state_name_${addressId}`).value = permanentStateName;
+                        }
+
+                        const corrDistrictSelect = document.getElementById(`correspondence_district_${addressId}`);
+                        if (corrDistrictSelect) {
+                            // Load the districts first if needed
+                            if (permanentStateId && corrDistrictSelect.options.length <= 1) {
+                                loadDistricts(permanentStateId, addressId, 'correspondence').then(() => {
+                                    corrDistrictSelect.value = permanentDistrictId;
+                                    document.getElementById(`correspondence_district_name_${addressId}`).value = permanentDistrictName;
+                                });
+                            } else {
+                                corrDistrictSelect.value = permanentDistrictId;
+                                document.getElementById(`correspondence_district_name_${addressId}`).value = permanentDistrictName;
+                            }
+                        }
+
+                        document.querySelector(`input[name="correspondence_pincode"]`).value = permanentPincode;
+                    } else {
+                        // Show correspondence fields
+                        correspondenceFields.classList.remove('d-none');
+                    }
+                }
+
+                
+
+                const stateSelect = document.getElementById('permanent_state_id');
+                const districtSelect = document.getElementById('permanent_district_id');
+                const districtError = document.getElementById('districtError');
+                
+                // State change event to fetch districts via AJAX
+                stateSelect.addEventListener('change', function() {
+                    const selectedStateId = this.value;
+                    
+                    // Reset district dropdown
+                    districtSelect.innerHTML = '<option value="">Select</option>';
+                    districtError.textContent = '';
+        
+                    if (!selectedStateId) return;
+        
+                    // Fetch districts for the selected state via AJAX
+                    fetch(`/locations/districts?stateId=${selectedStateId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                    })
+                    .then(districts => {
+                        if (districts && districts.length > 0) {
+                            districts.forEach(district => {
+                                const option = document.createElement('option');
+                                option.value = district.id;
+                                option.textContent = district.name;
+                                districtSelect.appendChild(option);
+                            });
+                        } else {
+                            districtError.textContent = 'No districts found for this state';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching districts:', error);
+                        districtError.textContent = 'Error loading districts. Please try again.';
+                    });
+                });
+
+
+                const stateSelectCorr = document.getElementById('correspondence_state_id');
+                const districtSelectCorr = document.getElementById('correspondence_district_id');
+                const districtErrorCorr = document.getElementById('correspondence_districtError');
+                
+                // State change event to fetch districts via AJAX
+                stateSelectCorr.addEventListener('change', function() {
+                    const selectedStateId = this.value;
+                    
+                    // Reset district dropdown
+                    districtSelectCorr.innerHTML = '<option value="">Select</option>';
+                    districtErrorCorr.textContent = '';
+        
+                    if (!selectedStateId) return;
+        
+                    // Fetch districts for the selected state via AJAX
+                    fetch(`/locations/districts?stateId=${selectedStateId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                    })
+                    .then(districts => {
+                        if (districts && districts.length > 0) {
+                            districts.forEach(district => {
+                                const option = document.createElement('option');
+                                option.value = district.id;
+                                option.textContent = district.name;
+                                districtSelectCorr.appendChild(option);
+                            });
+                        } else {
+                            districtErrorCorr.textContent = 'No districts found for this state';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching districts:', error);
+                        districtErrorCorr.textContent = 'Error loading districts. Please try again.';
+                    });
+                });
+            </script>   
+
+            <%- contentFor('script') %>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        // Add change event listeners to all district selects
+                        document.querySelectorAll('select[name$="_district_id"]').forEach(select => {
+                            const addressId = select.closest('form').dataset.id;
+                            const addressType = select.name.includes('permanent') ? 'permanent' : 'correspondence';
+                            select.addEventListener('change', () => handleDistrictChange(addressId, addressType));
+                        });
+                        
+                        const stateSelect = document.getElementById('permanent_state_id');
+                        const districtSelect = document.getElementById('permanent_district_id');
+                        const districtError = document.getElementById('districtError');
+                        
+                        // State change event to fetch districts via AJAX
+                        stateSelect.addEventListener('change', function() {
+                            const selectedStateId = this.value;
+                            
+                            // Reset district dropdown
+                            districtSelect.innerHTML = '<option value="">Select</option>';
+                            districtError.textContent = '';
+
+                            if (!selectedStateId) return;
+
+                            // Fetch districts for the selected state via AJAX
+                            fetch(`/locations/districts?stateId=${selectedStateId}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Network response was not ok');
+                                    }
+                                    return response.json();
+                            })
+                            .then(districts => {
+                                if (districts && districts.length > 0) {
+                                    districts.forEach(district => {
+                                        const option = document.createElement('option');
+                                        option.value = district.id;
+                                        option.textContent = district.name;
+                                        districtSelect.appendChild(option);
+                                    });
+                                } else {
+                                    districtError.textContent = 'No districts found for this state';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching districts:', error);
+                                districtError.textContent = 'Error loading districts. Please try again.';
+                            });
+                        });
+
+                        const stateSelectCorr = document.getElementById('correspondence_state_id');
+                        const districtSelectCorr = document.getElementById('correspondence_district_id');
+                        const districtErrorCorr = document.getElementById('correspondence_districtError');
+                        
+                        // State change event to fetch districts via AJAX
+                        stateSelectCorr.addEventListener('change', function() {
+                            const selectedStateId = this.value;
+                            
+                            // Reset district dropdown
+                            districtSelectCorr.innerHTML = '<option value="">Select</option>';
+                            districtErrorCorr.textContent = '';
+
+                            if (!selectedStateId) return;
+
+                            // Fetch districts for the selected state via AJAX
+                            fetch(`/locations/districts?stateId=${selectedStateId}`)
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error('Network response was not ok');
+                                    }
+                                    return response.json();
+                            })
+                            .then(districts => {
+                                if (districts && districts.length > 0) {
+                                    districts.forEach(district => {
+                                        const option = document.createElement('option');
+                                        option.value = district.id;
+                                        option.textContent = district.name;
+                                        districtSelectCorr.appendChild(option);
+                                    });
+                                } else {
+                                    districtErrorCorr.textContent = 'No districts found for this state';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching districts:', error);
+                                districtErrorCorr.textContent = 'Error loading districts. Please try again.';
+                            });
+                        });
+                    });
+                </script>

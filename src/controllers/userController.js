@@ -1338,8 +1338,38 @@ const editMember = async (req, res) => {
             });
         }
 
-        // console.log('Member details on editMember:', member);
+        // Fetch all states for address dropdowns
+        const states = await State.findAll({
+            attributes: ['id', 'name'],
+            order: [['name', 'ASC']]
+        });
 
+        // Fetch districts for existing addresses
+        let permanentDistricts = [];
+        let correspondenceDistricts = [];
+        
+        if (member.userAddress && member.userAddress.length > 0) {
+            // For each address, fetch the districts if state_id is available
+            for (const address of member.userAddress) {
+                if (address.permanent_state_id) {
+                    const districts = await District.findAll({
+                        where: { state_id: address.permanent_state_id },
+                        attributes: ['id', 'name'],
+                        order: [['name', 'ASC']]
+                    });
+                    permanentDistricts.push({ addressId: address.id, districts });
+                }
+                
+                if (address.correspondence_state_id) {
+                    const districts = await District.findAll({
+                        where: { state_id: address.correspondence_state_id },
+                        attributes: ['id', 'name'],
+                        order: [['name', 'ASC']]
+                    });
+                    correspondenceDistricts.push({ addressId: address.id, districts });
+                }
+            }
+        }
 
         res.render('members/edit', {
             title: 'Edit Member - Vertex Admin',
@@ -1347,7 +1377,10 @@ const editMember = async (req, res) => {
             script: '',
             currentPage: 'members',
             member: member,
-            user: user
+            user: user,
+            states: states || [],
+            permanentDistricts: permanentDistricts,
+            correspondenceDistricts: correspondenceDistricts
         });
     } catch (error) {
         console.error('Edit member error:', error);
