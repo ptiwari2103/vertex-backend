@@ -437,8 +437,8 @@
                                             <h6>Permanent Address</h6>
                                             <div class="mb-3">
                                                 <label class="form-label">Address</label>
-                                                <textarea class="form-control" name="permanent_address"
-                                                    rows="3"><%= address.permanent_address %></textarea>
+                                                <input type="text" class="form-control" name="permanent_address"
+                                                    value="<%= address.permanent_address %>" rows="3">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">City</label>
@@ -446,15 +446,15 @@
                                                     value="<%= address.permanent_city %>">
                                             </div>
                                             <div class="mb-3">
-                                                <label class="form-label">District</label>
-                                                <input type="text" class="form-control" name="permanent_district"
-                                                    value="<%= address.permanent_district %>">
+                                                <label class="form-label">State</label>
+                                                <input type="text" class="form-control" name="permanent_state_id"
+                                                    value="<%= address.permanentState?.name %>">
                                             </div>
                                             <div class="mb-3">
-                                                <label class="form-label">State</label>
-                                                <input type="text" class="form-control" name="permanent_state"
-                                                    value="<%= address.permanent_state %>">
-                                            </div>
+                                                <label class="form-label">District</label>
+                                                <input type="text" class="form-control" name="permanent_district_id"
+                                                    value="<%= address.permanentDistrict?.name %>">
+                                            </div>                                            
                                             <div class="mb-3">
                                                 <label class="form-label">Pincode</label>
                                                 <input type="text" class="form-control" name="permanent_pincode"
@@ -465,8 +465,8 @@
                                             <h6>Correspondence Address</h6>
                                             <div class="mb-3">
                                                 <label class="form-label">Address</label>
-                                                <textarea class="form-control" name="correspondence_address"
-                                                    rows="3"><%= address.correspondence_address %></textarea>
+                                                <input type="text" class="form-control" name="correspondence_address"
+                                                    value="<%= address.correspondence_address %>" rows="3">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">City</label>
@@ -476,12 +476,12 @@
                                             <div class="mb-3">
                                                 <label class="form-label">District</label>
                                                 <input type="text" class="form-control" name="correspondence_district"
-                                                    value="<%= address.correspondence_district %>">
+                                                    value="<%= address.correspondenceDistrict?.name %>">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">State</label>
-                                                <input type="text" class="form-control" name="correspondence_state"
-                                                    value="<%= address.correspondence_state %>">
+                                                <input type="text" class="form-control" name="correspondence_state_id"
+                                                    value="<%= address.correspondenceState?.name %>">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Pincode</label>
@@ -594,7 +594,7 @@
                             </div>
                             <div class="modal-body">
                                 <form id="newAddressForm" class="needs-validation mx-auto" style="max-width: 95%;" novalidate>
-                                    <input type="hidden" name="user_id" value="<%= member.id %>">
+                                    <input type="hidden" name="user_id" value="<%= member.user_id %>">
                                     <div class="row g-3">
                                         <div class="col-12">
                                             <h6>Permanent Address</h6>
@@ -1185,6 +1185,8 @@
                         const formData = new FormData(form);
                         const data = Object.fromEntries(formData.entries());
                         
+                        console.log('Submitting address data:', data);
+                        
                         try {
                             const response = await fetch('/members/adminaddupdateaddress', {
                                 method: 'POST',
@@ -1194,8 +1196,12 @@
                                 body: JSON.stringify(data),
                             });
 
+                            console.log('Response status:', response.status);
+                            
                             if (!response.ok) {
-                                throw new Error('Failed to add address');
+                                const errorText = await response.text();
+                                console.error('Error response:', errorText);
+                                throw new Error(`Failed to add address: ${response.status} ${errorText}`);
                             }
 
                             // Refresh the page to show new address

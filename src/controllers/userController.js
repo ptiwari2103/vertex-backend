@@ -1322,7 +1322,29 @@ const editMember = async (req, res) => {
                 },
                 {
                     model: UserAddress,
-                    as: 'userAddress'
+                    as: 'userAddress',
+                    include: [
+                        {
+                            model: State,
+                            as: 'permanentState',
+                            attributes: ['id', 'name']
+                        },
+                        {
+                            model: District,
+                            as: 'permanentDistrict',
+                            attributes: ['id', 'name']
+                        },
+                        {
+                            model: State,
+                            as: 'correspondenceState',
+                            attributes: ['id', 'name']
+                        },
+                        {
+                            model: District,
+                            as: 'correspondenceDistrict',
+                            attributes: ['id', 'name']
+                        }
+                    ]
                 }
             ]
         });
@@ -1345,31 +1367,33 @@ const editMember = async (req, res) => {
         });
 
         // Fetch districts for existing addresses
-        let permanentDistricts = [];
-        let correspondenceDistricts = [];
+        // let permanentDistricts = [];
+        // let correspondenceDistricts = [];
+
+        //console.log('userAddress:', member.userAddress);
         
-        if (member.userAddress && member.userAddress.length > 0) {
-            // For each address, fetch the districts if state_id is available
-            for (const address of member.userAddress) {
-                if (address.permanent_state_id) {
-                    const districts = await District.findAll({
-                        where: { state_id: address.permanent_state_id },
-                        attributes: ['id', 'name'],
-                        order: [['name', 'ASC']]
-                    });
-                    permanentDistricts.push({ addressId: address.id, districts });
-                }
+        // if (member.userAddress && member.userAddress.length > 0) {
+        //     // For each address, fetch the districts if state_id is available
+        //     for (const address of member.userAddress) {
+        //         if (address.permanent_state_id) {
+        //             const districts = await District.findAll({
+        //                 where: { state_id: address.permanent_state_id },
+        //                 attributes: ['id', 'name'],
+        //                 order: [['name', 'ASC']]
+        //             });
+        //             permanentDistricts.push({ addressId: address.id, districts });
+        //         }
                 
-                if (address.correspondence_state_id) {
-                    const districts = await District.findAll({
-                        where: { state_id: address.correspondence_state_id },
-                        attributes: ['id', 'name'],
-                        order: [['name', 'ASC']]
-                    });
-                    correspondenceDistricts.push({ addressId: address.id, districts });
-                }
-            }
-        }
+        //         if (address.correspondence_state_id) {
+        //             const districts = await District.findAll({
+        //                 where: { state_id: address.correspondence_state_id },
+        //                 attributes: ['id', 'name'],
+        //                 order: [['name', 'ASC']]
+        //             });
+        //             correspondenceDistricts.push({ addressId: address.id, districts });
+        //         }
+        //     }
+        // }
 
         res.render('members/edit', {
             title: 'Edit Member - Vertex Admin',
@@ -1378,9 +1402,7 @@ const editMember = async (req, res) => {
             currentPage: 'members',
             member: member,
             user: user,
-            states: states || [],
-            permanentDistricts: permanentDistricts,
-            correspondenceDistricts: correspondenceDistricts
+            states: states || []
         });
     } catch (error) {
         console.error('Edit member error:', error);

@@ -7,6 +7,28 @@ class UserAddress extends Model {
       foreignKey: 'user_id',
       as: 'user'
     });
+    
+    // Associations for permanent address
+    UserAddress.belongsTo(models.State, {
+      foreignKey: 'permanent_state_id',
+      as: 'permanentState'
+    });
+    
+    UserAddress.belongsTo(models.District, {
+      foreignKey: 'permanent_district_id',
+      as: 'permanentDistrict'
+    });
+    
+    // Associations for correspondence address
+    UserAddress.belongsTo(models.State, {
+      foreignKey: 'correspondence_state_id',
+      as: 'correspondenceState'
+    });
+    
+    UserAddress.belongsTo(models.District, {
+      foreignKey: 'correspondence_district_id',
+      as: 'correspondenceDistrict'
+    });
   }
 }
 
@@ -103,5 +125,3 @@ correspondence_district_id: {
 });
 
 module.exports = UserAddress;
-
-
