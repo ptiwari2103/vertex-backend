@@ -12,6 +12,10 @@ class User extends Model {
         User.hasMany(models.UserBank, { foreignKey: 'user_id', as: 'userBank' });
         // One User has One UserAddress
         User.hasMany(models.UserAddress, { foreignKey: 'user_id', as: 'userAddress' });
+        // One User has One UserReferralMoney
+        User.hasOne(models.UserReferralMoney, { foreignKey: 'user_id', as: 'userReferralMoney' });
+        // One User has Many UserTransaction
+        User.hasMany(models.UserTransaction, { foreignKey: 'user_id', as: 'userTransaction' });
     }
 
     // Instance method for password validation

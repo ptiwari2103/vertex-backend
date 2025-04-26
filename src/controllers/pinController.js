@@ -43,6 +43,7 @@ const addPins = async (req, res) => {
 
         // Get all users for dropdowns
         const users = await User.findAll({
+            where: {status: 'Active'},
             attributes: ['id', 'user_id', 'name', 'user_type'],
             order: [['name', 'ASC']]
         });

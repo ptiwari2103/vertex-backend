@@ -10,6 +10,14 @@ const VertexMessage = require('./vertexMessage');
 const Card = require('./card');
 const VertexMessageUser = require('./vertexMessageUser');
 const Agent = require('./agent');
+const Gift = require('./gift');
+const GiftDistributor = require('./giftDistributor');
+const GiftReceived = require('./giftReceived');
+const GeneralSetting = require('./generalSetting');
+const ReferralSetting = require('./referralSetting');
+const UserReferralMoney = require('./userReferralMoney');
+const UserTransaction = require('./userTransaction');
+
 
 // Initialize models
 const models = {
@@ -23,7 +31,14 @@ const models = {
   VertexMessage,
   Card,
   VertexMessageUser,
-  Agent
+  Agent,
+  Gift,
+  GiftDistributor,
+  GiftReceived,
+  GeneralSetting,
+  ReferralSetting,
+  UserReferralMoney,
+  UserTransaction
 };
 
 // Run associations if they exist

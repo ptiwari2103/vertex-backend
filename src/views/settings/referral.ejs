@@ -1,0 +1,214 @@
+<%- contentFor('title') %>Referral Settings - Vertex Admin
+
+
+<%- contentFor('style') %>
+
+<%- contentFor('body') %>
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Member Fees Settings</h2>
+            <p>Manage member fees and deposit amounts for new member registrations.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <% if (locals.success && success.length > 0) { %>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <%= success %>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <% } %>
+
+                    <% if (locals.error && error.length > 0) { %>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <%= error %>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    <% } %>
+
+                    <form action="/settings/referral" method="POST" id="settingsForm" class="needs-validation" novalidate>
+                        <!-- Refundable Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Refundable Deposits</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <label for="shared_money" class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Shared Money:</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="shared_money" name="shared_money" value="<%= settings ? settings.shared_money : 500 %>" min="0" step="1" required>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                            <div class="invalid-feedback">Please enter a valid amount.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <label for="compulsory_deposit" class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Compulsory Deposit:</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="compulsory_deposit" name="compulsory_deposit" value="<%= settings ? settings.compulsory_deposit : 300 %>" min="0" step="1" required>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                            <div class="invalid-feedback">Please enter a valid amount.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-0">
+                                    <div class="d-flex align-items-center">
+                                        <label class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Refundable Subtotal:</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control bg-light" id="refundable_subtotal" readonly>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Non-Refundable Section -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="mb-0">Non-Refundable Fees</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <label for="admission_fee" class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Admission Fee:</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="admission_fee" name="admission_fee" value="<%= settings ? settings.admission_fee : 200 %>" min="0" step="1" required>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                            <div class="invalid-feedback">Please enter a valid amount.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <label for="building_fund" class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Building Fund:</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="building_fund" name="building_fund" value="<%= settings ? settings.building_fund : 100 %>" min="0" step="1" required>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                            <div class="invalid-feedback">Please enter a valid amount.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <label for="welfare_fund" class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Welfare Fund:</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="welfare_fund" name="welfare_fund" value="<%= settings ? settings.welfare_fund : 100 %>" min="0" step="1" required>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                            <div class="invalid-feedback">Please enter a valid amount.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center">
+                                        <label for="other_deposit" class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Other Deposit:</label>
+                                        <div class="input-group">
+                                            <input type="number" class="form-control" id="other_deposit" name="other_deposit" value="<%= settings ? settings.other_deposit : 400 %>" min="0" step="1" required>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                            <div class="invalid-feedback">Please enter a valid amount.</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-0">
+                                    <div class="d-flex align-items-center">
+                                        <label class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Non-Refundable Subtotal:</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control bg-light" id="non_refundable_subtotal" readonly>
+                                            <span class="input-group-text bg-light fw-bold">₹</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Total Section -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center">
+                                <label class="me-3 mb-0 fw-bold" style="min-width: 310px; white-space: nowrap;">Total Amount:</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control bg-light fw-bold" id="total_amount" readonly>
+                                    <span class="input-group-text bg-light fw-bold">₹</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex">
+                            <button type="submit" class="btn btn-primary w-auto">
+                                <i class='bx bx-save'></i> Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('script') %>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form validation
+        const form = document.getElementById('settingsForm');
+        
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        });
+        
+        // Calculate subtotals and total amount
+        const calculateTotal = function() {
+            // Get all values
+            const sharedMoney = parseFloat(document.getElementById('shared_money').value) || 0;
+            const compulsoryDeposit = parseFloat(document.getElementById('compulsory_deposit').value) || 0;
+            const admissionFee = parseFloat(document.getElementById('admission_fee').value) || 0;
+            const buildingFund = parseFloat(document.getElementById('building_fund').value) || 0;
+            const welfareFund = parseFloat(document.getElementById('welfare_fund').value) || 0;
+            const otherDeposit = parseFloat(document.getElementById('other_deposit').value) || 0;
+            
+            // Calculate subtotals
+            const refundableSubtotal = sharedMoney + compulsoryDeposit;
+            const nonRefundableSubtotal = admissionFee + buildingFund + welfareFund + otherDeposit;
+            
+            // Calculate total
+            const total = refundableSubtotal + nonRefundableSubtotal;
+            
+            // Update display values
+            document.getElementById('refundable_subtotal').value = refundableSubtotal.toFixed(2);
+            document.getElementById('non_refundable_subtotal').value = nonRefundableSubtotal.toFixed(2);
+            document.getElementById('total_amount').value = total.toFixed(2);
+        };
+        
+        // Add input validation and calculation for all number fields
+        const numberInputs = document.querySelectorAll('input[type="number"]');
+        numberInputs.forEach(input => {
+            input.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                if (isNaN(value) || value < 0) {
+                    this.setCustomValidity('Please enter a valid amount');
+                } else {
+                    this.setCustomValidity('');
+                }
+                calculateTotal();
+            });
+        });
+        
+        // Calculate initial total
+        calculateTotal();
+    });
+</script>

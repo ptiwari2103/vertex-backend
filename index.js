@@ -12,6 +12,8 @@ const dashboardRoutes = require('./src/routes/dashboard');
 const pinRoutes = require('./src/routes/pinRoutes');
 const messageRoutes = require('./src/routes/messageRoutes');
 const cardRoutes = require('./src/routes/cardRoutes');
+const giftRoutes = require('./src/routes/giftRoutes');
+const settingRoutes = require('./src/routes/settingRoutes');
 
 require("dotenv").config();
 
@@ -75,6 +77,8 @@ app.use('/members', userRoutes);
 app.use('/locations', locationRoutes);
 app.use('/pins', pinRoutes);
 app.use('/cards', cardRoutes);
+app.use('/gifts', giftRoutes);
+app.use('/settings', settingRoutes);
 
 // Error handling middleware
 app.use((req, res, next) => {

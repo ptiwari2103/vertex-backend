@@ -348,12 +348,12 @@
                                 <p class="form-control-static"><%= address.permanent_city %></p>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">District</label>
-                                <p class="form-control-static"><%= address.permanent_district %></p>
+                                <label class="form-label">State</label>
+                                <p class="form-control-static"><%= address.permanentState.name %></p>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">State</label>
-                                <p class="form-control-static"><%= address.permanent_state %></p>
+                                <label class="form-label">District</label>
+                                <p class="form-control-static"><%= address.permanentDistrict.name %></p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Pincode</label>
@@ -371,12 +371,12 @@
                                 <p class="form-control-static"><%= address.correspondence_city %></p>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">District</label>
-                                <p class="form-control-static"><%= address.correspondence_district %></p>
+                                <label class="form-label">State</label>
+                                <p class="form-control-static"><%= address.correspondenceState.name %></p>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">State</label>
-                                <p class="form-control-static"><%= address.correspondence_state %></p>
+                                <label class="form-label">District</label>
+                                <p class="form-control-static"><%= address.correspondenceDistrict.name %></p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Pincode</label>
@@ -434,4 +434,114 @@
             <% }); %>
         </div>
     </div>
+
+
+    <!-- Referral Information -->
+    <div class="section-card">
+        <h4 class="section-title">Member Fees Information</h4>
+        <div id="referralList">
+            <% if (member.userReferralMoney) { %>
+                <% const referral = member.userReferralMoney; %>
+                <div class="row mb-3">
+                    <div class="col-12 mb-2">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2 fw-bold">Pay Key:</span>
+                            <span><%= referral.pay_key %></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Refundable Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light text-primary" style="border-top: 3px solid #0d6efd;">
+                        <h5 class="mb-0">Refundable Deposits</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Shared Money:</span>
+                                    <span>₹ <%= referral.shared_money.toFixed(2) %></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Compulsory Deposit:</span>
+                                    <span>₹ <%= referral.compulsory_deposit.toFixed(2) %></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Refundable Subtotal:</span>
+                                    <span>₹ <%= (referral.shared_money + referral.compulsory_deposit).toFixed(2) %></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Non-Refundable Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light text-info" style="border-top: 3px solid #0dcaf0;">
+                        <h5 class="mb-0">Non-Refundable Fees</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Admission Fee:</span>
+                                    <span>₹ <%= referral.admission_fee.toFixed(2) %></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Building Fund:</span>
+                                    <span>₹ <%= referral.building_fund.toFixed(2) %></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Welfare Fund:</span>
+                                    <span>₹ <%= referral.welfare_fund.toFixed(2) %></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Other Deposit:</span>
+                                    <span>₹ <%= referral.other_deposit.toFixed(2) %></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex">
+                                    <span class="fw-bold me-2">Non-Refundable Subtotal:</span>
+                                    <span>₹ <%= (referral.admission_fee + referral.building_fund + referral.welfare_fund + referral.other_deposit).toFixed(2) %></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Section -->
+                <div class="card">
+                    <div class="card-body bg-light">
+                        <div class="d-flex">
+                            <span class="fw-bold me-2">Total Amount:</span>
+                            <span class="fw-bold">₹ <%= (referral.shared_money + referral.compulsory_deposit + referral.admission_fee + referral.building_fund + referral.welfare_fund + referral.other_deposit).toFixed(2) %></span>
+                        </div>
+                    </div>
+                </div>
+            <% } else { %>
+                <div class="alert alert-info">
+                    No referral information available for this member.
+                </div>
+            <% } %>
+        </div>
+    </div>
+    
 </div>

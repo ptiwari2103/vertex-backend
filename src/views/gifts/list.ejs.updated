@@ -1,0 +1,9 @@
+<!-- Updated delete button code for list.ejs -->
+<!-- Replace the existing delete button (lines 56-58) with this code -->
+
+<button class="btn btn-outline-danger delete-gift" 
+        data-id="<%= gift.id %>" 
+        <%= gift.quantity < gift.origin_quantity ? 'disabled' : '' %> 
+        <%= gift.quantity < gift.origin_quantity ? 'title="Cannot delete gifts that have been distributed"' : '' %>>
+    <i class='bx bx-trash'></i> Delete
+</button>

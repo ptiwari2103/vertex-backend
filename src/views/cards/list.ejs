@@ -139,8 +139,10 @@
                             </td>
 
                             <td>
-                                <button class="btn btn-primary"
+                                <button class="btn btn-primary btn-sm action-btn"
                                     onclick="openViewCardModal('<%= card.user.name %>','<%= card.user.user_id %>','<%= card.user.account_number %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.assigned_date %>','<%= card.created_at %>','<%= card.status %>')">View</button>
+                                <button class="btn btn-warning btn-sm action-btn"
+                                    onclick="openEditCardModal('<%= card.id %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.status %>')">Edit</button>
                             </td>
                         </tr>
                     <% }); %>
@@ -174,6 +176,69 @@
     </nav>
 </div>
 
+
+<!-- Edit Card Modal -->
+<div class="modal fade" id="editCardModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Card</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCardForm" class="needs-validation" novalidate>
+                    <input type="hidden" name="id" id="editCardId">
+                    <input type="hidden" name="card_number" id="editCardNumber">
+                    
+                    <!-- Card details that can't be edited (display only) -->
+                    <div class="mb-3">
+                        <label class="form-label">Card Number</label>
+                        <input type="text" class="form-control" id="displayCardNumber" disabled>
+                    </div>
+                    
+                    <!-- Editable fields -->
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label">Expiry Month</label>
+                            <select class="form-select" name="expiry_month" id="editExpiryMonth" required>
+                                <% for(let i=1; i<=12; i++) { %>
+                                    <option value="<%= i %>"><%= i.toString().padStart(2, '0') %></option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Expiry Year</label>
+                            <select class="form-select" name="expiry_year" id="editExpiryYear" required>
+                                <% const currentYear = new Date().getFullYear(); %>
+                                <% for(let i=currentYear; i<=currentYear+10; i++) { %>
+                                    <option value="<%= i %>"><%= i %></option>
+                                <% } %>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Card Limit</label>
+                        <input type="number" step="0.01" class="form-control" name="card_limit" id="editCardLimit" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status" id="editCardStatus" required>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Blocked">Blocked</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditCardForm()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Add Card Modal -->
 <div class="modal fade" id="addCardModal" tabindex="-1">
@@ -360,5 +425,63 @@
         });
         // Submit the form with cleared values
         window.location.href = '/cards/allcards';
+    }
+    
+    // Edit Card Modal Functions
+    function openEditCardModal(id, cardNumber, expiryMonth, expiryYear, cardLimit, status) {
+        // Set values in the form
+        document.getElementById('editCardId').value = id;
+        document.getElementById('editCardNumber').value = cardNumber;
+        document.getElementById('displayCardNumber').value = cardNumber;
+        document.getElementById('editExpiryMonth').value = expiryMonth;
+        document.getElementById('editExpiryYear').value = expiryYear;
+        document.getElementById('editCardLimit').value = cardLimit;
+        document.getElementById('editCardStatus').value = status;
+        
+        // Show the modal
+        const editModal = new bootstrap.Modal(document.getElementById('editCardModal'));
+        editModal.show();
+    }
+    
+    function submitEditCardForm() {
+        const form = document.getElementById('editCardForm');
+        
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+        
+        // Get form data
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+        
+        // Send AJAX request
+        fetch('/cards/update-card', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                alert('Card updated successfully!');
+                // Close the modal
+                bootstrap.Modal.getInstance(document.getElementById('editCardModal')).hide();
+                // Reload the page to show updated data
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
     }
 </script>

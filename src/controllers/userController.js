@@ -1,4 +1,4 @@
-const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District } = require("../models");
+const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting } = require("../models");
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
@@ -213,6 +213,20 @@ const registerUser = async (req, res) => {
             where: {
                 pin: pay_key
             }
+        });
+
+
+        // Create user referral money
+        const referralSetting = await ReferralSetting.findOne(); 
+        await UserReferralMoney.create({
+            user_id: user.id,
+            referral_id: pay_key,
+            shared_money: referralSetting.shared_money,
+            compulsory_deposit: referralSetting.compulsory_deposit,
+            admission_fee: referralSetting.admission_fee,
+            building_fund: referralSetting.building_fund,
+            welfare_fund: referralSetting.welfare_fund,
+            other_deposit: referralSetting.other_deposit
         });
 
         if (user.parent_id) {
@@ -732,7 +746,7 @@ const viewMember = async (req, res) => {
         const member = await User.findOne({
             where: { id, user_type: 'member' },
             attributes: { exclude: ['password'] }
-        });
+        }); 
 
         if (!member) {
             return res.status(404).json({
@@ -809,10 +823,9 @@ const verifyToken = (req, res, next) => {
 const kycform = async (req, res) => {
     try {
         // Get user from middleware
-        const user_id = req.user.user_id;
-        const { pan_number, aadhar_number } = req.body;
+        const { user_id, pan_number, aadhar_number } = req.body;
         const { pan_number_image, aadhar_number_image_front, aadhar_number_image_back } = req.files;
-
+        
         // Validate input
         if (!pan_number || !aadhar_number) {
             return res.status(400).json({
@@ -1082,10 +1095,11 @@ const addUpdateAddress = async (req, res) => {
             if (!address) {
                 return res.status(404).json({ success: false, message: 'Address not found' });
             }
+            //console.log('Updating address:', addressData);
             await address.update({ user_id: user.id, ...addressData });
-
+            //console.log('Address updated successfully=',address);
             const userdetails = await getUserDetails(user.user_id);
-
+            
             res.json({ success: true, data: userdetails, message: 'Address updated successfully' });
         } else {
             // Create new address
@@ -1268,7 +1282,33 @@ const viewMemberDetails = async (req, res) => {
                 },
                 {
                     model: UserAddress,
-                    as: 'userAddress'
+                    as: 'userAddress',
+                    include: [
+                        {
+                            model: State,
+                            as: 'permanentState',
+                            attributes: ['id', 'name']
+                        },
+                        {
+                            model: District,
+                            as: 'permanentDistrict',
+                            attributes: ['id', 'name']
+                        },
+                        {
+                            model: State,
+                            as: 'correspondenceState',
+                            attributes: ['id', 'name']
+                        },
+                        {
+                            model: District,
+                            as: 'correspondenceDistrict',
+                            attributes: ['id', 'name']
+                        }
+                    ]
+                },
+                {
+                    model: UserReferralMoney,
+                    as: 'userReferralMoney'
                 }
             ]
         });
@@ -1641,7 +1681,8 @@ const getUserDetails = async (userId) => {
             exclude: ['password', 'pin_password']
         },
         include: [
-            { model: Profile, as: 'profile' }
+            { model: Profile, as: 'profile' },
+            { model: UserReferralMoney, as: 'userReferralMoney' }
         ]
     });
 

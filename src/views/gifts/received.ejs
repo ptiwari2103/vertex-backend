@@ -1,0 +1,159 @@
+<%- contentFor('title') %>Gift Received List - Vertex Admin
+
+<%- contentFor('style') %>
+<style>
+    .filter-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .table-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .table th {
+        background-color: #f1f1f1;
+    }
+    .pagination {
+        margin-top: 20px;
+    }
+</style>
+
+<%- contentFor('body') %>
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Gift Received List</h2>
+            <p>View all gifts received by members</p>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <form action="/gifts/admin-received" method="GET" id="filterForm">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="distributor_id" class="form-label">Filter by Distributor</label>
+                    <select class="form-select" id="distributor_id" name="distributor_id">
+                        <option value="all" <%= filters.distributor_id === 'all' ? 'selected' : '' %>>All Distributors</option>
+                        <% distributors.forEach(distributor => { %>
+                            <option value="<%= distributor.id %>" <%= filters.distributor_id == distributor.id ? 'selected' : '' %>>
+                                <%= distributor.tmp_user || (distributor.user && distributor.user.name) || 'Unknown' %>
+                            </option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="user_id" class="form-label">Filter by Member</label>
+                    <input type="text" id="user_id" name="user_id" class="form-control" placeholder="Enter User ID" maxlength="6" value="<%= filters.user_id || '' %>">
+                </div>
+                <!-- <div class="col-md-2 mb-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class='bx bx-filter-alt'></i> Apply Filters
+                    </button>
+                </div> -->
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Member</th>
+                    <th>Gift</th>
+                    <th>Distributor</th>
+                    <th>Quantity</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% if (giftReceivedList && giftReceivedList.length > 0) { %>
+                    <% const startingIndex=(pagination.currentPage - 1) * 10; %>
+                    <% giftReceivedList.forEach((item, index) => { %>
+                        <tr>
+                            <td><%= startingIndex + index + 1 %></td>
+                            <td>
+                                <% if (item.user) { %>
+                                    <%= item.user.name %> (<%= item.user.user_id %>)
+                                <% } else { %>
+                                    Unknown
+                                <% } %>
+                            </td>
+                            <td>
+                                <% if (item.gift) { %>
+                                    <%= item.gift.name %>
+                                <% } else { %>
+                                    Unknown
+                                <% } %>
+                            </td>
+                            <td>
+                                <% if (item.distributor) { %>
+                                    <%= item.distributor.name || 'Unknown' %>
+                                <% } else { %>
+                                    Unknown
+                                <% } %>
+                            </td>
+                            <td><%= item.quantity %></td>
+                            <td><%= new Date(item.created_at).toLocaleString() %></td>
+                        </tr>
+                    <% }); %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="6" class="text-center">No gift received records found</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <% if (pagination && pagination.totalPages > 1) { %>
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                    <a class="page-link" href="/gifts/admin-received?page=<%= pagination.currentPage - 1 %>&distributor_id=<%= filters.distributor_id %>&user_id=<%= filters.user_id %>" tabindex="-1">Previous</a>
+                </li>
+                
+                <% for(let i = 1; i <= pagination.totalPages; i++) { %>
+                    <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                        <a class="page-link" href="/gifts/admin-received?page=<%= i %>&distributor_id=<%= filters.distributor_id %>&user_id=<%= filters.user_id %>"><%= i %></a>
+                    </li>
+                <% } %>
+                
+                <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                    <a class="page-link" href="/gifts/admin-received?page=<%= pagination.currentPage + 1 %>&distributor_id=<%= filters.distributor_id %>&user_id=<%= filters.user_id %>">Next</a>
+                </li>
+            </ul>
+        </nav>
+    <% } %>
+</div>
+
+<%- contentFor('script') %>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit form when dropdowns change
+        document.getElementById('distributor_id').addEventListener('change', function() {
+            document.getElementById('filterForm').submit();
+        });
+        
+        // document.getElementById('user_id').addEventListener('change', function() {
+        //     document.getElementById('filterForm').submit();
+        // });
+
+        const userIdInput = document.getElementById('user_id');
+        if (userIdInput) {
+            userIdInput.addEventListener('input', function() {
+                const userId = this.value;
+                // Check if user ID is 6 digits
+                if (userId && userId.length === 6) {
+                    document.getElementById('filterForm').submit();
+                }
+            });
+        }
+
+    });
+</script>
