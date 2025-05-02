@@ -468,7 +468,7 @@ const distributorLogin = async (req, res) => {
                 login_user_id: distributor.login_user_id
             },
             process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRATION }
+            { expiresIn: process.env.JWT_DISTRIBUTOR_EXPIRATION }
         );
 
         return res.json({ success: true, token:token,user:distributor });

@@ -368,6 +368,7 @@ const login = async (req, res) => {
 
         const userdetails = await getUserDetails(user.user_id);
 
+
         // Return user details and token
         res.json({
             success: true,
@@ -375,7 +376,7 @@ const login = async (req, res) => {
                 user: userdetails,
                 token: token,
                 token_type: 'Bearer',
-                expires_in: 5 // 5 minutes in seconds
+                expires_in: process.env.JWT_EXPIRATION
             }
         });
     } catch (error) {

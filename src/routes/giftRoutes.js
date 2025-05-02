@@ -1,15 +1,16 @@
 const express = require('express');
 const giftController = require("../controllers/giftController");
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const { verifyGiftDistributorToken } = require('../middleware/auth');
 
 router.get('/list', giftController.renderGiftList);
 router.get('/add', giftController.renderAddGift);
 router.post('/create', giftController.createGift);
 
 router.post('/distributor-login', giftController.distributorLogin);
-router.get('/member-gift-list', giftController.memberGiftList);
-router.post('/distribute', giftController.distribute);
-
+router.get('/member-gift-list', verifyGiftDistributorToken, giftController.memberGiftList);
+router.post('/distribute', verifyGiftDistributorToken, giftController.distribute);
 
 // Place these BEFORE any routes with :id
 router.get('/distributor', giftController.renderDistributorList);
@@ -19,8 +20,7 @@ router.post('/distributor/:id/status', giftController.updateDistributorStatus);
 router.get('/received', giftController.renderReceivedList);
 router.post('/received/create', giftController.createReceived);
 router.get('/admin-received', giftController.adminReceivedList);
-router.post('/member/gift-status', giftController.memberGiftStatus);
-
+router.post('/member/gift-status', verifyGiftDistributorToken, giftController.memberGiftStatus);
 
 // Generic routes
 router.get('/:id/edit', giftController.renderEditGift);
@@ -31,3 +31,5 @@ router.delete('/:id', giftController.deleteGift);
 
 
 module.exports = router;
+
+

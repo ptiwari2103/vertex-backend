@@ -31,13 +31,15 @@
                     </a>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle <%= ['cards', 'requestcard', 'allcards', 'transactions'].includes(locals.currentPage) ? 'active' : '' %>" href="#" id="cardsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle <%= ['cards', 'requestcard', 'use_request', 'allcards', 'transactions', 'use_request','payable_request'].includes(locals.currentPage) ? 'active' : '' %>" href="#" id="cardsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class='bx bxs-credit-card'></i> Credit Cards
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="cardsDropdown">
-                        <li><a class="dropdown-item <%= locals.currentPage === 'requestcard' ? 'active' : '' %>" href="/cards/requestcard">New Request</a></li>
-                        <li><a class="dropdown-item <%= locals.currentPage === 'allcards' ? 'active' : '' %>" href="/cards/allcards">Assigned Cards</a></li>
-                        <li><a class="dropdown-item <%= locals.currentPage === 'transactions' ? 'active' : '' %>" href="/cards/transactions">Transactions</a></li>
+                        <li><a class="dropdown-item <%= locals.currentPage === 'requestcard' ? 'active' : '' %>" href="/cards/requestcard">Request for new card</a></li>
+                        <li><a class="dropdown-item <%= locals.currentPage === 'allcards' ? 'active' : '' %>" href="/cards/allcards">Assigned card list</a></li>
+                        <li><a class="dropdown-item <%= locals.currentPage === 'use_request' ? 'active' : '' %>" href="/cards/use-request">Request for use amount</a></li>
+                        <li><a class="dropdown-item <%= locals.currentPage === 'payable_request' ? 'active' : '' %>" href="/cards/payable-request">Request for payable amount</a></li>
+                        <li><a class="dropdown-item <%= locals.currentPage === 'transactions' ? 'active' : '' %>" href="/cards/transactions">Transactions list</a></li>
                     </ul>
                 </li>
                 <li class="nav-item dropdown">

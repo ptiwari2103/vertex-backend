@@ -1,16 +1,16 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/database');
 
-class UserTransaction extends Model {
+class UserPaymentRequest extends Model {
     static associate(models) {
-        UserTransaction.belongsTo(models.User, {
+        UserPaymentRequest.belongsTo(models.User, {
             foreignKey: 'user_id',
             as: 'user'
         });
     }
 }
 
-UserTransaction.init({
+UserPaymentRequest.init({
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -21,41 +21,29 @@ UserTransaction.init({
         allowNull: false
     },
     payment_category: {
-        type: DataTypes.ENUM('Card', 'Card_Use_Request', 'Card_Payment_Request', 'Loan', 'Cash', 'Other'),
+        type: DataTypes.ENUM('Card_Use_Request', 'Card_Payment_Request'),
         allowNull: false
     },
     comment: {
         type: DataTypes.STRING,
         allowNull: true
     },
-    type:{
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    added: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true
-    },
-    used: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: true
-    },
-    balance: {
+    amount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: true
     },
     status: {
-        type: DataTypes.ENUM('Active', 'Closed'),
+        type: DataTypes.ENUM('Pending', 'Approved'),
         allowNull: false,
-        defaultValue: 'Active'
+        defaultValue: 'Pending'
     }
 }, {
     sequelize,
-    modelName: 'UserTransaction',
-    tableName: 'user_transaction',
+    modelName: 'UserPaymentRequest',
+    tableName: 'user_payment_request',
     timestamps: true,
     createdAt: 'created_date',
     updatedAt: 'updated_date',
 });
 
-module.exports = UserTransaction;
+module.exports = UserPaymentRequest;

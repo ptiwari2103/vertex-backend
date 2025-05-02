@@ -102,6 +102,46 @@ const verifyApiToken = (req, res, next) => {
     }
 };
 
+
+const verifyGiftDistributorToken = (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer')) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'No token provided' 
+            });
+        }
+
+        const token = authHeader.split(' ')[1];
+        const jwtSecret = process.env.JWT_SECRET || 'your-secret-key';
+        const decoded = jwt.verify(token, jwtSecret);
+
+        // Check if token is expired
+        const now = Math.floor(Date.now() / 1000);
+        
+        if (decoded.exp <= now) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token has expired'
+            });
+        }
+        
+        // Add user data to request object
+        req.user = {
+            id: decoded.id,
+            login_user_id: decoded.login_user_id
+        };
+        next();
+    } catch (err) {
+        return res.status(401).json({
+            success: false,
+            message: "Your token have been expired."
+        });
+    }
+};
+
+
 const isAdmin = (req, res, next) => {
     if (!req.user || req.user.user_type !== 'admin') {
         return res.status(403).render('error', { 
@@ -119,5 +159,6 @@ const isAdmin = (req, res, next) => {
 module.exports = {
     verifyToken,
     verifyApiToken,
-    isAdmin
+    isAdmin,
+    verifyGiftDistributorToken
 };
