@@ -1,4 +1,4 @@
-const { Card, User, UserTransaction } = require("../models");
+const { Card, User, UserTransaction, UserPaymentRequest } = require("../models");
 const { Op } = require('sequelize');
 
 const addCard = async (req, res) => {
@@ -358,6 +358,330 @@ const getTransactions = async (req, res) => {
     }
 };
 
+/**
+ * Render the payable request page with list of payable requests
+ */
+const getPayableRequest = async (req, res) => {
+    try {
+        // Get pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = 10;
+        const offset = (page - 1) * limit;
+        
+        // Build filter conditions
+        const whereClause = {
+            request_type: 'payable'
+        };
+        
+        if (req.query.user_id) {
+            whereClause['$user.user_id$'] = { [Op.like]: `%${req.query.user_id}%` };
+        }
+        
+        if (req.query.status) {
+            whereClause.status = req.query.status;
+        }
+        
+        // Get payable requests with pagination
+        const { count, rows: requests } = await UserPaymentRequest.findAndCountAll({
+            where: whereClause,
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'user_id']
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            limit,
+            offset
+        });
+        
+        // Calculate pagination details
+        const totalPages = Math.ceil(count / limit);
+        
+        // Get current user details
+        const userDetails = await User.findOne({
+            where: { id: req.session.user.id },
+            attributes: ['id', 'name', 'user_id', 'user_type', 'status']
+        });
+
+        // Render the payable request page
+        res.render('cards/payable_request', {
+            title: 'Request for Payable Amount - Vertex Admin',
+            currentPage: 'payable_request',
+            user: userDetails,
+            requests,
+            query: req.query,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalRequests: count
+            },
+            success: req.query.success || '',
+            error: req.query.error || ''
+        });
+    } catch (error) {
+        console.error('Error rendering payable request page:', error);
+        res.status(500).render('error', { 
+            title: 'Error - Vertex Admin',
+            message: 'Error loading payable request page',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while loading the payable request page.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+};
+
+/**
+ * Update the payable request status
+ */
+const updatePayableRequest = async (req, res) => {
+    try {
+        const { id, status } = req.body;
+        
+        // Find the request
+        const request = await UserPaymentRequest.findOne({ 
+            where: { id },
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'user_id']
+                }
+            ]
+        });
+        
+        if (!request) {
+            return res.status(404).json({
+                success: false,
+                message: 'Payment request not found'
+            });
+        }
+        
+        // Update the status
+        await request.update({ status });
+        
+        // If approved, update the user's balance
+        if (status === 'Approved') {
+            // Get the latest transaction for the user
+            const latestTransaction = await UserTransaction.findOne({
+                where: { user_id: request.user_id },
+                order: [['id', 'DESC']]
+            });
+            
+            let currentBalance = 0;
+            if (latestTransaction) {
+                currentBalance = parseFloat(latestTransaction.balance);
+            }
+            
+            // Create a new transaction
+            await UserTransaction.create({
+                user_id: request.user_id,
+                payment_category: 'Card',
+                name: 'Payable Amount',
+                type: 'debit',
+                amount: parseFloat(request.amount),
+                balance: currentBalance - parseFloat(request.amount)
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: `Payable request ${status.toLowerCase()} successfully`
+        });
+    } catch (error) {
+        console.error('Error updating payable request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update payable request',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+        });
+    }
+};
+
+/**
+ * Create a new use request
+ */
+const createUseRequest = async (req, res) => {
+    try {
+        const { user_id, amount, reason } = req.body;
+        
+        // Find the user
+        const user = await User.findOne({ where: { user_id } });
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+        
+        // Create the use request
+        await UserPaymentRequest.create({
+            user_id: user.id,
+            request_type: 'use',
+            amount,
+            reason,
+            status: 'Pending'
+        });
+        
+        res.json({
+            success: true,
+            message: 'Use request created successfully'
+        });
+    } catch (error) {
+        console.error('Error creating use request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to create use request',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+        });
+    }
+};
+
+/**
+ * Render the use request page with list of use requests
+ */
+const getUseRequest = async (req, res) => {
+    try {
+        // Get pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = 10;
+        const offset = (page - 1) * limit;
+        
+        // Build filter conditions
+        const whereClause = {
+            request_type: 'use'
+        };
+        
+        if (req.query.user_id) {
+            whereClause['$user.user_id$'] = { [Op.like]: `%${req.query.user_id}%` };
+        }
+        
+        if (req.query.status) {
+            whereClause.status = req.query.status;
+        }
+        
+        // Get use requests with pagination
+        const { count, rows: requests } = await UserPaymentRequest.findAndCountAll({
+            where: whereClause,
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'user_id']
+                }
+            ],
+            order: [['created_at', 'DESC']],
+            limit,
+            offset
+        });
+        
+        // Calculate pagination details
+        const totalPages = Math.ceil(count / limit);
+        
+        // Get current user details
+        const userDetails = await User.findOne({
+            where: { id: req.session.user.id },
+            attributes: ['id', 'name', 'user_id', 'user_type', 'status']
+        });
+
+        // Render the use request page
+        res.render('cards/use_request', {
+            title: 'Request for Use Amount - Vertex Admin',
+            currentPage: 'use_request',
+            user: userDetails,
+            requests,
+            query: req.query,
+            pagination: {
+                currentPage: page,
+                totalPages,
+                totalRequests: count
+            },
+            success: req.query.success || '',
+            error: req.query.error || ''
+        });
+    } catch (error) {
+        console.error('Error rendering use request page:', error);
+        res.status(500).render('error', { 
+            title: 'Error - Vertex Admin',
+            message: 'Error loading use request page',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while loading the use request page.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+};
+
+/**
+ * Update the use request status
+ */
+const updateUseRequest = async (req, res) => {
+    try {
+        const { id, status } = req.body;
+        
+        // Find the request
+        const request = await UserPaymentRequest.findOne({ 
+            where: { id },
+            include: [
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'name', 'user_id']
+                }
+            ]
+        });
+        
+        if (!request) {
+            return res.status(404).json({
+                success: false,
+                message: 'Payment request not found'
+            });
+        }
+        
+        // Update the status
+        await request.update({ status });
+        
+        // If approved, update the user's balance
+        if (status === 'Approved') {
+            // Get the latest transaction for the user
+            const latestTransaction = await UserTransaction.findOne({
+                where: { user_id: request.user_id },
+                order: [['id', 'DESC']]
+            });
+            
+            let currentBalance = 0;
+            if (latestTransaction) {
+                currentBalance = parseFloat(latestTransaction.balance);
+            }
+            
+            // Create a new transaction
+            await UserTransaction.create({
+                user_id: request.user_id,
+                payment_category: 'Card',
+                name: 'Use Amount',
+                type: 'credit',
+                amount: parseFloat(request.amount),
+                balance: currentBalance + parseFloat(request.amount)
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: `Use request ${status.toLowerCase()} successfully`
+        });
+    } catch (error) {
+        console.error('Error updating use request:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update use request',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred'
+        });
+    }
+};
+
 module.exports = {
     addCard,
     getDetails,
@@ -366,5 +690,10 @@ module.exports = {
     updateCard,
     updateCardStatus,
     updateCardDetails,
-    getTransactions
+    getTransactions,
+    getUseRequest,
+    getPayableRequest,
+    createUseRequest,
+    updateUseRequest,
+    updatePayableRequest
 };

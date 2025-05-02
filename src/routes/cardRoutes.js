@@ -15,4 +15,12 @@ router.get('/transactions', cardController.getTransactions);
 router.get('/admin-details', cardController.getDetails);   
 router.put('/:id/status', cardController.updateCardStatus);
 
+// Card use and payable request routes
+router.get('/use-request', cardController.getUseRequest);
+router.get('/payable-request', cardController.getPayableRequest);
+router.post('/create-use-request', cardController.createUseRequest);
+router.post('/update-use-request', cardController.updateUseRequest);
+//router.post('/create-payable-request', cardController.createPayableRequest);
+router.post('/update-payable-request', cardController.updatePayableRequest);
+
 module.exports = router;

@@ -1,0 +1,290 @@
+<%- contentFor('title') %>Request for Use Amount - Vertex Admin
+
+<%- contentFor('style') %>
+<style>
+    .main-content {
+        padding: 20px;
+    }
+
+    .filters-section {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .table-section {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+
+    .form-section {
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .badge-pending {
+        background-color: #ffc107;
+    }
+
+    .badge-approved {
+        background-color: #28a745;
+    }
+
+    .badge-rejected {
+        background-color: #dc3545;
+    }
+</style>
+
+<%- contentFor('body') %>
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Request for Use Amount</h2>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newUseRequestModal">
+            <i class="bx bx-plus"></i> New Request
+        </button>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <% if (success) { %>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <%= success %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <% } %>
+    <% if (error) { %>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <%= error %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <% } %>
+
+    <!-- Filters Section -->
+    <div class="filters-section">
+        <form id="filterForm" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">User ID</label>
+                <input type="text" class="form-control" name="user_id" maxlength="8" value="<%= query.user_id || '' %>" oninput="this.value = this.value.replace(/[^0-9]/g, '')" placeholder="Enter User ID">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="" <%= !query.status ? 'selected' : '' %>>All</option>
+                    <option value="Pending" <%= query.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="Approved" <%= query.status === 'Approved' ? 'selected' : '' %>>Approved</option>
+                    <option value="Rejected" <%= query.status === 'Rejected' ? 'selected' : '' %>>Rejected</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Filter</button>
+                <a href="/cards/use-request" class="btn btn-secondary">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User</th>
+                        <th>Amount</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (requests && requests.length > 0) { %>
+                        <% requests.forEach((request, index) => { %>
+                            <tr>
+                                <td><%= request.id %></td>
+                                <td>
+                                    <% if (request.user) { %>
+                                        <%= request.user.name %> (<%= request.user.user_id %>)
+                                    <% } else { %>
+                                        N/A
+                                    <% } %>
+                                </td>
+                                <td>₹<%= request.amount %></td>
+                                <td><%= request.reason ? (request.reason.length > 30 ? request.reason.substring(0, 30) + '...' : request.reason) : 'N/A' %></td>
+                                <td>
+                                    <span class="badge badge-<%= request.status.toLowerCase() %>"><%= request.status %></span>
+                                </td>
+                                <td><%= new Date(request.created_at).toLocaleDateString() %></td>
+                                <td>
+                                    <% if (request.status === 'Pending') { %>
+                                        <button class="btn btn-sm btn-success" onclick="updateRequestStatus(<%= request.id %>, 'Approved')">Approve</button>
+                                        <button class="btn btn-sm btn-danger" onclick="updateRequestStatus(<%= request.id %>, 'Rejected')">Reject</button>
+                                    <% } else { %>
+                                        <button class="btn btn-sm btn-secondary" disabled>Processed</button>
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="7" class="text-center">No requests found</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <% if (pagination && pagination.totalPages > 1) { %>
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
+                        <a class="page-link" href="/cards/use-request?page=<%= pagination.currentPage - 1 %>&user_id=<%= query.user_id || '' %>&status=<%= query.status || '' %>" tabindex="-1">Previous</a>
+                    </li>
+                    <% for(let i=1; i <= pagination.totalPages; i++) { %>
+                        <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
+                            <a class="page-link" href="/cards/use-request?page=<%= i %>&user_id=<%= query.user_id || '' %>&status=<%= query.status || '' %>"><%= i %></a>
+                        </li>
+                    <% } %>
+                    <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                        <a class="page-link" href="/cards/use-request?page=<%= pagination.currentPage + 1 %>&user_id=<%= query.user_id || '' %>&status=<%= query.status || '' %>">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        <% } %>
+    </div>
+</div>
+
+<!-- New Use Request Modal -->
+<div class="modal fade" id="newUseRequestModal" tabindex="-1" aria-labelledby="newUseRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newUseRequestModalLabel">New Use Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="useRequestForm" class="needs-validation" novalidate>
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label">User ID</label>
+                        <input type="text" class="form-control" id="user_id" name="user_id" required placeholder="Enter User ID" maxlength="8" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        <div class="invalid-feedback">Please enter a valid User ID.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" class="form-control" id="amount" name="amount" required placeholder="Enter amount" min="1" max="100000">
+                            <div class="invalid-feedback">Please enter a valid amount (1-100,000).</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" required placeholder="Enter reason for use request" maxlength="500"></textarea>
+                        <div class="invalid-feedback">Please provide a reason.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitUseRequest()">Submit Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        
+        const form = document.getElementById('useRequestForm');
+        
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                event.preventDefault();
+                submitUseRequest();
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+    })();
+    
+    // Submit use request via AJAX
+    async function submitUseRequest() {
+        try {
+            const form = document.getElementById('useRequestForm');
+            
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+            
+            const formData = {
+                user_id: document.getElementById('user_id').value,
+                amount: document.getElementById('amount').value,
+                reason: document.getElementById('reason').value
+            };
+            
+            const response = await fetch('/cards/create-use-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Close modal and reload page with success message
+                const modal = bootstrap.Modal.getInstance(document.getElementById('newUseRequestModal'));
+                modal.hide();
+                window.location.href = '/cards/use-request?success=' + encodeURIComponent(result.message);
+            } else {
+                // Show error message
+                window.location.href = '/cards/use-request?error=' + encodeURIComponent(result.message || 'An error occurred');
+            }
+        } catch (error) {
+            console.error('Error submitting use request:', error);
+            window.location.href = '/cards/use-request?error=An unexpected error occurred';
+        }
+    }
+    
+    // Update request status
+    async function updateRequestStatus(id, status) {
+        try {
+            if (!confirm(`Are you sure you want to ${status.toLowerCase()} this request?`)) {
+                return;
+            }
+            
+            const response = await fetch('/cards/update-use-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id, status })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                window.location.href = '/cards/use-request?success=' + encodeURIComponent(result.message);
+            } else {
+                window.location.href = '/cards/use-request?error=' + encodeURIComponent(result.message || 'An error occurred');
+            }
+        } catch (error) {
+            console.error('Error updating request status:', error);
+            window.location.href = '/cards/use-request?error=An unexpected error occurred';
+        }
+    }
+</script>
