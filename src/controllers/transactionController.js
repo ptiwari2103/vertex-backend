@@ -1,5 +1,6 @@
-const { AdminTransaction, User, UserPaymentRequest } = require('../models');
 const { Op } = require('sequelize');
+const { User, AdminTransaction } = require('../models');
+const { currencyUnit, formatCurrency } = require('../utils/currencyFormatter');
 
 /**
  * Render the admin transactions page with pagination
@@ -13,6 +14,7 @@ const getAllTransactions = async (req, res) => {
         
         // Get search parameters
         const search = req.query.search || '';
+        const user_id = req.query.user_id || '';
         
         // Build where clause for search
         const whereClause = {};
@@ -23,6 +25,12 @@ const getAllTransactions = async (req, res) => {
             ];
         }
         
+        if (user_id) {
+            whereClause['$user.user_id$'] = { [Op.like]: `%${user_id}%` };
+        }
+        
+        console.log('Fetching admin transactions with whereClause:', whereClause);
+        
         // Get transactions with pagination
         const { count, rows: transactions } = await AdminTransaction.findAndCountAll({
             where: whereClause,
@@ -31,17 +39,14 @@ const getAllTransactions = async (req, res) => {
                     model: User,
                     as: 'user',
                     attributes: ['id', 'name', 'user_id']
-                },
-                {
-                    model: UserPaymentRequest,
-                    as: 'request',
-                    attributes: ['id', 'amount', 'status']
                 }
             ],
-            order: [['created_date', 'DESC']],
+            order: [['created_date', 'DESC'], ['id', 'DESC']],
             limit,
             offset
         });
+        
+        console.log(`Found ${count} admin transactions`);
         
         // Calculate pagination details
         const totalPages = Math.ceil(count / limit);
@@ -62,6 +67,9 @@ const getAllTransactions = async (req, res) => {
                 hasPrevPage
             },
             search,
+            user_id: user_id,
+            currencyUnit,
+            formatCurrency,
             success: req.query.success || '',
             error: req.query.error || ''
         });

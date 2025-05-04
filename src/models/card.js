@@ -48,6 +48,19 @@ Card.init({
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true
   },
+  current_balance: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
+  remaining_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
+  first_tx:{
+    type: DataTypes.TINYINT,
+    defaultValue: 0,
+    comment: '0 for first transaction, 1 for subsequent transactions'
+  },
   status: {
     type: DataTypes.ENUM('Pending', 'Approved', 'Rejected', 'Blocked'),
     defaultValue: 'Pending',

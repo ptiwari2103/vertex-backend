@@ -20,33 +20,57 @@ UserTransaction.init({
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    card_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     payment_category: {
-        type: DataTypes.ENUM('Card', 'Loan', 'Cash', 'Other'),
+        type: DataTypes.ENUM('Card_Use_Request', 'Card_Payable_Request'),
         allowNull: false
     },
-    name: {
+    comment: {
         type: DataTypes.STRING,
-        allowNull: false
-    },
-    description: {
-        type: DataTypes.TEXT,
         allowNull: true
     },
-    type:{
-        type: DataTypes.ENUM('credit', 'debit'),
-        allowNull: false,
-        defaultValue: 'credit',
-        comment: 'credit:amount come, debit:amount go'
+    type: {
+        type: DataTypes.STRING,
+        allowNull: true
     },
-    amount: {
+    added: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        comment: 'Transaction amount'
+        allowNull: true
+    },
+    used: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    used_interest: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    used_net_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    days: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    interest_rate: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    calculate_date: {
+        type: DataTypes.DATE,
+        allowNull: true
     },
     balance: {
         type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
-        comment: 'Balance after transaction'
+        allowNull: true
+    },
+    status: {
+        type: DataTypes.ENUM('Active', 'Closed'),
+        allowNull: false
     }
 }, {
     sequelize,

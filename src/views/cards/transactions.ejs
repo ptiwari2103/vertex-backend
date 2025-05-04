@@ -1,4 +1,4 @@
-<%- contentFor('title') %>Card Management - Vertex Admin
+<%- contentFor('title') %>Card Transactions - Vertex Admin
 
     <%- contentFor('style') %>
         <style>
@@ -27,16 +27,30 @@
         </style>
 
         <%- contentFor('body') %>
+            <% 
+            // Helper function to format currency
+            function formatCurrency(amount) {
+                const currencyUnit = process.env.CURRENCY_UNIT || '₹';
+                if (amount === null || amount === undefined) return `${currencyUnit}0.00`;
+                
+                // Format the number with commas for thousands separator
+                const formattedAmount = parseFloat(amount)
+                  .toFixed(2)
+                  .replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                
+                return `${currencyUnit}${formattedAmount}`;
+            }
+            %>
             <div class="main-content">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="mb-0">List Cards</h2>
+                    <h2 class="mb-0">Card Transactions</h2>
                 </div>
 
                 <!-- Filters Section -->
                 <div class="filters-section">
                     <form id="filterForm" class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">Requested User ID</label>
+                            <label class="form-label">User ID</label>
                             <input type="text" class="form-control" name="user_id" maxlength="8"
                                 value="<%= query.user_id || '' %>" oninput="applyFilter()" placeholder="Enter User ID">
                         </div>
@@ -50,40 +64,70 @@
                 </script>
 
                 <!-- Table Section -->
-                <!-- Table Section -->
                 <div class="table-section">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
                                 <tr>
                                     <th>S.No.</th>
+                                    <th>Date</th>
                                     <th>User</th>
-                                    <th>Requested At</th>
+                                    <th>Description</th>
+                                    <th>Payment Type</th>
+                                    <th>Type</th>
+                                    <th>Added</th>
+                                    <th>Used</th>
+                                    <th>Balance</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <% cards.forEach((card, index)=> { %>
-                                    <tr>
-                                        <td>
-                                            <%= (pagination.currentPage - 1) * 10 + index + 1 %>
-                                        </td>
-                                        <td>
-                                            <%= card.user.name %> (<%= card.user.user_id %>)
-                                        </td>
-                                        <td>
-                                            <%= new Date(card.created_at).toLocaleDateString() %>
-                                        </td>
-                                        <td>
-                                            <%= card.status %>
-                                        </td>
-                                        <td>
-                                            <button class="btn btn-primary"
-                                                onclick="openAddCardModal(<%= card.id %>)">Add Card</button>
-                                        </td>
-                                    </tr>
+                                <% if (transactions && transactions.length > 0) { %>
+                                    <% transactions.forEach((transaction, index) => { %>
+                                        <tr>
+                                            <td>
+                                                <%= (pagination.currentPage - 1) * 10 + index + 1 %>
+                                            </td>
+                                            <td>
+                                                <%= new Date(transaction.created_date).toLocaleDateString() %>
+                                            </td>
+                                            <td>
+                                                <% if (transaction.user) { %>
+                                                    <%= transaction.user.name %> (<%= transaction.user.user_id %>)
+                                                <% } else { %>
+                                                    N/A
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <%= transaction.comment || 'N/A' %>
+                                            </td>
+                                            <td>
+                                                <%= transaction.payment_category %>
+                                            </td>
+                                            <td>
+                                                <%= transaction.type || 'N/A' %>
+                                            </td>
+                                            <td>
+                                                <%= formatCurrency(transaction.added) %>
+                                            </td>
+                                            <td>
+                                                <%= formatCurrency(transaction.used) %>
+                                            </td>
+                                            <td>
+                                                <%= formatCurrency(transaction.balance) %>
+                                            </td>
+                                            <td>
+                                                <span class="badge <%= transaction.status === 'Active' ? 'bg-success' : 'bg-secondary' %>">
+                                                    <%= transaction.status %>
+                                                </span>
+                                            </td>
+                                        </tr>
                                     <% }); %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="10" class="text-center">No transactions found</td>
+                                    </tr>
+                                <% } %>
                             </tbody>
                         </table>
                     </div>
@@ -94,28 +138,25 @@
                     <ul class="pagination">
                         <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
                             <a class="page-link"
-                                href="?page=<%= pagination.currentPage - 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>"
+                                href="?page=<%= pagination.currentPage - 1 %>&user_id=<%= query.user_id || '' %>"
                                 tabindex="-1">Previous</a>
                         </li>
                         <% for(let i=1; i <=pagination.totalPages; i++) { %>
                             <li class="page-item <%= pagination.currentPage === i ? 'active' : '' %>">
                                 <a class="page-link"
-                                    href="?page=<%= i %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">
+                                    href="?page=<%= i %>&user_id=<%= query.user_id || '' %>">
                                     <%= i %>
                                 </a>
                             </li>
-                            <% } %>
-                                <li
-                                    class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
-                                    <a class="page-link"
-                                        href="?page=<%= pagination.currentPage + 1 %>&user_id=<%= query.user_id || '' %>&created_date=<%= query.created_date || '' %>">Next</a>
-                                </li>
+                        <% } %>
+                        <li class="page-item <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>">
+                            <a class="page-link"
+                                href="?page=<%= pagination.currentPage + 1 %>&user_id=<%= query.user_id || '' %>">Next</a>
+                        </li>
                     </ul>
                 </nav>
             </div>
             </div>
-
-
 
             <!-- Add Card Modal -->
             <div class="modal fade" id="addCardModal" tabindex="-1">

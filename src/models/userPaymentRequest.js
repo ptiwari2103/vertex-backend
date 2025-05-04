@@ -20,6 +20,10 @@ UserPaymentRequest.init({
         type: DataTypes.INTEGER,
         allowNull: false
     },
+    card_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
     request_type: {
         type: DataTypes.ENUM('use', 'payable'),
         allowNull: false
@@ -28,7 +32,15 @@ UserPaymentRequest.init({
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
     },
+    remaining_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
     payment_method: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    transaction_id: {
         type: DataTypes.STRING,
         allowNull: true
     },
