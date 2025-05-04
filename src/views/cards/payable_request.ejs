@@ -46,9 +46,9 @@
 <div class="main-content">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Request for Payable Amount</h2>
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPayableRequestModal">
+        <!-- <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPayableRequestModal">
             <i class="bx bx-plus"></i> New Request
-        </button>
+        </button> -->
     </div>
 
     <!-- Success/Error Messages -->
@@ -97,8 +97,6 @@
                         <th>ID</th>
                         <th>User</th>
                         <th>Amount</th>
-                        <th>Payment Method</th>
-                        <th>Payment Date</th>
                         <th>Status</th>
                         <th>Created At</th>
                         <th>Actions</th>
@@ -117,8 +115,6 @@
                                     <% } %>
                                 </td>
                                 <td>₹<%= request.amount %></td>
-                                <td><%= request.payment_method || 'N/A' %></td>
-                                <td><%= request.payment_date ? new Date(request.payment_date).toLocaleDateString() : 'N/A' %></td>
                                 <td>
                                     <span class="badge badge-<%= request.status.toLowerCase() %>"><%= request.status %></span>
                                 </td>
@@ -135,7 +131,7 @@
                         <% }); %>
                     <% } else { %>
                         <tr>
-                            <td colspan="8" class="text-center">No requests found</td>
+                            <td colspan="6" class="text-center">No requests found</td>
                         </tr>
                     <% } %>
                 </tbody>

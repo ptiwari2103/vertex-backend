@@ -220,6 +220,7 @@ const updateCard = async (req, res) => {
         // Create a new transaction with the updated model structure
         await UserTransaction.create({
             user_id: card.user_id,
+            card_id: card.id,
             payment_category: 'Card',
             comment: 'Card Limit Added',
             type: 'Deposit',
@@ -311,6 +312,7 @@ const updateCardDetails = async (req, res) => {
             //always create new transaction
             await UserTransaction.create({
                 user_id: card.user_id,
+                card_id: card.id,
                 payment_category: 'Card',
                 comment: 'Card Limit Updated',
                 type: 'Deposit',
@@ -474,7 +476,7 @@ const getPayableRequest = async (req, res) => {
  */
 const createUseRequest = async (req, res) => {
     try {
-        const { user_id, amount, reason } = req.body;
+        const { user_id, card_id, amount, reason } = req.body;
 
         // Find the user
         const user = await User.findOne({ where: { user_id } });
@@ -489,6 +491,7 @@ const createUseRequest = async (req, res) => {
         // Create the use request
         await UserPaymentRequest.create({
             user_id: user.id,
+            card_id: card_id,
             request_type: 'use',
             amount,
             reason,
@@ -664,7 +667,7 @@ const updateUseRequest = async (req, res) => {
             const isFirstTransaction = card.first_tx === 0;
 
             // Admin fee for first transaction
-            const adminFee = isFirstTransaction ? 100 : 0; // Fixed admin fee amount
+            const adminFee = isFirstTransaction ? parseFloat(process.env.CREATE_CARD_FIRST_TRANSACTION_FEE || 100) : 0; // Get fee from env or default to 100
 
             // Calculate new balance after deduction
             const newBalance = currentBalance - requestedAmount;
@@ -678,6 +681,7 @@ const updateUseRequest = async (req, res) => {
                     // Create user transaction record for admin fee
                     const userTransaction = await UserTransaction.create({
                         user_id: request.user_id,
+                        card_id: card.id,
                         payment_category: 'Card_Use_Request',
                         comment: 'Admin fee for first card transaction',
                         type: 'Withdrawal',
@@ -713,6 +717,7 @@ const updateUseRequest = async (req, res) => {
                 // Create user transaction for the requested amount
                 await UserTransaction.create({
                     user_id: request.user_id,
+                    card_id: card.id,
                     payment_category: 'Card_Use_Request',
                     comment: request.reason || 'Card use request',
                     type: 'Withdrawal',
@@ -754,7 +759,7 @@ const updateUseRequest = async (req, res) => {
 
 const createPayableRequest = async (req, res) => {
     try {
-        const { user_id, amount, payment_method, transaction_id, payment_date, remarks } = req.body;
+        const { user_id, card_id, amount, payment_method, transaction_id, payment_date, remarks } = req.body;
 
         // Find the user
         const user = await User.findOne({ where: { user_id } });
@@ -769,6 +774,7 @@ const createPayableRequest = async (req, res) => {
         // Create a new payable request
         await UserPaymentRequest.create({
             user_id: user.id,
+            card_id: card_id,
             amount,
             remaining_amount: amount, // Initialize remaining amount with full amount
             payment_method,
@@ -820,7 +826,7 @@ const updatePayableRequest = async (req, res) => {
                     return res.status(404).json({ error: 'Card not found for this user' });
                 }
                 
-                let remainingAmountToProcess = parseFloat(remaining_amount);
+                let remainingAmountToProcess = parseFloat(remaining_amount + card.remaining_amount);
                 
                 // Process each transaction
                 for (const transaction of payable.transactions) {
@@ -861,7 +867,8 @@ const updatePayableRequest = async (req, res) => {
                         // Insert new entry in userTransaction
                         await UserTransaction.create({
                             user_id: request.user_id,
-                            payment_category: 'Card_Payment_Req',
+                            card_id: card.id,
+                            payment_category: 'Card_Payable_Request',
                             comment: 'Payment by customer',
                             type: 'Deposit',
                             added: usedAmount,
@@ -889,6 +896,22 @@ const updatePayableRequest = async (req, res) => {
                     }
                 }
                 
+
+                // Update card's remaining_amount with the leftover amount
+                //const currentRemainingAmount = parseFloat(card.remaining_amount || 0);
+                //console.log(`Current remaining_amount: ${currentRemainingAmount}`);
+                // console.log(`Remaining amount to process: ${remainingAmountToProcess}`);
+                //const newRemainingAmount = currentRemainingAmount + remainingAmountToProcess;
+                //console.log(`New remaining_amount: ${newRemainingAmount}`);
+                // Update the card with the new remaining amount
+                await card.update(
+                    { remaining_amount: remainingAmountToProcess },
+                    { transaction: t }
+                );
+                    
+                // console.log(`Updated card remaining_amount to ${newRemainingAmount}`);
+                
+                
                 // Update the request with new remaining amount
                 await request.update(
                     { 
@@ -912,7 +935,7 @@ const updatePayableRequest = async (req, res) => {
             await request.update({ status });
         }
 
-        return res.status(200).json({ message: 'Payable request status updated successfully' });
+        return res.status(200).json({ success: true, message: 'Payable request status updated successfully' });
     } catch (error) {
         console.error('Error updating payable request:', error);
         return res.status(500).json({ error: error.message });
@@ -1009,12 +1032,19 @@ const caluclateusertransactions = async (user_id, to_date = null) => {
             calculate_date: currentDate
         });
     }
+
+    //get remaining amount
+    const card = await Card.findOne({ where: { user_id } });
+    const remaining_amount = card?.remaining_amount || 0;
     
-    const total_net_amount = total_amount + total_interest;
+    let total_net_amount = parseFloat((total_amount + total_interest) - remaining_amount);
+    total_net_amount = total_net_amount.toFixed(2); 
+
     return {
         transactions: transactionDetails,
         total_amount: total_amount,
         total_interest: total_interest,
+        remaining_amount: remaining_amount,
         total_net_amount: total_net_amount       
     };
 }

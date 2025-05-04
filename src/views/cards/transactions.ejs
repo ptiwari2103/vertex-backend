@@ -73,7 +73,6 @@
                                     <th>Date</th>
                                     <th>User</th>
                                     <th>Description</th>
-                                    <th>Payment Type</th>
                                     <th>Type</th>
                                     <th>Added</th>
                                     <th>Used</th>
@@ -102,9 +101,6 @@
                                                 <%= transaction.comment || 'N/A' %>
                                             </td>
                                             <td>
-                                                <%= transaction.payment_category %>
-                                            </td>
-                                            <td>
                                                 <%= transaction.type || 'N/A' %>
                                             </td>
                                             <td>
@@ -125,7 +121,7 @@
                                     <% }); %>
                                 <% } else { %>
                                     <tr>
-                                        <td colspan="10" class="text-center">No transactions found</td>
+                                        <td colspan="9" class="text-center">No transactions found</td>
                                     </tr>
                                 <% } %>
                             </tbody>

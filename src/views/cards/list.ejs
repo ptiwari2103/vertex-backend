@@ -115,6 +115,7 @@ function formatCurrency(amount) {
                         <th>Card Number</th>
                         <th>Card Limit</th>
                         <th>Current Balance</th>
+                        <th>Remaining Amount</th>
                         <th>Requested At</th>
                         <th>Assigned At</th>
                         <th>Status</th>
@@ -145,6 +146,9 @@ function formatCurrency(amount) {
                                 <%= formatCurrency(card.current_balance) %>
                             </td>
                             <td>
+                                <%= formatCurrency(card.remaining_amount) %>
+                            </td>
+                            <td>
                                 <%= new Date(card.created_at).toLocaleDateString() %>
                             </td>
                             <td>
@@ -162,7 +166,7 @@ function formatCurrency(amount) {
 
                             <td>
                                 <button class="btn btn-primary btn-sm action-btn"
-                                    onclick="openViewCardModal('<%= card.user.name %>','<%= card.user.user_id %>','<%= card.user.account_number %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.current_balance %>','<%= card.assigned_date %>','<%= card.created_at %>','<%= card.status %>')">View</button>
+                                    onclick="openViewCardModal('<%= card.user.name %>','<%= card.user.user_id %>','<%= card.user.account_number %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.current_balance %>', '<%= card.remaining_amount %>','<%= card.assigned_date %>','<%= card.created_at %>','<%= card.status %>')">View</button>
                                 <button class="btn btn-warning btn-sm action-btn"
                                     onclick="openEditCardModal('<%= card.id %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.status %>')">Edit</button>
                             </td>
@@ -308,6 +312,7 @@ function formatCurrency(amount) {
                 <p><strong>Expiry Date:</strong> <span id="viewExpiryDate"></span></p>
                 <p><strong>Card Limit:</strong> <span id="viewCardLimit"></span></p>
                 <p><strong>Current Balance:</strong> <span id="viewCurrentBalance"></span></p>
+                <p><strong>Remaining Amount:</strong> <span id="viewRemainingAmount"></span></p>
                 <p><strong>Assigned Date:</strong> <span id="viewAssignedDate"></span></p>
                 <p><strong>Created Date:</strong> <span id="viewCreatedDate"></span></p>
                 <p><strong>Status:</strong> <span id="viewStatus"></span></p>
@@ -413,7 +418,7 @@ function formatCurrency(amount) {
                 if (!response.ok) {
                     throw new Error('Failed to update card');
                 }
-                // window.location.reload();
+                window.location.reload();
             })
             .catch(error => {
                 alert('Error updating card: ' + error.message);
@@ -421,7 +426,7 @@ function formatCurrency(amount) {
     }
 
 
-    function openViewCardModal(name, userId, accountNumber, cardNumber, expiryMonth, expiryYear, cardLimit, currentBalance, assignedDate, createdDate, status) {
+    function openViewCardModal(name, userId, accountNumber, cardNumber, expiryMonth, expiryYear, cardLimit, currentBalance, remainingAmount, assignedDate, createdDate, status) {
         document.getElementById('viewName').textContent = name;
         document.getElementById('viewUserId').textContent = userId;
         document.getElementById('viewAccountNumber').textContent = accountNumber;
@@ -437,6 +442,7 @@ function formatCurrency(amount) {
         
         document.getElementById('viewCardLimit').textContent = formatAmount(cardLimit);
         document.getElementById('viewCurrentBalance').textContent = formatAmount(currentBalance);
+        document.getElementById('viewRemainingAmount').textContent = formatAmount(remainingAmount);
         document.getElementById('viewAssignedDate').textContent = assignedDate ? new Date(assignedDate).toLocaleDateString() : '-';
         document.getElementById('viewCreatedDate').textContent = new Date(createdDate).toLocaleDateString();
         document.getElementById('viewStatus').textContent = status;
