@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { currencyUnit, formatCurrency } = require('../utils/currencyFormatter');
+const { currencyUnit, formatCurrency, formatamount } = require('../utils/currencyFormatter');
 
 const addCard = async (req, res) => {
     try {
@@ -51,11 +51,19 @@ const getDetails = async (req, res) => {
             return res.status(404).json({ error: 'Card not found' });
         }
 
-        // Get transactions for this user
+        // Get transactions for this user with payment request details when available
         const transactions = await UserTransaction.findAll({
             where: {
                 user_id: req.query.user_id
             },
+            include: [
+                {
+                    model: UserPaymentRequest,
+                    as: 'paymentRequest',
+                    required: false,
+                    attributes: ['payment_method', 'transaction_id']
+                }
+            ],
             order: [['id', 'DESC']]
         });
 
@@ -284,13 +292,13 @@ const updateCardDetails = async (req, res) => {
         });
 
         // Convert both values to numbers for proper comparison
-        const numCardLimit = parseFloat(card_limit);
-        const numOldCardLimit = parseFloat(oldCardLimit);
+        const numCardLimit = formatamount(card_limit);
+        const numOldCardLimit = formatamount(oldCardLimit);
 
         // Update the transaction details
         if (numCardLimit !== numOldCardLimit) {
             let balance;
-            balance = parseFloat(numCardLimit - numOldCardLimit);
+            balance = numCardLimit - numOldCardLimit;
 
             // let type;
             // if(numCardLimit > numOldCardLimit){
@@ -301,8 +309,8 @@ const updateCardDetails = async (req, res) => {
             //     type = 'debit';
             // }
 
-            let new_card_limit = parseFloat(card.card_limit + balance);
-            let new_current_balance = parseFloat(card.current_balance + balance);
+            let new_card_limit = formatamount(card.card_limit) + formatamount(balance);
+            let new_current_balance = formatamount(card.current_balance) + formatamount(balance);
 
             await card.update({
                 card_limit: new_card_limit,
@@ -316,8 +324,8 @@ const updateCardDetails = async (req, res) => {
                 payment_category: 'Card',
                 comment: 'Card Limit Updated',
                 type: 'Deposit',
-                added: parseFloat(balance),
-                balance: parseFloat(new_current_balance),
+                added: balance,
+                balance: new_current_balance,
                 status: 'Closed'
             });
 
@@ -653,8 +661,8 @@ const updateUseRequest = async (req, res) => {
             }
 
             // Check if requested amount is less than or equal to current_balance
-            const requestedAmount = parseFloat(request.amount);
-            const currentBalance = parseFloat(card.current_balance || 0);
+            const requestedAmount = formatamount(request.amount);
+            const currentBalance = formatamount(card.current_balance || 0);
 
             if (requestedAmount > currentBalance) {
                 return res.status(400).json({
@@ -667,10 +675,10 @@ const updateUseRequest = async (req, res) => {
             const isFirstTransaction = card.first_tx === 0;
 
             // Admin fee for first transaction
-            const adminFee = isFirstTransaction ? parseFloat(process.env.CREATE_CARD_FIRST_TRANSACTION_FEE || 100) : 0; // Get fee from env or default to 100
+            const adminFee = isFirstTransaction ? formatamount(process.env.CREATE_CARD_FIRST_TRANSACTION_FEE || 100) : 0; // Get fee from env or default to 100
 
             // Calculate new balance after deduction
-            const newBalance = currentBalance - requestedAmount;
+            const newBalance = formatamount(currentBalance) - formatamount(requestedAmount);
 
             // Begin transaction to ensure data consistency
             const t = await sequelize.transaction();
@@ -687,7 +695,7 @@ const updateUseRequest = async (req, res) => {
                         type: 'Withdrawal',
                         added: 0,
                         used: adminFee,
-                        balance: currentBalance - adminFee,
+                        balance: formatamount(currentBalance) - formatamount(adminFee),
                         status: 'Closed',
                     }, { transaction: t });
 
@@ -699,7 +707,7 @@ const updateUseRequest = async (req, res) => {
                     // Calculate new admin balance
                     let adminBalance = adminFee;
                     if (latestAdminTransaction) {
-                        adminBalance = parseFloat(latestAdminTransaction.balance) + adminFee;
+                        adminBalance = formatamount(latestAdminTransaction.balance) + formatamount(adminFee);
                     }
 
                     // Create admin transaction entry
@@ -716,6 +724,7 @@ const updateUseRequest = async (req, res) => {
 
                 // Create user transaction for the requested amount
                 await UserTransaction.create({
+                    user_payable_request_id: request.id,
                     user_id: request.user_id,
                     card_id: card.id,
                     payment_category: 'Card_Use_Request',
@@ -775,8 +784,7 @@ const createPayableRequest = async (req, res) => {
         await UserPaymentRequest.create({
             user_id: user.id,
             card_id: card_id,
-            amount,
-            remaining_amount: amount, // Initialize remaining amount with full amount
+            amount: formatamount(amount),
             payment_method,
             transaction_id,
             payment_date: payment_date ? new Date(payment_date) : null,
@@ -806,11 +814,11 @@ const updatePayableRequest = async (req, res) => {
             return res.status(404).json({ error: 'Payable request not found' });
         }
 
-        const remaining_amount = request.remaining_amount;
+        const amount = request.amount;
         const payable = await caluclateusertransactions(request.user_id, request.created_at);
 
         console.log(payable);
-        if(remaining_amount > 0){
+        if(amount > 0){
             // Begin transaction to ensure data consistency
             const t = await sequelize.transaction();
             
@@ -826,17 +834,27 @@ const updatePayableRequest = async (req, res) => {
                     return res.status(404).json({ error: 'Card not found for this user' });
                 }
                 
-                let remainingAmountToProcess = parseFloat(remaining_amount + card.remaining_amount);
+                console.log("amount",amount);
+                console.log("card.remaining_amount",card.remaining_amount);
+
+                let remainingAmountToProcess = formatamount(amount) + formatamount(card.remaining_amount);
                 
+                remainingAmountToProcess = formatamount(remainingAmountToProcess);
+                
+                console.log("remainingAmountToProcess=",remainingAmountToProcess);
                 // Process each transaction
                 for (const transaction of payable.transactions) {
                     // Check if we still have remaining amount to process
                     if (remainingAmountToProcess <= 0) break;
                     
-                    const transactionNetAmount = parseFloat(transaction.used_net_amount);
+                    const transactionNetAmount = formatamount(transaction.used_net_amount);
                     
+                    console.log("transactionNetAmount",transactionNetAmount);
                     // Check if we can process this transaction
                     if (remainingAmountToProcess >= transactionNetAmount) {
+                        
+                        console.log("remainingAmountToProcess>=transactionNetAmount");
+
                         // Get the latest admin transaction to calculate the new balance
                         const latestAdminTransaction = await AdminTransaction.findOne({
                             order: [['id', 'DESC']],
@@ -844,9 +862,9 @@ const updatePayableRequest = async (req, res) => {
                         });
                         
                         // Calculate new admin balance
-                        let adminBalance = parseFloat(transaction.used_interest);
+                        let adminBalance = formatamount(transaction.used_interest);
                         if (latestAdminTransaction) {
-                            adminBalance += parseFloat(latestAdminTransaction.balance || 0);
+                            adminBalance += formatamount(latestAdminTransaction.balance || 0);
                         }
                         
                         // Insert new entry in adminTransaction for interest
@@ -856,16 +874,18 @@ const updatePayableRequest = async (req, res) => {
                             transaction_id: transaction.id,
                             type: 'Deposit',
                             comment: 'Credit card interest amount',
-                            added: parseFloat(transaction.used_interest),
-                            balance: adminBalance
+                            added: formatamount(transaction.used_interest),
+                            balance: formatamount(adminBalance)
                         }, { transaction: t });
                         
                         // Calculate new card balance
-                        const usedAmount = parseFloat(transaction.used_amount);
-                        const updateBalance = parseFloat(card.current_balance) + usedAmount;
+                        const usedAmount = formatamount(transaction.used_amount);
+                        const updateBalance = formatamount(card.current_balance) + formatamount(usedAmount);
+                        const depositAmount = formatamount(transaction.used_interest) + formatamount(transaction.used_amount);
                         
                         // Insert new entry in userTransaction
                         await UserTransaction.create({
+                            user_payable_request_id: request.id,
                             user_id: request.user_id,
                             card_id: card.id,
                             payment_category: 'Card_Payable_Request',
@@ -873,7 +893,8 @@ const updatePayableRequest = async (req, res) => {
                             type: 'Deposit',
                             added: usedAmount,
                             balance: updateBalance,
-                            status: 'Closed'
+                            status: 'Closed',
+                            deposit: depositAmount
                         }, { transaction: t });
                         
                         // Update the transaction status
@@ -892,30 +913,24 @@ const updatePayableRequest = async (req, res) => {
                         );
                         
                         // Decrease remaining amount
-                        remainingAmountToProcess -= transaction.used_net_amount;
+                        remainingAmountToProcess -= formatamount(transaction.used_net_amount);
+                    
+                    }else{
+                        //Need work;
                     }
                 }
                 
 
-                // Update card's remaining_amount with the leftover amount
-                //const currentRemainingAmount = parseFloat(card.remaining_amount || 0);
-                //console.log(`Current remaining_amount: ${currentRemainingAmount}`);
-                // console.log(`Remaining amount to process: ${remainingAmountToProcess}`);
-                //const newRemainingAmount = currentRemainingAmount + remainingAmountToProcess;
-                //console.log(`New remaining_amount: ${newRemainingAmount}`);
                 // Update the card with the new remaining amount
                 await card.update(
-                    { remaining_amount: remainingAmountToProcess },
+                    { remaining_amount: formatamount(remainingAmountToProcess) },
                     { transaction: t }
                 );
                     
-                // console.log(`Updated card remaining_amount to ${newRemainingAmount}`);
-                
-                
+                                
                 // Update the request with new remaining amount
                 await request.update(
                     { 
-                        remaining_amount: remainingAmountToProcess,
                         status: remainingAmountToProcess <= 0 ? 'Approved' : status 
                     },
                     { transaction: t }
@@ -968,10 +983,14 @@ const calculatePayableRequest = async (req, res) => {
     }
 };
 
+
 const caluclateusertransactions = async (user_id, to_date = null) => {
     // Get interest rate from general settings
     const generalSetting = await GeneralSetting.findOne();
-    const dailyInterestRate = generalSetting ? (parseFloat(generalSetting.credit_card_loan) / 365) : 0.02; // Default to 2% if not found
+    let dailyInterestRate = generalSetting ? (generalSetting.credit_card_loan / 365) : process.env.CREATE_CARD_LOAN_INTEREST_RATE; 
+    dailyInterestRate = formatamount(dailyInterestRate);
+    
+    //console.log('dailyInterestRate=',dailyInterestRate);
     
     // Get all active Card_Use_Request transactions for the user
     const transactions = await UserTransaction.findAll({
@@ -993,27 +1012,34 @@ const caluclateusertransactions = async (user_id, to_date = null) => {
     // Process each transaction and update the database
     const transactionDetails = [];
     for (const transaction of transactions) {
-        const used_amount = parseFloat(transaction.used || 0);
+        const used_amount = formatamount(transaction.used || 0);
         const from_date = new Date(transaction.created_date);
 
         // Calculate days difference (excluding the same day)
         const diffTime = Math.abs(todate - from_date);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        console.log('diffDays=',diffDays,'dailyInterestRate=',dailyInterestRate,"todate=", todate," from_date=",from_date);
+        console.log('diffDays=',diffDays,'dailyInterestRate=',dailyInterestRate," from_date=",from_date, "todate=", todate);
         
         // Calculate interest
-        const interest = (used_amount * dailyInterestRate * diffDays).toFixed(2);
-        const parsedInterest = parseFloat(interest);
-        const used_net_amount = used_amount + parsedInterest;
+        // const interest = (used_amount * dailyInterestRate * diffDays).toFixed(2);
+        
+        let interest = ((used_amount*dailyInterestRate)/100)*diffDays;
+        interest = formatamount(interest);
+        console.log('used_amount=',used_amount,'    interest=',interest);
+        
+        //console.log('interest=',interest);
+        
+        // const parsedInterest = formatamount(interest);
+        const used_net_amount = used_amount + interest;
         
         // Add to totals
-        total_amount += used_amount;
-        total_interest += parsedInterest;
+        total_amount =formatamount(total_amount) + formatamount(used_amount);
+        total_interest =formatamount(total_interest) + formatamount(interest);
         
         // Update transaction record in database
         await transaction.update({
-            used_interest: parsedInterest,
+            used_interest: interest,
             used_net_amount: used_net_amount,
             days: diffDays,
             interest_rate: dailyInterestRate,
@@ -1026,7 +1052,7 @@ const caluclateusertransactions = async (user_id, to_date = null) => {
             created_date: transaction.created_date,
             days: diffDays,
             used_amount: used_amount,
-            used_interest: parsedInterest,
+            used_interest: interest,
             used_net_amount: used_net_amount,
             interest_rate: dailyInterestRate,
             calculate_date: currentDate
@@ -1037,9 +1063,13 @@ const caluclateusertransactions = async (user_id, to_date = null) => {
     const card = await Card.findOne({ where: { user_id } });
     const remaining_amount = card?.remaining_amount || 0;
     
-    let total_net_amount = parseFloat((total_amount + total_interest) - remaining_amount);
-    total_net_amount = total_net_amount.toFixed(2); 
-
+    // Convert string values to numbers before calculation
+    let total_net_amount = (formatamount(total_amount) + formatamount(total_interest)) - formatamount(remaining_amount);
+    
+    //console.log('total_net_amount=',total_net_amount);
+    
+    //total_net_amount = formatamount(total_net_amount);
+    
     return {
         transactions: transactionDetails,
         total_amount: total_amount,

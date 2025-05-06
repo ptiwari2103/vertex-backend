@@ -7,6 +7,12 @@ class UserTransaction extends Model {
             foreignKey: 'user_id',
             as: 'user'
         });
+        
+        // Add association to UserPaymentRequest
+        UserTransaction.belongsTo(models.UserPaymentRequest, {
+            foreignKey: 'user_payable_request_id',
+            as: 'paymentRequest'
+        });
     }
 }
 
@@ -16,10 +22,14 @@ UserTransaction.init({
         primaryKey: true,
         autoIncrement: true
     },
+    user_payable_request_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
     user_id: {
         type: DataTypes.INTEGER,
         allowNull: false
-    },
+    },    
     card_id: {
         type: DataTypes.INTEGER,
         allowNull: false
@@ -34,6 +44,10 @@ UserTransaction.init({
     },
     type: {
         type: DataTypes.STRING,
+        allowNull: true
+    },
+    deposit: {
+        type: DataTypes.DECIMAL(10, 2),
         allowNull: true
     },
     added: {

@@ -22,7 +22,15 @@ const formatCurrency = (amount) => {
   return `${currencyUnit}${formattedAmount}`;
 };
 
+
+const formatamount = (amount) => {
+  if (amount === null || amount === undefined) return 0.00;
+  
+  return parseFloat(parseFloat(amount).toFixed(2));
+};
+
 module.exports = {
   currencyUnit,
-  formatCurrency
+  formatCurrency,
+  formatamount
 };
