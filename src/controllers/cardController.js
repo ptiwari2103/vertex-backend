@@ -150,6 +150,15 @@ const getAllCards = async (req, res) => {
         if (req.query.status) {
             whereClause.status = req.query.status;
         }
+
+        if (req.query.expiryMonth) {
+            whereClause.expiry_month = parseInt(req.query.expiryMonth);
+        }
+
+        if (req.query.expiryYear) {
+            whereClause.expiry_year = parseInt(req.query.expiryYear);
+        }
+        
         if (req.query.created_date) {
             whereClause.created_at = {
                 [Op.gte]: new Date(req.query.created_date),
@@ -283,6 +292,9 @@ const updateCardDetails = async (req, res) => {
             return res.status(404).json({ error: 'Card not found' });
         }
         const oldCardLimit = card.card_limit;
+        const oldCardNumber = card.card_number;
+        const oldExpiryMonth = card.expiry_month;
+        const oldExpiryYear = card.expiry_year;
         // Update the card details
         await card.update({
             card_number,
@@ -331,6 +343,66 @@ const updateCardDetails = async (req, res) => {
 
         } else {
             console.log("Card limit not changed");
+        }
+        
+        //Card renevual charge
+        if(expiry_year !== oldExpiryYear || expiry_month !== oldExpiryMonth){
+            
+            // Begin transaction to ensure data consistency
+            const t = await sequelize.transaction();
+
+            try {                
+                const adminFee = formatamount(process.env.CREATE_CARD_ANNUAL_FEE || 100);
+
+                // Get the latest admin transaction to calculate the new balance
+                const latestAdminTransaction = await AdminTransaction.findOne({
+                    order: [['id', 'DESC']]
+                }, { transaction: t });
+
+                // Calculate new admin balance
+                let adminBalance = adminFee;
+                if (latestAdminTransaction) {
+                    adminBalance = formatamount(latestAdminTransaction.balance) + formatamount(adminFee);
+                }
+
+                // Create admin transaction entry
+                await AdminTransaction.create({
+                    user_id: card.user_id,
+                    type: 'Deposit',
+                    comment: 'Credit Card Renewal Charge',
+                    added: adminFee,
+                    balance: adminBalance
+                }, { transaction: t });
+
+                const newBalance = formatamount(card.current_balance) - formatamount(adminFee);
+
+                // Create user transaction for the requested amount
+                await UserTransaction.create({
+                    user_id: card.user_id,
+                    card_id: card.id,
+                    payment_category: 'Card_Renewal',
+                    comment: 'Card Renewal Charge',
+                    type: 'Withdrawal',
+                    added: 0,
+                    used: adminFee,
+                    balance: newBalance,
+                    status: 'Closed'
+                }, { transaction: t });
+
+                // Update card with new balance
+                await card.update({
+                    current_balance: newBalance,
+                }, { transaction: t });
+
+                // Commit the transaction
+                await t.commit();
+
+            } catch (error) {
+                // If any error occurs, rollback the transaction
+                await t.rollback();
+                throw error;
+            }
+
         }
 
         return res.status(200).json({ message: 'Card details updated successfully' });

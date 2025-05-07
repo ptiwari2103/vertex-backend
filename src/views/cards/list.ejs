@@ -77,12 +77,12 @@ function formatCurrency(amount) {
         </div>
         <!-- Filters Section -->
         <form id="filterForm" class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">User ID</label>
                 <input type="text" class="form-control" name="user_id" maxlength="8"
                     value="<%= query.user_id || '' %>" placeholder="Enter User ID">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Status</label>
                 <select class="form-select" name="status">
                     <option value="">All</option>
@@ -94,7 +94,33 @@ function formatCurrency(amount) {
                     </option>
                 </select>
             </div>
-            <div class="col-md-4 d-flex align-items-end">
+            <div class="col-md-2">
+                <label class="form-label">Expiry Year</label>
+                <select class="form-select" name="expiryYear">
+                    <option value="">All</option>
+                    <% 
+                    const currentYear = new Date().getFullYear();
+                    for(let i=currentYear; i<=currentYear+5; i++) { %>
+                        <option value="<%= i %>" <%= query.expiryYear == i ? 'selected' : '' %>><%= i %></option>
+                    <% } %>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Expiry Month</label>
+                <select class="form-select" name="expiryMonth">
+                    <option value="">All</option>
+                    <% 
+                    const monthNames = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                    ];
+                    for(let i=1; i<=12; i++) { %>
+                        <option value="<%= i %>" <%= query.expiryMonth == i ? 'selected' : '' %>><%= monthNames[i-1] %></option>
+                    <% } %>
+                </select>
+            </div>
+            
+            <div class="col-md-2 d-flex align-items-end">
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">Filter</button>
                     <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
@@ -116,15 +142,21 @@ function formatCurrency(amount) {
                         <th>Card Limit</th>
                         <th>Current Balance</th>
                         <th>Remaining Amount</th>
-                        <th>Requested At</th>
-                        <th>Assigned At</th>
+                        <th>Expiry Month</th>
+                        <th>Expiry Year</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <% cards.forEach((card, index)=> { %>
-                        <tr>
+                    <% 
+                    const tableCurrentMonth = new Date().getMonth() + 1; // JavaScript months are 0-indexed
+                    const tableCurrentYear = new Date().getFullYear();
+                    cards.forEach((card, index)=> { 
+                        // Check if card is expiring in current month and year
+                        const isExpiringSoon = card.expiry_month === tableCurrentMonth && card.expiry_year === tableCurrentYear;
+                    %>
+                        <tr class="<%= isExpiringSoon ? 'table-warning' : '' %>">
                             <td>
                                 <%= (pagination.currentPage - 1) * 10 + index + 1 %>
                             </td>
@@ -149,11 +181,20 @@ function formatCurrency(amount) {
                                 <%= formatCurrency(card.remaining_amount) %>
                             </td>
                             <td>
-                                <%= new Date(card.created_at).toLocaleDateString() %>
+                                <% 
+                                if (card.expiry_month) {
+                                    const monthNames = [
+                                        'January', 'February', 'March', 'April', 'May', 'June',
+                                        'July', 'August', 'September', 'October', 'November', 'December'
+                                    ];
+                                    %><%= monthNames[card.expiry_month - 1] %><%
+                                } else { 
+                                    %>-<%
+                                } 
+                                %>
                             </td>
                             <td>
-                                <%= card.assigned_date ? new Date(card.assigned_date).toLocaleDateString()
-                                    : '-' %>
+                                <%= card.expiry_year || '-' %>
                             </td>
                             <td>
                                 <span
@@ -177,7 +218,7 @@ function formatCurrency(amount) {
         </div>
     </div>
 
-    <!-- Pagination -->
+    
     <nav>
         <ul class="pagination">
             <li class="page-item <%= pagination.currentPage === 1 ? 'disabled' : '' %>">
@@ -203,7 +244,7 @@ function formatCurrency(amount) {
 </div>
 
 
-<!-- Edit Card Modal -->
+
 <div class="modal fade" id="editCardModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -216,31 +257,29 @@ function formatCurrency(amount) {
                     <input type="hidden" name="id" id="editCardId">
                     <input type="hidden" name="card_number" id="editCardNumber">
                     
-                    <!-- Card details that can't be edited (display only) -->
                     <div class="mb-3">
                         <label class="form-label">Card Number</label>
                         <input type="text" class="form-control" id="displayCardNumber" disabled>
                     </div>
                     
-                    <!-- Editable fields -->
+                    
                     <div class="row mb-3">
                         <div class="col-6">
-                            <label class="form-label">Expiry Month</label>
-                            <select class="form-select" name="expiry_month" id="editExpiryMonth" required>
-                                <% for(let i=1; i<=12; i++) { %>
-                                    <option value="<%= i %>"><%= i.toString().padStart(2, '0') %></option>
-                                <% } %>
-                            </select>
-                        </div>
-                        <div class="col-6">
                             <label class="form-label">Expiry Year</label>
-                            <select class="form-select" name="expiry_year" id="editExpiryYear" required>
-                                <% const currentYear = new Date().getFullYear(); %>
-                                <% for(let i=currentYear; i<=currentYear+10; i++) { %>
+                            <select class="form-select" name="expiry_year" id="editExpiryYear" required onchange="updateMonthOptions()">
+                                <% const editModalYear = new Date().getFullYear(); %>
+                                <% // Allow selection of past years (up to 5 years back) %>
+                                <% for(let i=editModalYear; i<=editModalYear+5; i++) { %>
                                     <option value="<%= i %>"><%= i %></option>
                                 <% } %>
                             </select>
                         </div>
+                        <div class="col-6">
+                            <label class="form-label">Expiry Month</label>
+                            <select class="form-select" name="expiry_month" id="editExpiryMonth" required>
+                                <% // Month names will be populated by JavaScript %>
+                            </select>
+                        </div>                        
                     </div>
                     
                     <div class="mb-3">
@@ -266,7 +305,7 @@ function formatCurrency(amount) {
     </div>
 </div>
 
-<!-- Add Card Modal -->
+
 <div class="modal fade" id="addCardModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -391,6 +430,17 @@ function formatCurrency(amount) {
         }
     }
 
+    function resetFilters() {
+        // Clear all filter inputs
+        document.querySelector('input[name="user_id"]').value = '';
+        document.querySelector('select[name="status"]').value = '';
+        document.querySelector('select[name="expiryMonth"]').value = '';
+        document.querySelector('select[name="expiryYear"]').value = '';
+        
+        // Submit the form to apply the cleared filters
+        document.getElementById('filterForm').submit();
+    }
+
     function openAddCardModal(cardId) {
         document.getElementById('addCardId').value = cardId;
         const addCardModal = new bootstrap.Modal(document.getElementById('addCardModal'));
@@ -465,16 +515,67 @@ function formatCurrency(amount) {
         window.location.href = '/cards/allcards';
     }
     
+    // Function to update month options based on selected year
+    function updateMonthOptions() {
+        const monthSelect = document.getElementById('editExpiryMonth');
+        const yearSelect = document.getElementById('editExpiryYear');
+        const selectedYear = parseInt(yearSelect.value);
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1; // JavaScript months are 0-indexed
+        
+        // Clear existing options
+        monthSelect.innerHTML = '';
+        
+        // Month names array
+        const monthNames = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        
+        // Determine which months to show
+        let startMonth = 1;
+        if (selectedYear === currentYear) {
+            // For current year, only show current and future months
+            startMonth = currentMonth;
+        }
+        
+        // Add month options
+        for (let i = startMonth; i <= 12; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = monthNames[i-1]; // Adjust for 0-indexed array
+            monthSelect.appendChild(option);
+        }
+        
+        // If we have a stored month value, try to select it
+        if (monthSelect.dataset.storedValue) {
+            const storedValue = parseInt(monthSelect.dataset.storedValue);
+            // Only select if it's a valid option for the current year
+            if (selectedYear > currentYear || storedValue >= startMonth) {
+                monthSelect.value = storedValue;
+            } else if (monthSelect.options.length > 0) {
+                // Otherwise select the first available option
+                monthSelect.selectedIndex = 0;
+            }
+        }
+    }
+    
     // Edit Card Modal Functions
     function openEditCardModal(id, cardNumber, expiryMonth, expiryYear, cardLimit, status) {
         // Set values in the form
         document.getElementById('editCardId').value = id;
         document.getElementById('editCardNumber').value = cardNumber;
         document.getElementById('displayCardNumber').value = cardNumber;
-        document.getElementById('editExpiryMonth').value = expiryMonth;
         document.getElementById('editExpiryYear').value = expiryYear;
         document.getElementById('editCardLimit').value = cardLimit;
         document.getElementById('editCardStatus').value = status;
+        
+        // Store the month value to use after populating the dropdown
+        const monthSelect = document.getElementById('editExpiryMonth');
+        monthSelect.dataset.storedValue = expiryMonth;
+        
+        // Update month options based on selected year
+        updateMonthOptions();
         
         // Show the modal
         const editModal = new bootstrap.Modal(document.getElementById('editCardModal'));
