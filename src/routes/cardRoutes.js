@@ -8,6 +8,7 @@ const { verifyApiToken } = require('../middleware/auth');
 router.post('/request', verifyApiToken, cardController.addCard);
 router.get('/details', cardController.getDetails);
 router.get('/allcards', cardController.getAllCards); 
+router.get('/download-expiring', cardController.downloadExpiringCards);
 router.post('/update', cardController.updateCard); 
 router.post('/update-card', cardController.updateCardDetails);
 router.get('/requestcard', cardController.requestCard);

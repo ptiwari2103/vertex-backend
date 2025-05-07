@@ -1,4 +1,4 @@
-const { Card, User, UserTransaction, UserPaymentRequest, AdminTransaction, GeneralSetting } = require("../models");
+const { Card, User, UserTransaction, UserPaymentRequest, AdminTransaction, GeneralSetting, State, District } = require("../models");
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const jwt = require('jsonwebtoken');
@@ -1151,6 +1151,83 @@ const caluclateusertransactions = async (user_id, to_date = null) => {
     };
 }
 
+/**
+ * Download a CSV file of users with cards expiring in current month and next month
+ */
+const downloadExpiringCards = async (req, res) => {
+    try {
+        // Get current month and next month
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed
+        const currentYear = now.getFullYear();
+        
+        // Calculate next month and year
+        let nextMonth = currentMonth + 1;
+        let nextMonthYear = currentYear;
+        if (nextMonth > 12) {
+            nextMonth = 1;
+            nextMonthYear = currentYear + 1;
+        }
+        
+        // Find cards expiring in current month or next month
+        const expiringCards = await Card.findAll({
+            where: {
+                [Op.or]: [
+                    // Current month expiry
+                    {
+                        expiry_month: currentMonth,
+                        expiry_year: currentYear
+                    },
+                    // Next month expiry
+                    {
+                        expiry_month: nextMonth,
+                        expiry_year: nextMonthYear
+                    }
+                ],
+                status: 'Approved' // Only include active cards
+            },
+            include: [{
+                model: User,
+                as: 'user',
+                attributes: ['id', 'name', 'user_id', 'mobile_number', 'state_id', 'district_id'],
+                include: [
+                    {
+                        model: State,
+                        as: 'state',
+                        attributes: ['id', 'name']
+                    },
+                    {
+                        model: District,
+                        as: 'district',
+                        attributes: ['id', 'name']
+                    }
+                ]
+            }]
+        });
+        
+        // Generate CSV content
+        let csvContent = 'S.No.,Username,User ID,Mobile No,State,District\n';
+        
+        expiringCards.forEach((card, index) => {
+            if (card.user) {
+                const stateName = card.user.state ? card.user.state.name : '';
+                const districtName = card.user.district ? card.user.district.name : '';
+                csvContent += `${index + 1},"${card.user.name}",${card.user.user_id},${card.user.mobile_number || ''},"${stateName}","${districtName}"\n`;
+            }
+        });
+        
+        // Set headers for CSV download
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=expiring_cards_${now.toISOString().split('T')[0]}.csv`);
+        
+        // Send the CSV content
+        return res.send(csvContent);
+    } catch (error) {
+        console.error('Error generating expiring cards CSV:', error);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     addCard,
     getDetails,
@@ -1160,11 +1237,12 @@ module.exports = {
     updateCardStatus,
     updateCardDetails,
     getTransactions,
-    getUseRequest,
     getPayableRequest,
     createUseRequest,
+    getUseRequest,
     updateUseRequest,
     createPayableRequest,
     updatePayableRequest,
-    calculatePayableRequest
+    calculatePayableRequest,
+    downloadExpiringCards
 };
