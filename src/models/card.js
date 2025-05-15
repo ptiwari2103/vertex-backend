@@ -44,6 +44,14 @@ Card.init({
     type: DataTypes.DATE,
     allowNull: true
   },
+  old_card_limit: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
+  increase_limit: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true
+  },
   card_limit: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true

@@ -21,6 +21,16 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+.button-group {
+    display: flex;
+    flex-direction: row;
+    white-space: nowrap;
+}
+
+.button-group .btn:not(:last-child) {
+    margin-right: 1px;
+}
+
 .date-filter {
     max-width: 150px;
 }
@@ -142,6 +152,7 @@ function formatCurrency(amount) {
                         <th>User</th>
                         <th>Account Number</th>
                         <th>Card Number</th>
+                        <th>Old Card Limit</th>
                         <th>Card Limit</th>
                         <th>Current Balance</th>
                         <th>Remaining Amount</th>
@@ -173,6 +184,9 @@ function formatCurrency(amount) {
 
                             <td>
                                 <%= card.card_number %>
+                            </td>
+                            <td>
+                                <%= formatCurrency(card.old_card_limit) %>
                             </td>
                             <td>
                                 <%= formatCurrency(card.card_limit) %>
@@ -209,10 +223,14 @@ function formatCurrency(amount) {
                             </td>
 
                             <td>
-                                <button class="btn btn-primary btn-sm action-btn"
-                                    onclick="openViewCardModal('<%= card.user.name %>','<%= card.user.user_id %>','<%= card.user.account_number %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.current_balance %>', '<%= card.remaining_amount %>','<%= card.assigned_date %>','<%= card.created_at %>','<%= card.status %>')">View</button>
-                                <button class="btn btn-warning btn-sm action-btn"
-                                    onclick="openEditCardModal('<%= card.id %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.status %>')">Edit</button>
+                                <div class="button-group">
+                                    <button class="btn btn-primary btn-sm action-btn"
+                                        onclick="openViewCardModal('<%= card.user.name %>','<%= card.user.user_id %>','<%= card.user.account_number %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.current_balance %>', '<%= card.remaining_amount %>','<%= card.assigned_date %>','<%= card.created_at %>','<%= card.status %>')">View</button>
+                                    <button class="btn btn-warning btn-sm action-btn"
+                                        onclick="openEditCardModal('<%= card.id %>','<%= card.card_number %>','<%= card.expiry_month %>','<%= card.expiry_year %>','<%= card.card_limit %>','<%= card.status %>')">Edit</button>
+                                    <button class="btn btn-info btn-sm action-btn"
+                                        onclick="openIncreaseLimitModal('<%= card.id %>','<%= card.card_number %>','<%= card.card_limit %>')">Increase Limit</button>
+                                </div>
                             </td>
                         </tr>
                     <% }); %>
@@ -286,11 +304,6 @@ function formatCurrency(amount) {
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Card Limit</label>
-                        <input type="number" step="0.01" class="form-control" name="card_limit" id="editCardLimit" required>
-                    </div>
-                    
-                    <div class="mb-3">
                         <label class="form-label">Status</label>
                         <select class="form-select" name="status" id="editCardStatus" required>
                             <option value="Approved">Approved</option>
@@ -303,6 +316,38 @@ function formatCurrency(amount) {
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" onclick="submitEditCardForm()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="modal fade" id="increaseLimitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Increase Limit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="increaseLimitForm" class="needs-validation" novalidate>
+                    <input type="hidden" name="id" id="editCardId2">
+                    <input type="hidden" name="card_number" id="editCardNumber2">
+                    <div class="mb-3">
+                        <label class="form-label">Card Number</label>
+                        <input type="text" class="form-control" id="displayCardNumber2" disabled>
+                    </div> 
+                    <div class="mb-3">
+                        <label class="form-label">Card Limit</label>
+                        <input type="number" step="0.01" class="form-control" name="card_limit" id="editCardLimit2" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditCardLimitForm()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -570,7 +615,7 @@ function formatCurrency(amount) {
         document.getElementById('editCardNumber').value = cardNumber;
         document.getElementById('displayCardNumber').value = cardNumber;
         document.getElementById('editExpiryYear').value = expiryYear;
-        document.getElementById('editCardLimit').value = cardLimit;
+        //document.getElementById('editCardLimit').value = cardLimit;
         document.getElementById('editCardStatus').value = status;
         
         // Store the month value to use after populating the dropdown
@@ -583,6 +628,19 @@ function formatCurrency(amount) {
         // Show the modal
         const editModal = new bootstrap.Modal(document.getElementById('editCardModal'));
         editModal.show();
+    }
+
+    function openIncreaseLimitModal(id, cardNumber, cardLimit) {
+        // Set values in the form
+        document.getElementById('editCardId2').value = id;
+        document.getElementById('editCardNumber2').value = cardNumber;
+        document.getElementById('displayCardNumber2').value = cardNumber;
+        document.getElementById('editCardLimit2').value = cardLimit;
+        
+               
+        // Show the modal
+        const increaseLimitModal = new bootstrap.Modal(document.getElementById('increaseLimitModal'));
+        increaseLimitModal.show();
     }
     
     function submitEditCardForm() {
@@ -618,6 +676,50 @@ function formatCurrency(amount) {
                 alert('Card updated successfully!');
                 // Close the modal
                 bootstrap.Modal.getInstance(document.getElementById('editCardModal')).hide();
+                // Reload the page to show updated data
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            alert('Error: ' + error.message);
+        });
+    }
+
+
+
+    function submitEditCardLimitForm() {
+        const form = document.getElementById('increaseLimitForm');
+        
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+            form.classList.add('was-validated');
+            return;
+        }
+        
+        // Get form data
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+        
+        // Send AJAX request
+        fetch('/cards/update-card-limit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+            } else {
+                alert('Card limit updated successfully!');
+                // Close the modal
+                bootstrap.Modal.getInstance(document.getElementById('increaseLimitModal')).hide();
                 // Reload the page to show updated data
                 window.location.reload();
             }

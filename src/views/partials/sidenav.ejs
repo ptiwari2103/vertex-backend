@@ -1,10 +1,20 @@
 <!-- Side Navigation -->
 <div class="sidebar">
-    <div class="logo-details">
-        <i class='bx bxs-cube-alt'></i>
-        <span class="logo_name">Vertex Admin</span>
-    </div>
     <ul class="nav-links">
+        <li class="profile">
+            <div class="profile-details">
+                <i class='bx bxs-user-circle'></i>
+                <div class="name-job">
+                    <div class="name">
+                        <%= user?.name || "Admin" %>
+                    </div>
+                </div>
+            </div>
+            <form action="/auth/logout" method="POST">
+                <button type="submit" class="logout-btn"><i class='bx bx-log-out'></i></button>
+            </form>
+        </li>
+
         <li class="<%= locals.currentPage === 'dashboard' ? 'active' : '' %>">
             <a href="/dashboard">
                 <i class='bx bxs-dashboard'></i>
@@ -26,8 +36,10 @@
                 <i class='bx bxs-chevron-down arrow'></i>
             </div>
             <ul class="sub-menu">
-                <li><a href="/pins/addpins" class="<%= locals.currentPage === 'addpins' ? 'active' : '' %>">Add Pins</a></li>
-                <li><a href="/pins/allpins" class="<%= locals.currentPage === 'allpins' ? 'active' : '' %>">Assigned Pins</a></li>
+                <li><a href="/pins/addpins" class="<%= locals.currentPage === 'addpins' ? 'active' : '' %>">Add Pins</a>
+                </li>
+                <li><a href="/pins/allpins" class="<%= locals.currentPage === 'allpins' ? 'active' : '' %>">Assigned
+                        Pins</a></li>
             </ul>
         </li>
         <li class="<%= locals.currentPage === 'messages' ? 'active' : '' %>">
@@ -36,7 +48,8 @@
                 <span class="link_name">Messages</span>
             </a>
         </li>
-        <li class="<%= ['cards', 'requestcard', 'allcards', 'transactions', 'use_request', 'payable_request'].includes(locals.currentPage) ? 'active' : '' %>">
+        <li
+            class="<%= ['cards', 'requestcard', 'allcards', 'transactions', 'use_request', 'payable_request'].includes(locals.currentPage) ? 'active' : '' %>">
             <div class="icon-link">
                 <a href="#">
                     <i class='bx bxs-credit-card'></i>
@@ -45,14 +58,23 @@
                 <i class='bx bxs-chevron-down arrow'></i>
             </div>
             <ul class="sub-menu">
-                <li><a href="/cards/requestcard" class="<%= locals.currentPage === 'requestcard' ? 'active' : '' %>">Request for new card</a></li>
-                <li><a href="/cards/allcards" class="<%= locals.currentPage === 'allcards' ? 'active' : '' %>">Assigned card list</a></li>
-                <li><a href="/cards/use-request" class="<%= locals.currentPage === 'use_request' ? 'active' : '' %>">Request for use amount</a></li>
-                <li><a href="/cards/payable-request" class="<%= locals.currentPage === 'payable_request' ? 'active' : '' %>">Request for payable amount</a></li>
-                <li><a href="/cards/transactions" class="<%= locals.currentPage === 'transactions' ? 'active' : '' %>">Transactions list</a></li>
+                <li><a href="/cards/requestcard"
+                        class="<%= locals.currentPage === 'requestcard' ? 'active' : '' %>">Request for new card</a>
+                </li>
+                <li><a href="/cards/allcards" class="<%= locals.currentPage === 'allcards' ? 'active' : '' %>">Assigned
+                        card list</a></li>
+                <li><a href="/cards/use-request"
+                        class="<%= locals.currentPage === 'use_request' ? 'active' : '' %>">Request for use amount</a>
+                </li>
+                <li><a href="/cards/payable-request"
+                        class="<%= locals.currentPage === 'payable_request' ? 'active' : '' %>">Request for payable
+                        amount</a></li>
+                <li><a href="/cards/transactions"
+                        class="<%= locals.currentPage === 'transactions' ? 'active' : '' %>">Transactions list</a></li>
             </ul>
         </li>
-        <li class="<%= ['gifts', 'addgift', 'allgifts', 'distributor', 'received'].includes(locals.currentPage) ? 'active' : '' %>">
+        <li
+            class="<%= ['gifts', 'addgift', 'allgifts', 'distributor', 'received'].includes(locals.currentPage) ? 'active' : '' %>">
             <div class="icon-link">
                 <a href="#">
                     <i class='bx bxs-gift'></i>
@@ -61,29 +83,39 @@
                 <i class='bx bxs-chevron-down arrow'></i>
             </div>
             <ul class="sub-menu">
-                <li><a href="/gifts/add" class="<%= locals.currentPage === 'addgift' ? 'active' : '' %>">Add Gift</a></li>
-                <li><a href="/gifts/list" class="<%= locals.currentPage === 'allgifts' ? 'active' : '' %>">All Gifts</a></li>
-                <li><a href="/gifts/distributor" class="<%= locals.currentPage === 'distributor' ? 'active' : '' %>">Distributor</a></li>
-                <li><a href="/gifts/received" class="<%= locals.currentPage === 'received' ? 'active' : '' %>">Received</a></li>
+                <li><a href="/gifts/add" class="<%= locals.currentPage === 'addgift' ? 'active' : '' %>">Add Gift</a>
+                </li>
+                <li><a href="/gifts/list" class="<%= locals.currentPage === 'allgifts' ? 'active' : '' %>">All Gifts</a>
+                </li>
+                <li><a href="/gifts/distributor"
+                        class="<%= locals.currentPage === 'distributor' ? 'active' : '' %>">Distributor</a></li>
+                <li><a href="/gifts/received"
+                        class="<%= locals.currentPage === 'received' ? 'active' : '' %>">Received</a></li>
             </ul>
         </li>
+
+        <li class="<%= ['general', 'referral'].includes(locals.currentPage) ? 'active' : '' %>">
+            <div class="icon-link">
+                <a href="#">
+                    <i class='bx bxs-cog'></i>
+                    <span class="link_name">Settings</span>
+                </a>
+                <i class='bx bxs-chevron-down arrow'></i>
+            </div>
+            <ul class="sub-menu">
+                <li><a href="/settings/general"
+                        class="<%= locals.currentPage === 'general' ? 'active' : '' %>">General</a></li>
+                <li><a href="/settings/referral" class="<%= locals.currentPage === 'referral' ? 'active' : '' %>">Member
+                        Fees</a></li>
+            </ul>
+        </li>
+
         <li class="<%= locals.currentPage === 'transactions' ? 'active' : '' %>">
             <a href="/transactions/list">
                 <i class='bx bx-transfer'></i>
                 <span class="link_name">Transactions</span>
             </a>
         </li>
-        <li class="profile">
-            <div class="profile-details">
-                <i class='bx bxs-user-circle'></i>
-                <div class="name-job">
-                    <div class="name"><%= user?.name || "Admin" %></div>
-                    <div class="job">Administrator</div>
-                </div>
-            </div>
-            <form action="/auth/logout" method="POST">
-                <button type="submit" class="logout-btn"><i class='bx bx-log-out'></i></button>
-            </form>
-        </li>
+
     </ul>
 </div>

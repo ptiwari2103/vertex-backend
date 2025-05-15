@@ -99,6 +99,10 @@
     <!-- Main content -->
     <% if (typeof user !== 'undefined' && user) { %>
     <div class="home-section">
+        <div class="home-content">
+            <i class='bx bx-menu menu-toggle'></i>
+            <span class="text"><%- typeof title !== 'undefined' ? title : 'Vertex Admin' %></span>
+        </div>
         <div class="content-container">
             <%- body %>
         </div>

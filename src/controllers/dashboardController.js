@@ -16,7 +16,7 @@ const getDashboard = async (req, res) => {
         });
 
         res.render('dashboard', {
-            title: 'Dashboard - Vertex Admin',
+            title: process.env.DASHBOARD_TITLE,
             style: '',
             script: '',
             currentPage: 'dashboard',

@@ -20,11 +20,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const homeSection = document.querySelector('.home-section');
             if (homeSection) {
                 if (sidebar.classList.contains('close')) {
-                    homeSection.style.left = '78px';
-                    homeSection.style.width = 'calc(100% - 78px)';
+                    homeSection.style.marginLeft = '60px';
+                    homeSection.style.width = 'calc(100% - 60px)';
                 } else {
-                    homeSection.style.left = '250px';
-                    homeSection.style.width = 'calc(100% - 250px)';
+                    homeSection.style.marginLeft = '200px';
+                    homeSection.style.width = 'calc(100% - 200px)';
                 }
             }
         });
@@ -64,8 +64,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Adjust main content area for mobile
             const homeSection = document.querySelector('.home-section');
             if (homeSection) {
-                homeSection.style.left = '78px';
-                homeSection.style.width = 'calc(100% - 78px)';
+                homeSection.style.marginLeft = '60px';
+                homeSection.style.width = 'calc(100% - 60px)';
             }
         } else {
             sidebar.classList.remove('close');
@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Adjust main content area for desktop
             const homeSection = document.querySelector('.home-section');
             if (homeSection) {
-                homeSection.style.left = '250px';
-                homeSection.style.width = 'calc(100% - 250px)';
+                homeSection.style.marginLeft = '200px';
+                homeSection.style.width = 'calc(100% - 200px)';
             }
         }
     }

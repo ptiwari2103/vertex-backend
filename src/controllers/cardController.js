@@ -229,6 +229,7 @@ const updateCard = async (req, res) => {
             expiry_month,
             expiry_year,
             assigned_date,
+            old_card_limit: card_limit,
             card_limit,
             current_balance: card_limit,
             status
@@ -241,8 +242,8 @@ const updateCard = async (req, res) => {
             payment_category: 'Card',
             comment: 'Card Limit Added',
             type: 'Deposit',
-            added: parseFloat(card_limit),
-            balance: parseFloat(card_limit),
+            added: formatamount(card_limit),
+            balance: formatamount(card_limit),
             status: 'Closed'
         });
 
@@ -283,7 +284,7 @@ const updateCardStatus = async (req, res) => {
 
 const updateCardDetails = async (req, res) => {
     try {
-        const { id, card_number, expiry_month, expiry_year, card_limit, status } = req.body;
+        const { id, expiry_month, expiry_year, status } = req.body;
 
         // Find the card
         const card = await Card.findOne({ where: { id } });
@@ -291,62 +292,20 @@ const updateCardDetails = async (req, res) => {
         if (!card) {
             return res.status(404).json({ error: 'Card not found' });
         }
-        const oldCardLimit = card.card_limit;
-        const oldCardNumber = card.card_number;
+        
         const oldExpiryMonth = card.expiry_month;
         const oldExpiryYear = card.expiry_year;
         // Update the card details
         await card.update({
-            card_number,
             expiry_month,
             expiry_year,
             status
         });
-
-        // Convert both values to numbers for proper comparison
-        const numCardLimit = formatamount(card_limit);
-        const numOldCardLimit = formatamount(oldCardLimit);
-
-        // Update the transaction details
-        if (numCardLimit !== numOldCardLimit) {
-            let balance;
-            balance = numCardLimit - numOldCardLimit;
-
-            // let type;
-            // if(numCardLimit > numOldCardLimit){
-            //     balance = numCardLimit - numOldCardLimit;
-            //     type = 'credit';
-            // }else{
-            //     balance = numOldCardLimit - numCardLimit;
-            //     type = 'debit';
-            // }
-
-            let new_card_limit = formatamount(card.card_limit) + formatamount(balance);
-            let new_current_balance = formatamount(card.current_balance) + formatamount(balance);
-
-            await card.update({
-                card_limit: new_card_limit,
-                current_balance: new_current_balance,
-            });
-
-            //always create new transaction
-            await UserTransaction.create({
-                user_id: card.user_id,
-                card_id: card.id,
-                payment_category: 'Card',
-                comment: 'Card Limit Updated',
-                type: 'Deposit',
-                added: balance,
-                balance: new_current_balance,
-                status: 'Closed'
-            });
-
-        } else {
-            console.log("Card limit not changed");
-        }
-        
+       
+        // console.log("year = ",expiry_year, oldExpiryYear);
+        // console.log("month = ",expiry_month, oldExpiryMonth);
         //Card renevual charge
-        if(expiry_year !== oldExpiryYear || expiry_month !== oldExpiryMonth){
+        if(Number(expiry_year) !== Number(oldExpiryYear) || Number(expiry_month) !== Number(oldExpiryMonth)){
             
             // Begin transaction to ensure data consistency
             const t = await sequelize.transaction();
@@ -402,10 +361,64 @@ const updateCardDetails = async (req, res) => {
                 await t.rollback();
                 throw error;
             }
-
         }
 
         return res.status(200).json({ message: 'Card details updated successfully' });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+
+const updateCardLimit = async (req, res) => {
+    try {
+        const { id, card_limit } = req.body;
+
+        // Find the card
+        const card = await Card.findOne({ where: { id } });
+
+        if (!card) {
+            return res.status(404).json({ error: 'Card not found' });
+        }
+        const oldCardLimit = card.card_limit;
+        
+
+        // Convert both values to numbers for proper comparison
+        const numCardLimit = formatamount(card_limit);
+        const numOldCardLimit = formatamount(oldCardLimit);
+
+        // Update the transaction details
+        if (numCardLimit !== numOldCardLimit) {
+            let balance;
+            balance = numCardLimit - numOldCardLimit;
+
+            let new_card_limit = formatamount(card.card_limit) + formatamount(balance);
+            let new_current_balance = formatamount(card.current_balance) + formatamount(balance);
+
+            await card.update({
+                old_card_limit: oldCardLimit,
+                increase_limit: balance,
+                card_limit: new_card_limit,
+                current_balance: new_current_balance,
+            });
+
+            //always create new transaction
+            await UserTransaction.create({
+                user_id: card.user_id,
+                card_id: card.id,
+                payment_category: 'Card',
+                comment: process.env.USER_TRANSACTION_COMMENT_INCREASE_LIMIT || 'Card Limit Updated',
+                type: 'Deposit',
+                added: balance,
+                balance: new_current_balance,
+                status: 'Closed'
+            });
+
+        } else {
+            console.log("Card limit not changed");
+        }
+        
+        return res.status(200).json({ message: 'Card limit updated successfully' });
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
@@ -641,7 +654,7 @@ const getUseRequest = async (req, res) => {
 
         // Render the use request page
         res.render('cards/use_request', {
-            title: 'Request for Use Amount - Vertex Admin',
+            title: process.env.REQUEST_USE_AMOUNT_TITILE,
             currentPage: 'use_request',
             user: userDetails,
             requests,
@@ -1236,6 +1249,7 @@ module.exports = {
     updateCard,
     updateCardStatus,
     updateCardDetails,
+    updateCardLimit,
     getTransactions,
     getPayableRequest,
     createUseRequest,

@@ -11,6 +11,7 @@ router.get('/allcards', cardController.getAllCards);
 router.get('/download-expiring', cardController.downloadExpiringCards);
 router.post('/update', cardController.updateCard); 
 router.post('/update-card', cardController.updateCardDetails);
+router.post('/update-card-limit', cardController.updateCardLimit);
 router.get('/requestcard', cardController.requestCard);
 router.get('/transactions', cardController.getTransactions);
 //router.get('/admin-details', cardController.getDetails);   
