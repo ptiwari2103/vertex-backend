@@ -84,22 +84,28 @@
     <div class="section-card">
         <h4 class="section-title">Member Information</h4>
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="info-row">
-                    <div class="info-label">Member ID</div>
+                    <div class="info-label">Account Number</div>
+                    <div class="info-value"><%= member.account_number %></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-row">
+                    <div class="info-label">User ID</div>
                     <div class="info-value"><%= member.user_id %></div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Name</div>
-                    <div class="info-value"><%= member.profile ? member.profile.name : 'N/A' %></div>
+                    <div class="info-value"><%= member.name ? member.name : 'N/A' %></div>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Mobile</div>
-                    <div class="info-value"><%= member.profile ? member.profile.mobile : 'N/A' %></div>
+                    <div class="info-value"><%= member.mobile_number ? member.mobile_number : 'N/A' %></div>
                 </div>
             </div>
         </div>
@@ -117,9 +123,13 @@
                             <th>Date</th>
                             <th>Amount</th>
                             <th>Payment Method</th>
-                            <th>Transaction ID</th>
+                            <th>Transaction ID</th>                            
+                            <th>Annual Rate</th>
+                            <th>Payment Interval</th>
+                            <th>Interest Amount</th>
+                            <th>Penality Paid Amount</th>
+                            <th>Total Amount</th>
                             <th>Status</th>
-                            <th>Notes</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -131,12 +141,16 @@
                                 <td>₹ <%= deposit.amount.toFixed(2) %></td>
                                 <td><%= deposit.payment_method || 'N/A' %></td>
                                 <td><%= deposit.transaction_id || 'N/A' %></td>
+                                <td><%= deposit.annual_rate || 'N/A' %></td>
+                                <td><%= deposit.payment_interval || 'N/A' %></td>
+                                <td><%= deposit.interest_amount || 'N/A' %></td>
+                                <td><%= deposit.penality_paid_amount || 'N/A' %></td>
+                                <td><%= deposit.total_amount || 'N/A' %></td>
                                 <td>
                                     <span class="status-badge status-<%= deposit.status.toLowerCase() %>">
                                         <%= deposit.status %>
                                     </span>
                                 </td>
-                                <td><%= deposit.notes || 'N/A' %></td>
                                 <td>
                                     <div class="button-group">
                                         <button class="btn btn-sm btn-warning" 
