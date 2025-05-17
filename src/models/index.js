@@ -19,6 +19,8 @@ const UserReferralMoney = require('./userReferralMoney');
 const UserTransaction = require('./userTransaction');
 const UserPaymentRequest = require('./userPaymentRequest');
 const AdminTransaction = require('./adminTransaction');
+const CompulsoryDeposit = require('./compulsoryDeposit');
+const CompulsoryDepositSetting = require('./compulsoryDepositSetting');
 
 
 // Initialize models
@@ -42,7 +44,9 @@ const models = {
   UserReferralMoney,
   UserTransaction,
   UserPaymentRequest,
-  AdminTransaction
+  AdminTransaction,
+  CompulsoryDeposit,
+  CompulsoryDepositSetting
 };
 
 // Run associations if they exist

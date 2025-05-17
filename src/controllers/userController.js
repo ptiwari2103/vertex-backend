@@ -1,4 +1,4 @@
-const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting } = require("../models");
+const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting, CompulsoryDeposit, CompulsoryDepositSetting } = require("../models");
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
@@ -1908,6 +1908,326 @@ const getAgentmembers = async (req, res) => {
     }
 };
 
+// Compulsory Deposit functionality
+const getCompulsoryDeposit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Get user details
+        const user = await User.findByPk(id, {
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                }
+            ]
+        });
+
+        if (!user) {
+            return res.status(404).render('error', {
+                title: 'Error - Vertex Admin',
+                message: 'Member not found',
+                error: 'The requested member could not be found.',
+                style: '',
+                script: '',
+                user: null
+            });
+        }
+
+        // Get all compulsory deposits for this user
+        const deposits = await CompulsoryDeposit.findAll({
+            where: { user_id: id },
+            order: [['deposit_date', 'DESC']]
+        });
+
+        // Render the compulsory deposit page
+        res.render('members/compulsory-deposit', {
+            title: 'Compulsory Deposit - Vertex Admin',
+            currentPage: 'members',
+            user: JSON.stringify(req.session.user, null, 2),
+            member: user,
+            deposits: deposits
+        });
+    } catch (error) {
+        console.error('Compulsory deposit error:', error);
+        res.render('error', {
+            title: 'Error - Vertex Admin',
+            message: 'Error fetching compulsory deposit details',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching deposit details.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+};
+
+const addCompulsoryDeposit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { amount, payment_method, transaction_id, notes } = req.body;
+
+        // Validate user exists
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Member not found' 
+            });
+        }
+
+        // Create new deposit record
+        const deposit = await CompulsoryDeposit.create({
+            user_id: id,
+            amount,
+            deposit_date: new Date(),
+            status: 'Pending',
+            payment_method,
+            transaction_id,
+            notes
+        });
+
+        return res.json({
+            success: true,
+            message: 'Compulsory deposit added successfully',
+            deposit
+        });
+    } catch (error) {
+        console.error('Add compulsory deposit error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error adding compulsory deposit',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while adding the deposit.'
+        });
+    }
+};
+
+const updateCompulsoryDeposit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { amount, payment_method, transaction_id, notes, status } = req.body;
+
+        // Find the deposit
+        const deposit = await CompulsoryDeposit.findByPk(id);
+        
+        if (!deposit) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Deposit record not found' 
+            });
+        }
+
+        // Update deposit
+        await deposit.update({
+            amount: amount || deposit.amount,
+            payment_method: payment_method || deposit.payment_method,
+            transaction_id: transaction_id || deposit.transaction_id,
+            notes: notes || deposit.notes,
+            status: status || deposit.status
+        });
+
+        return res.json({
+            success: true,
+            message: 'Compulsory deposit updated successfully',
+            deposit
+        });
+    } catch (error) {
+        console.error('Update compulsory deposit error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error updating compulsory deposit',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while updating the deposit.'
+        });
+    }
+};
+
+// CD Settings controller methods
+const getCDSettings = async (req, res) => {
+    try {
+        const { user_id } = req.query;
+
+        // Build query conditions
+        const whereCondition = {};
+        if (user_id) {
+            whereCondition.user_id = user_id;
+        }
+
+        // Get CD settings
+        const settings = await CompulsoryDepositSetting.findAll({
+            where: whereCondition,
+            order: [['created_at', 'DESC']]
+        });
+
+        return res.json({
+            success: true,
+            settings
+        });
+    } catch (error) {
+        console.error('Get CD settings error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching CD settings',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching settings.'
+        });
+    }
+};
+
+const addCDSetting = async (req, res) => {
+    try {
+        const { user_id, annual_rate, payment_interval, amount } = req.body;
+
+        // Validate inputs
+        if (!user_id || !annual_rate || !payment_interval || !amount) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        // Verify user exists
+        const user = await User.findByPk(user_id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check if user already has an active setting
+        const existingSetting = await CompulsoryDepositSetting.findOne({
+            where: {
+                user_id,
+                is_active: true
+            }
+        });
+
+        if (existingSetting) {
+            return res.status(400).json({
+                success: false,
+                message: 'User already has an active CD Setting. Please update the existing setting or deactivate it before creating a new one.'
+            });
+        }
+
+        // Create new CD setting
+        const setting = await CompulsoryDepositSetting.create({
+            user_id,
+            annual_rate,
+            payment_interval,
+            amount,
+            is_active: true
+        });
+
+        return res.json({
+            success: true,
+            message: 'CD Setting added successfully',
+            setting
+        });
+    } catch (error) {
+        console.error('Add CD setting error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error adding CD setting',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while adding the setting.'
+        });
+    }
+};
+
+const updateCDSetting = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { user_id, annual_rate, payment_interval, amount, is_active } = req.body;
+
+        // Find the setting
+        const setting = await CompulsoryDepositSetting.findByPk(id);
+        
+        if (!setting) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'CD Setting not found' 
+            });
+        }
+
+        // Check if trying to activate a setting
+        if (is_active === true && !setting.is_active) {
+            // Check if user already has an active setting
+            const existingSetting = await CompulsoryDepositSetting.findOne({
+                where: {
+                    user_id: user_id || setting.user_id,
+                    is_active: true,
+                    id: { [Op.ne]: id } // Exclude current setting
+                }
+            });
+
+            if (existingSetting) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'User already has an active CD Setting. Please deactivate it before activating this one.'
+                });
+            }
+        }
+        
+        // If this is an active setting being updated (not changing activation status),
+        // we should allow the update without additional checks
+        if (setting.is_active && is_active !== false) {
+            // This is an update to an already active setting, which is allowed
+        }
+
+        // Prepare update data
+        const updateData = {
+            annual_rate: annual_rate !== undefined ? annual_rate : setting.annual_rate,
+            payment_interval: payment_interval || setting.payment_interval,
+            amount: amount !== undefined ? amount : setting.amount,
+            is_active: is_active !== undefined ? is_active : setting.is_active
+        };
+
+        // If user_id is provided, verify user exists
+        if (user_id !== undefined && user_id !== setting.user_id) {
+            const user = await User.findByPk(user_id);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+            
+            // If changing user and activating, check if new user already has an active setting
+            if (is_active !== false) {
+                const newUserActiveSetting = await CompulsoryDepositSetting.findOne({
+                    where: {
+                        user_id: user_id,
+                        is_active: true,
+                        id: { [Op.ne]: id } // Exclude current setting
+                    }
+                });
+                
+                if (newUserActiveSetting) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'The new user already has an active CD Setting. Please deactivate it first.'
+                    });
+                }
+            }
+            
+            updateData.user_id = user_id;
+        }
+
+        // Update setting
+        await setting.update(updateData);
+
+        return res.json({
+            success: true,
+            message: 'CD Setting updated successfully',
+            setting
+        });
+    } catch (error) {
+        console.error('Update CD setting error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error updating CD setting',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while updating the setting.'
+        });
+    }
+};
+
 module.exports = {
     addMember,
     getAllMembers,
@@ -1938,5 +2258,11 @@ module.exports = {
     getMemberData,
     requestAgent,
     updateAgentStatus,
-    getAgentmembers
+    getAgentmembers,
+    getCompulsoryDeposit,
+    addCompulsoryDeposit,
+    updateCompulsoryDeposit,
+    getCDSettings,
+    addCDSetting,
+    updateCDSetting
 };

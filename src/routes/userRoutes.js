@@ -67,6 +67,16 @@ router.put('/:id/isfranchise', userController.updateIsFranchise);
 router.put('/:id/isedit', userController.updateIsEdit);
 router.put('/:id/pinpasswordstatus', userController.updatePinPasswordStatus);
 
+// Compulsory deposit routes
+router.get('/compulsory-deposit/:id', userController.getCompulsoryDeposit);
+router.post('/compulsory-deposit/:id', userController.addCompulsoryDeposit);
+router.put('/compulsory-deposit/:id', userController.updateCompulsoryDeposit);
+
+// CD Settings routes
+router.get('/cd-settings', userController.getCDSettings);
+router.post('/cd-settings', userController.addCDSetting);
+router.put('/cd-settings/:id', userController.updateCDSetting);
+
 // Member address management
 router.put('/address/:id/status', userController.updateAddressStatus);
 router.delete('/address/:id', userController.deleteAddress);

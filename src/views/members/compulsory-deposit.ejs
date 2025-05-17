@@ -1,0 +1,773 @@
+<%- contentFor('style') %>
+<style>
+    .main-content {
+       padding: 20px;
+    }
+    .welcome-section {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .section-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        padding: 20px;
+    }
+    .section-title {
+        border-bottom: 2px solid #f0f0f0;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+        color: #333;
+    }
+    .info-row {
+        margin-bottom: 15px;
+    }
+    .info-label {
+        font-weight: 600;
+        color: #666;
+    }
+    .info-value {
+        color: #333;
+    }
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    .status-approved {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    .status-rejected {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    .button-group {
+        display: flex;
+        flex-direction: row;
+        white-space: nowrap;
+    }
+    .button-group .btn:not(:last-child) {
+        margin-right: 1px;
+    }
+</style>
+
+<%- contentFor('body') %>
+<div class="main-content">
+    <div class="welcome-section">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Compulsory Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
+            <div>
+                <a href="/members/view/<%= member.id %>" class="btn btn-secondary">
+                    <i class="bx bx-arrow-back"></i> Back to Member
+                </a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDepositModal">
+                    <i class="bx bx-plus"></i> Add New Deposit
+                </button>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cdSettingsModal">
+                    <i class="bx bx-cog"></i> CD Settings
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Basic Info -->
+    <div class="section-card">
+        <h4 class="section-title">Member Information</h4>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="info-row">
+                    <div class="info-label">Member ID</div>
+                    <div class="info-value"><%= member.user_id %></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-row">
+                    <div class="info-label">Name</div>
+                    <div class="info-value"><%= member.profile ? member.profile.name : 'N/A' %></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-row">
+                    <div class="info-label">Mobile</div>
+                    <div class="info-value"><%= member.profile ? member.profile.mobile : 'N/A' %></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deposit History -->
+    <div class="section-card">
+        <h4 class="section-title">Deposit History</h4>
+        <% if (deposits && deposits.length > 0) { %>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>S.No.</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Transaction ID</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% deposits.forEach((deposit, index) => { %>
+                            <tr>
+                                <td><%= index + 1 %></td>
+                                <td><%= new Date(deposit.deposit_date).toLocaleDateString() %></td>
+                                <td>₹ <%= deposit.amount.toFixed(2) %></td>
+                                <td><%= deposit.payment_method || 'N/A' %></td>
+                                <td><%= deposit.transaction_id || 'N/A' %></td>
+                                <td>
+                                    <span class="status-badge status-<%= deposit.status.toLowerCase() %>">
+                                        <%= deposit.status %>
+                                    </span>
+                                </td>
+                                <td><%= deposit.notes || 'N/A' %></td>
+                                <td>
+                                    <div class="button-group">
+                                        <button class="btn btn-sm btn-warning" 
+                                            onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.notes %>', '<%= deposit.status %>')">
+                                            <i class="bx bx-edit"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-info" 
+                                            onclick="viewDepositDetails('<%= deposit.id %>')">
+                                            <i class="bx bx-show"></i> View
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <div class="alert alert-info">
+                No deposit records found for this member.
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<!-- Add Deposit Modal -->
+<div class="modal fade" id="addDepositModal" tabindex="-1" aria-labelledby="addDepositModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDepositModalLabel">Add New Deposit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDepositForm">
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <input type="number" class="form-control" id="amount" name="amount" required min="1" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Payment Method</label>
+                        <select class="form-select" id="payment_method" name="payment_method" required>
+                            <option value="">Select Payment Method</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="transaction_id" class="form-label">Transaction ID</label>
+                        <input type="text" class="form-control" id="transaction_id" name="transaction_id">
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitAddDepositForm()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Deposit Modal -->
+<div class="modal fade" id="editDepositModal" tabindex="-1" aria-labelledby="editDepositModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDepositModalLabel">Edit Deposit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editDepositForm">
+                    <input type="hidden" id="edit_deposit_id" name="deposit_id">
+                    <div class="mb-3">
+                        <label for="edit_amount" class="form-label">Amount</label>
+                        <input type="number" class="form-control" id="edit_amount" name="amount" required min="1" step="0.01">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_payment_method" class="form-label">Payment Method</label>
+                        <select class="form-select" id="edit_payment_method" name="payment_method" required>
+                            <option value="">Select Payment Method</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_transaction_id" class="form-label">Transaction ID</label>
+                        <input type="text" class="form-control" id="edit_transaction_id" name="transaction_id">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_status" class="form-label">Status</label>
+                        <select class="form-select" id="edit_status" name="status" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditDepositForm()">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Deposit Details Modal -->
+<div class="modal fade" id="viewDepositModal" tabindex="-1" aria-labelledby="viewDepositModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewDepositModalLabel">Deposit Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-4 info-label">Amount:</div>
+                    <div class="col-8 info-value" id="view_amount"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-4 info-label">Date:</div>
+                    <div class="col-8 info-value" id="view_date"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-4 info-label">Payment Method:</div>
+                    <div class="col-8 info-value" id="view_payment_method"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-4 info-label">Transaction ID:</div>
+                    <div class="col-8 info-value" id="view_transaction_id"></div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-4 info-label">Status:</div>
+                    <div class="col-8 info-value">
+                        <span class="status-badge" id="view_status_badge"></span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-4 info-label">Notes:</div>
+                    <div class="col-8 info-value" id="view_notes"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CD Settings Modal -->
+<div class="modal fade" id="cdSettingsModal" tabindex="-1" aria-labelledby="cdSettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cdSettingsModalLabel">Compulsory Deposit Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cdSettingsForm">
+                    <input type="hidden" id="cd_user_id" name="user_id" value="<%= member.id %>">
+                    <div class="mb-3">
+                        <label for="annual_rate" class="form-label">Annual Rate (%)</label>
+                        <input type="number" class="form-control" id="annual_rate" name="annual_rate" required min="0.01" step="0.01" placeholder="Enter annual interest rate">
+                        <small class="text-muted">Enter the yearly interest rate as a percentage</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="payment_interval" class="form-label">Payment Interval</label>
+                        <select class="form-select" id="payment_interval" name="payment_interval" required>
+                            <option value="">Select Payment Interval</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Yearly">Yearly</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cd_amount" class="form-label">Amount</label>
+                        <input type="number" class="form-control" id="cd_amount" name="amount" required min="1" step="1" placeholder="Enter amount">
+                    </div>
+                </form>
+
+                <div class="mt-4">
+                    <h6>Current CD Settings</h6>
+                    <div id="cdSettingsList" class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Annual Rate</th>
+                                    <th>Payment Interval</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cdSettingsTableBody">
+                                <!-- Settings will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitCDSettingsForm()">Save Settings</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- contentFor('script') %>
+<script>
+    // Add Deposit Form Submission
+    function submitAddDepositForm() {
+        const form = document.getElementById('addDepositForm');
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const amount = document.getElementById('amount').value;
+        const payment_method = document.getElementById('payment_method').value;
+        const transaction_id = document.getElementById('transaction_id').value;
+        const notes = document.getElementById('notes').value;
+        
+        const memberId = '<%= member.id %>';
+        
+        fetch(`/members/compulsory-deposit/${memberId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount,
+                payment_method,
+                transaction_id,
+                notes
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and reload page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addDepositModal'));
+                modal.hide();
+                
+                // Show success message
+                alert('Deposit added successfully!');
+                
+                // Reload page to show new deposit
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the deposit.');
+        });
+    }
+    
+    // Edit Deposit Modal
+    function openEditDepositModal(id, amount, payment_method, transaction_id, notes, status) {
+        document.getElementById('edit_deposit_id').value = id;
+        document.getElementById('edit_amount').value = amount;
+        document.getElementById('edit_payment_method').value = payment_method;
+        document.getElementById('edit_transaction_id').value = transaction_id;
+        document.getElementById('edit_notes').value = notes;
+        document.getElementById('edit_status').value = status;
+        
+        const modal = new bootstrap.Modal(document.getElementById('editDepositModal'));
+        modal.show();
+    }
+    
+    // Edit Deposit Form Submission
+    function submitEditDepositForm() {
+        const form = document.getElementById('editDepositForm');
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const depositId = document.getElementById('edit_deposit_id').value;
+        const amount = document.getElementById('edit_amount').value;
+        const payment_method = document.getElementById('edit_payment_method').value;
+        const transaction_id = document.getElementById('edit_transaction_id').value;
+        const notes = document.getElementById('edit_notes').value;
+        const status = document.getElementById('edit_status').value;
+        
+        fetch(`/members/compulsory-deposit/${depositId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount,
+                payment_method,
+                transaction_id,
+                notes,
+                status
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal and reload page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editDepositModal'));
+                modal.hide();
+                
+                // Show success message
+                alert('Deposit updated successfully!');
+                
+                // Reload page to show updated deposit
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the deposit.');
+        });
+    }
+    
+    // View Deposit Details
+    function viewDepositDetails(depositId) {
+        // Find the deposit in the table
+        const depositsData = <%- JSON.stringify(deposits || []) %>;
+        const deposit = depositsData.find(function(d) { 
+            return parseInt(d.id, 10) === parseInt(depositId, 10); 
+        });
+        
+        if (deposit) {
+            document.getElementById('view_amount').textContent = '₹ ' + parseFloat(deposit.amount).toFixed(2);
+            document.getElementById('view_date').textContent = new Date(deposit.deposit_date).toLocaleDateString();
+            document.getElementById('view_payment_method').textContent = deposit.payment_method || 'N/A';
+            document.getElementById('view_transaction_id').textContent = deposit.transaction_id || 'N/A';
+            
+            const statusBadge = document.getElementById('view_status_badge');
+            statusBadge.textContent = deposit.status;
+            statusBadge.className = 'status-badge status-' + deposit.status.toLowerCase();
+            
+            document.getElementById('view_notes').textContent = deposit.notes || 'N/A';
+            
+            const modal = new bootstrap.Modal(document.getElementById('viewDepositModal'));
+            modal.show();
+        } else {
+            alert('Deposit details not found.');
+        }
+    }
+    
+    // CD Settings Functions
+    
+    // Load CD Settings when modal is opened
+    document.getElementById('cdSettingsModal').addEventListener('show.bs.modal', function () {
+        loadCDSettings();
+    });
+    
+    // Load CD Settings from the server
+    function loadCDSettings() {
+        const userId = document.getElementById('cd_user_id').value;
+        fetch('/members/cd-settings?user_id=' + userId)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    displayCDSettings(data.settings);
+                } else {
+                    console.error('Error loading CD settings:', data.message);
+                    alert('Error loading CD settings: ' + data.message);
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert('An error occurred while loading CD settings.');
+            });
+    }
+    
+    // Display CD Settings in the table
+    function displayCDSettings(settings) {
+        const tableBody = document.getElementById('cdSettingsTableBody');
+        tableBody.innerHTML = '';
+        
+        // Check if there's an active setting to determine if we should show the Add button
+        const hasActiveSetting = settings && settings.some(function(setting) { return setting.is_active; });
+        const addButton = document.querySelector('#cdSettingsModal .modal-footer .btn-primary');
+        
+        if (hasActiveSetting) {
+            // If there's an active setting, disable the Add button
+            addButton.textContent = 'Save Settings';
+            addButton.disabled = true;
+            addButton.title = 'Deactivate the current active setting before adding a new one';
+            
+            // Add a message at the top of the table
+            // const messageDiv = document.createElement('div');
+            // messageDiv.className = 'alert alert-info mb-3';
+            // messageDiv.textContent = 'Only one active CD Setting is allowed. Deactivate the current setting to add a new one.';
+            // document.getElementById('cdSettingsList').prepend(messageDiv);
+        } else {
+            // If there's no active setting, enable the Add button
+            addButton.textContent = 'Save Settings';
+            addButton.disabled = false;
+            addButton.title = '';
+            
+            // Remove any existing message
+            const existingMessage = document.getElementById('cdSettingsList').querySelector('.alert');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+        }
+        
+        if (settings && settings.length > 0) {
+            settings.forEach(function(setting) {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = 
+                    '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
+                    '<td>' + setting.payment_interval + '</td>' +
+                    '<td>₹ ' + setting.amount + '</td>' +
+                    '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
+                    (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+                    '<td><div class="button-group">' +
+                    '<button class="btn btn-sm btn-warning" onclick="editCDSetting(' + setting.id + ', ' + setting.annual_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
+                    '<i class="bx bx-edit"></i></button>' +
+                    '<button class="btn btn-sm btn-' + (setting.is_active ? 'danger' : 'success') + '" onclick="toggleCDSettingStatus(' + setting.id + ', ' + (!setting.is_active ? 'true' : 'false') + ')">' +
+                    '<i class="bx bx-' + (setting.is_active ? 'power-off' : 'check') + '"></i></button>' +
+                    '</div></td>';
+                
+                tableBody.appendChild(row);
+            });
+        } else {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="5" class="text-center">No CD settings found</td>';
+            tableBody.appendChild(row);
+        }
+    }
+    
+    // Submit CD Settings Form
+    function submitCDSettingsForm() {
+        const form = document.getElementById('cdSettingsForm');
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const user_id = document.getElementById('cd_user_id').value;
+        const annual_rate = document.getElementById('annual_rate').value;
+        const payment_interval = document.getElementById('payment_interval').value;
+        const amount = document.getElementById('cd_amount').value;
+        
+        // Show loading state
+        const saveButton = document.querySelector('#cdSettingsModal .modal-footer .btn-primary');
+        const originalText = saveButton.textContent;
+        saveButton.textContent = 'Saving...';
+        saveButton.disabled = true;
+        
+        fetch('/members/cd-settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_id: user_id,
+                annual_rate: annual_rate,
+                payment_interval: payment_interval,
+                amount: amount
+            })
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                // Reset form
+                form.reset();
+                
+                // Show success message
+                alert('CD Setting added successfully!');
+                
+                // Reload settings
+                loadCDSettings();
+            } else {
+                // Show error message
+                alert('Error: ' + data.message);
+                
+                // Reset button state
+                saveButton.textContent = originalText;
+                saveButton.disabled = false;
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('An error occurred while adding the CD setting.');
+            
+            // Reset button state
+            saveButton.textContent = originalText;
+            saveButton.disabled = false;
+        });
+    }
+    
+    // Edit CD Setting
+    function editCDSetting(id, annual_rate, payment_interval, amount, is_active) {
+        // Set form values
+        document.getElementById('annual_rate').value = annual_rate;
+        document.getElementById('payment_interval').value = payment_interval;
+        document.getElementById('cd_amount').value = amount;
+        
+        // Change button to update
+        const saveButton = document.querySelector('#cdSettingsModal .modal-footer .btn-primary');
+        saveButton.textContent = 'Update Setting';
+        saveButton.disabled = false; // Always enable the button for editing
+        
+        // Store the original onclick function
+        const originalOnClick = saveButton.onclick;
+        
+        // Set new onclick function
+        saveButton.onclick = function() {
+            updateCDSetting(id);
+            
+            // After updating, restore the original onclick function
+            setTimeout(function() {
+                saveButton.onclick = originalOnClick;
+            }, 100);
+        };
+    }
+    
+    // Update CD Setting
+    function updateCDSetting(id) {
+        const form = document.getElementById('cdSettingsForm');
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const user_id = document.getElementById('cd_user_id').value;
+        const annual_rate = document.getElementById('annual_rate').value;
+        const payment_interval = document.getElementById('payment_interval').value;
+        const amount = document.getElementById('cd_amount').value;
+        
+        fetch('/members/cd-settings/' + id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_id: user_id,
+                annual_rate: annual_rate,
+                payment_interval: payment_interval,
+                amount: amount
+            })
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                // Reset form
+                form.reset();
+                
+                // Reset button
+                const saveButton = document.querySelector('#cdSettingsModal .modal-footer .btn-primary');
+                saveButton.textContent = 'Save Settings';
+                saveButton.onclick = submitCDSettingsForm;
+                
+                // Show success message
+                alert('CD Setting updated successfully!');
+                
+                // Reload settings
+                loadCDSettings();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('An error occurred while updating the CD setting.');
+        });
+    }
+    
+    // Toggle CD Setting Status
+    function toggleCDSettingStatus(id, is_active) {
+        // Show loading state on the button
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
+        button.disabled = true;
+        
+        fetch('/members/cd-settings/' + id, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                is_active: is_active
+            })
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.success) {
+                // Show success message
+                alert('CD Setting ' + (is_active ? 'activated' : 'deactivated') + ' successfully!');
+                
+                // Reload settings
+                loadCDSettings();
+            } else {
+                // Show error message
+                alert('Error: ' + data.message);
+                
+                // Reset button state
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('An error occurred while updating the CD setting status.');
+            
+            // Reset button state
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        });
+    }
+</script>

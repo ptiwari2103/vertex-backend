@@ -82,6 +82,17 @@ padding: 5px 10px;
 font-size: 14px;
 margin: 0 2px;
 }
+
+
+.button-group {
+    display: flex;
+    flex-direction: row;
+    white-space: nowrap;
+}
+
+.button-group .btn:not(:last-child) {
+    margin-right: 1px;
+}
 </style>
 
 <%- contentFor('body') %>
@@ -211,6 +222,7 @@ margin: 0 2px;
                             </td>
                             <td><%= new Date(member.created_date).toLocaleDateString() %></td>
                             <td>
+                                <div class="button-group">
                                 <a href="/members/view/<%= member.id %>" class="btn btn-sm btn-info action-btn">
                                     <i class="bx bx-show"></i> View
                                 </a>
@@ -226,6 +238,11 @@ margin: 0 2px;
                                         <i class="bx bx-plus"></i> Add Member
                                     </button>
                                 <% } %>
+
+                                <a href="/members/compulsory-deposit/<%= member.id %>" class="btn btn-sm btn-danger action-btn">
+                                    <i class="bx bx-money"></i> Compulsory Deposit 
+                                </a>
+                                </div>
                             </td>
                         </tr>
                     <% }); %>
