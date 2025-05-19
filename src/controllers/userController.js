@@ -1,4 +1,4 @@
-const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting, CompulsoryDeposit, CompulsoryDepositSetting } = require("../models");
+const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting, CompulsoryDeposit, CompulsoryDepositSetting, OverdraftDeposit } = require("../models");
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
@@ -2098,6 +2098,36 @@ const calculateDeposits = async (req, res) => {
             const interestAmount = parseFloat(deposit.amount) * (parseFloat(deposit.per_day_rate) / 100) * diffDays;
             let totalAmount = parseFloat(deposit.amount) + interestAmount;
             
+
+            if(diffDays > process.env.CD_MINIMUM_INTEREST_HOLD_DAYS){
+                // Insert a copy of interest amount into OverdraftDeposit table
+                // Get the last record's total_amount for this user_id and type
+                let OverdraftTotalDeposit = 0.00;
+                const lastOverdraftRecord = await OverdraftDeposit.findOne({
+                    where: { user_id: deposit.user_id, type: 'CD' },
+                    order: [['created_at', 'DESC']]
+                });
+                
+                // If record found, add the interest amount to the last total_amount
+                if (lastOverdraftRecord) {
+                    OverdraftTotalDeposit = parseFloat(lastOverdraftRecord.total_amount) + interestAmount;
+                } else {
+                    // If no record found, initialize with just the interest amount
+                    OverdraftTotalDeposit = interestAmount;
+                }
+                
+                await OverdraftDeposit.create({
+                    user_id: deposit.user_id,
+                    type: 'CD',
+                    type_id: deposit.id,
+                    amount: deposit.amount,
+                    total_days: diffDays,
+                    interest_amount: interestAmount.toFixed(2),
+                    total_amount: OverdraftTotalDeposit.toFixed(2),
+                    deposit_date: new Date(),
+                    status: 'Approved'
+                });
+            }
             
             // Update the deposit record
             await deposit.update({
@@ -2118,6 +2148,69 @@ const calculateDeposits = async (req, res) => {
             success: false,
             message: 'Error calculating deposits',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while calculating deposits.'
+        });
+    }
+};
+
+// Get Overdraft Deposits with search and pagination
+const getOverdraftDeposits = async (req, res) => {
+    try {
+        const { user_id, date, page = 1, limit = 10 } = req.query;
+        
+        // Validate user_id
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+        
+        // Build the where clause for filtering
+        const whereClause = { user_id };
+        
+        // Add exact date filter if provided
+        if (date) {
+            // Create start and end of the specified date
+            const filterDate = new Date(date);
+            const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+            
+            whereClause.deposit_date = {
+                [Op.gte]: startOfDay,
+                [Op.lte]: endOfDay
+            };
+        }
+        
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalCount = await OverdraftDeposit.count({ where: whereClause });
+        
+        // Get transactions with pagination
+        const transactions = await OverdraftDeposit.findAll({
+            where: whereClause,
+            order: [['deposit_date', 'DESC']],
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+        
+        return res.json({
+            success: true,
+            transactions,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(totalCount / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get Overdraft Deposits error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching Overdraft Deposits',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching Overdraft Deposits.'
         });
     }
 };
@@ -2408,6 +2501,7 @@ module.exports = {
     addCompulsoryDeposit,
     updateCompulsoryDeposit,
     calculateDeposits,
+    getOverdraftDeposits,
     getCDTransactions,
     getCDSettings,
     addCDSetting,

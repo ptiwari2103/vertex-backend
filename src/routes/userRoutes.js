@@ -76,6 +76,9 @@ router.post('/calculate-deposits/:id', userController.calculateDeposits);
 // CD Transactions route
 router.get('/cd-transactions', userController.getCDTransactions);
 
+// Overdraft Deposits route
+router.get('/overdraft-deposits', userController.getOverdraftDeposits);
+
 // CD Settings routes
 router.get('/cd-settings', userController.getCDSettings);
 router.post('/cd-settings', userController.addCDSetting);
