@@ -1,5 +1,40 @@
 <%- contentFor('style') %>
 <style>
+    /* Overlay Loader Styles */
+    .overlay-loader {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+    
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #3498db;
+        border-radius: 50%;
+        animation: spin 2s linear infinite;
+    }
+    
+    .loader-text {
+        color: white;
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: 500;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
     .main-content {
        padding: 20px;
     }
@@ -8,7 +43,7 @@
         padding: 20px;
         border-radius: 10px;
         box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
+        margin-bottom: 0;
     }
     .section-card {
         background: white;
@@ -27,29 +62,49 @@
         margin-bottom: 15px;
     }
     .info-label {
-        font-weight: 600;
-        color: #666;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #343a40;
+        font-size: 0.95rem;
     }
     .info-value {
-        color: #333;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #212529;
+        text-align: left;
+        padding-left: 0;
     }
     .status-badge {
-        padding: 5px 10px;
-        border-radius: 15px;
-        font-size: 12px;
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
         font-weight: 500;
     }
     .status-pending {
-        background-color: #fff3cd;
-        color: #856404;
+        background-color: #ffc107;
+        color: #212529;
     }
     .status-approved {
-        background-color: #d4edda;
-        color: #155724;
+        background-color: #28a745;
+        color: #fff;
     }
     .status-rejected {
-        background-color: #f8d7da;
-        color: #721c24;
+        background-color: #dc3545;
+        color: #fff;
+    }
+    #viewDepositModal .modal-body {
+        padding: 1.5rem;
+    }
+    #viewDepositModal .row {
+        margin-bottom: 0.75rem;
+    }
+    #viewDepositModal .modal-content {
+        border-radius: 0.5rem;
     }
     .button-group {
         display: flex;
@@ -62,6 +117,12 @@
 </style>
 
 <%- contentFor('body') %>
+<!-- Overlay Loader -->
+<div class="overlay-loader" id="overlayLoader">
+    <div class="spinner"></div>
+    <div class="loader-text">Calculating deposits... Please wait</div>
+</div>
+
 <div class="main-content">
     <div class="welcome-section">
         <div class="d-flex justify-content-between align-items-center">
@@ -75,6 +136,9 @@
                 </button>
                 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cdSettingsModal">
                     <i class="bx bx-cog"></i> CD Settings
+                </button>
+                <button type="button" class="btn btn-success" id="calculateButton" onclick="calculateDeposits()">
+                    <i class="bx bx-calculator"></i> Calculate
                 </button>
             </div>
         </div>
@@ -124,7 +188,7 @@
                             <th>Amount</th>
                             <th>Payment Method</th>
                             <th>Transaction ID</th>                            
-                            <th>Annual Rate</th>
+                            <th>Per Day Rate</th>
                             <th>Payment Interval</th>
                             <th>Interest Amount</th>
                             <th>Penality Paid Amount</th>
@@ -141,7 +205,7 @@
                                 <td>₹ <%= deposit.amount.toFixed(2) %></td>
                                 <td><%= deposit.payment_method || 'N/A' %></td>
                                 <td><%= deposit.transaction_id || 'N/A' %></td>
-                                <td><%= deposit.annual_rate || 'N/A' %></td>
+                                <td><%= deposit.per_day_rate || 'N/A' %></td>
                                 <td><%= deposit.payment_interval || 'N/A' %></td>
                                 <td><%= deposit.interest_amount || 'N/A' %></td>
                                 <td><%= deposit.penality_paid_amount || 'N/A' %></td>
@@ -154,7 +218,7 @@
                                 <td>
                                     <div class="button-group">
                                         <button class="btn btn-sm btn-warning" 
-                                            onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.notes %>', '<%= deposit.status %>')">
+                                            onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.comments %>', '<%= deposit.status %>')">
                                             <i class="bx bx-edit"></i> Edit
                                         </button>
                                         <button class="btn btn-sm btn-info" 
@@ -186,32 +250,68 @@
             </div>
             <div class="modal-body">
                 <form id="addDepositForm">
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Amount</label>
-                        <input type="number" class="form-control" id="amount" name="amount" required min="1" step="0.01">
+                    <!-- First row: Annual Rate and Required Amount -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="deposit_per_day_rate" class="form-label">Per Day Rate (%)</label>
+                            <input type="number" class="form-control" id="deposit_per_day_rate" name="per_day_rate" required min="0.01" step="0.01" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="required_amount" class="form-label">Required Amount</label>
+                            <input type="number" class="form-control" id="required_amount" name="required_amount" required min="1" step="0.01" readonly>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="payment_method" class="form-label">Payment Method</label>
-                        <select class="form-select" id="payment_method" name="payment_method" required>
-                            <option value="">Select Payment Method</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="UPI">UPI</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Other">Other</option>
-                        </select>
+                    
+                    <!-- Second row: Payment Interval and Paid Amount -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="deposit_payment_interval" class="form-label">Payment Interval</label>
+                            <input type="text" class="form-control" id="deposit_payment_interval" name="payment_interval" required readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">Paid Amount</label>
+                            <input type="number" class="form-control" id="amount" name="amount" required min="1" step="0.01">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="transaction_id" class="form-label">Transaction ID</label>
-                        <input type="text" class="form-control" id="transaction_id" name="transaction_id">
+                    
+                    <!-- Third row: Payment Method and Transaction ID -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="payment_method" class="form-label">Payment Method</label>
+                            <select class="form-select" id="payment_method" name="payment_method" required>
+                                <option value="">Select Payment Method</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="transaction_id" class="form-label">Transaction ID</label>
+                            <input type="text" class="form-control" id="transaction_id" name="transaction_id">
+                        </div>
                     </div>
+                    
+                    <!-- Fifth row: Notes -->
                     <div class="mb-3">
                         <label for="notes" class="form-label">Notes</label>
                         <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
                     </div>
+                    
+                    <!-- Sixth row: Status -->
+                    <div class="mb-3">
+                        <label for="deposit_status" class="form-label">Status</label>
+                        <select class="form-select" id="deposit_status" name="status" required>
+                            <option value="Approved" selected>Approved</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
+                <input type="hidden" id="deposit_setting_id" name="deposit_setting_id">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="submitAddDepositForm()">Save</button>
             </div>
@@ -229,37 +329,82 @@
             </div>
             <div class="modal-body">
                 <form id="editDepositForm">
-                    <input type="hidden" id="edit_deposit_id" name="deposit_id">
-                    <div class="mb-3">
-                        <label for="edit_amount" class="form-label">Amount</label>
-                        <input type="number" class="form-control" id="edit_amount" name="amount" required min="1" step="0.01">
+                    <input type="text" id="edit_deposit_id" name="deposit_id">
+                    <input type="text" id="edit_setting_id" name="setting_id">
+                    
+                    <!-- First row: Annual Rate and Required Amount -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_per_day_rate" class="form-label">Per Day Rate (%)</label>
+                            <input type="number" class="form-control" id="edit_per_day_rate" name="annual_rate" required min="0.01" step="0.01">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_required_amount" class="form-label">Required Amount</label>
+                            <input type="number" class="form-control" id="edit_required_amount" name="required_amount" required min="1" step="0.01" readonly>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_payment_method" class="form-label">Payment Method</label>
-                        <select class="form-select" id="edit_payment_method" name="payment_method" required>
-                            <option value="">Select Payment Method</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                            <option value="UPI">UPI</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Other">Other</option>
-                        </select>
+                    
+                    <!-- Second row: Payment Interval and Paid Amount -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_payment_interval" class="form-label">Payment Interval</label>
+                            <select class="form-select" id="edit_payment_interval" name="payment_interval" required>
+                                <option value="Daily">Daily</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Yearly">Yearly</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_amount" class="form-label">Paid Amount</label>
+                            <input type="number" class="form-control" id="edit_amount" name="amount" required min="1" step="0.01">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_transaction_id" class="form-label">Transaction ID</label>
-                        <input type="text" class="form-control" id="edit_transaction_id" name="transaction_id">
+                    
+                    <!-- Third row: Payment Method and Transaction ID -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_payment_method" class="form-label">Payment Method</label>
+                            <select class="form-select" id="edit_payment_method" name="payment_method" required>
+                                <option value="">Select Payment Method</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="UPI">UPI</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_transaction_id" class="form-label">Transaction ID</label>
+                            <input type="text" class="form-control" id="edit_transaction_id" name="transaction_id">
+                        </div>
                     </div>
+                    
+                    <!-- Fourth row: Penalty Amount and Penalty Paid Amount -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_penalty_amount" class="form-label">Penalty Amount</label>
+                            <input type="number" class="form-control" id="edit_penalty_amount" name="penalty_amount" step="0.01" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_penalty_paid_amount" class="form-label">Penalty Paid Amount</label>
+                            <input type="number" class="form-control" id="edit_penalty_paid_amount" name="penalty_paid_amount" min="0" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <!-- Fifth row: Notes -->
+                    <div class="mb-3">
+                        <label for="edit_comments" class="form-label">Notes</label>
+                        <textarea class="form-control" id="edit_comments" name="comments" rows="3"></textarea>
+                    </div>
+                    
+                    <!-- Sixth row: Status -->
                     <div class="mb-3">
                         <label for="edit_status" class="form-label">Status</label>
                         <select class="form-select" id="edit_status" name="status" required>
-                            <option value="Pending">Pending</option>
                             <option value="Approved">Approved</option>
+                            <option value="Pending">Pending</option>
                             <option value="Rejected">Rejected</option>
                         </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="edit_notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
                     </div>
                 </form>
             </div>
@@ -273,7 +418,7 @@
 
 <!-- View Deposit Details Modal -->
 <div class="modal fade" id="viewDepositModal" tabindex="-1" aria-labelledby="viewDepositModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="viewDepositModalLabel">Deposit Details</h5>
@@ -281,30 +426,119 @@
             </div>
             <div class="modal-body">
                 <div class="row mb-3">
-                    <div class="col-4 info-label">Amount:</div>
-                    <div class="col-8 info-value" id="view_amount"></div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Date:</div>
+                            <div class="col-6 info-value" id="view_date"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Per Day Rate:</div>
+                            <div class="col-6 info-value" id="view_per_day_rate"></div>
+                        </div>
+                    </div>                    
                 </div>
+                
                 <div class="row mb-3">
-                    <div class="col-4 info-label">Date:</div>
-                    <div class="col-8 info-value" id="view_date"></div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Required Amount:</div>
+                            <div class="col-6 info-value" id="view_required_amount"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Payment Interval:</div>
+                            <div class="col-6 info-value" id="view_payment_interval"></div>
+                        </div>
+                    </div>                    
                 </div>
+
+
                 <div class="row mb-3">
-                    <div class="col-4 info-label">Payment Method:</div>
-                    <div class="col-8 info-value" id="view_payment_method"></div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Total Days:</div>
+                            <div class="col-6 info-value" id="view_total_days"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Total Interest:</div>
+                            <div class="col-6 info-value" id="view_interest_amount"></div>
+                        </div>
+                    </div>
                 </div>
+
+
+                <!-- Penalty Amount and Penalty Paid Amount in one row -->
                 <div class="row mb-3">
-                    <div class="col-4 info-label">Transaction ID:</div>
-                    <div class="col-8 info-value" id="view_transaction_id"></div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Penalty Amount:</div>
+                            <div class="col-6 info-value" id="view_penalty_amount"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Penalty Paid:</div>
+                            <div class="col-6 info-value" id="view_penalty_paid_amount"></div>
+                        </div>
+                    </div>
                 </div>
+                
+                <!-- Payment Method and Transaction ID in one row -->
                 <div class="row mb-3">
-                    <div class="col-4 info-label">Status:</div>
-                    <div class="col-8 info-value">
-                        <span class="status-badge" id="view_status_badge"></span>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Paid Amount:</div>
+                            <div class="col-6 info-value" id="view_amount"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Total Amount:</div>
+                            <div class="col-6 info-value" id="view_total_amount"></div>
+                        </div>
+                    </div>                    
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Payment Method:</div>
+                            <div class="col-6 info-value" id="view_payment_method"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Transaction ID:</div>
+                            <div class="col-6 info-value" id="view_transaction_id"></div>
+                        </div>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-4 info-label">Notes:</div>
                     <div class="col-8 info-value" id="view_notes"></div>
+                </div>              
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Interest Added:</div>
+                            <div class="col-6 info-value" id="view_interest_added"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-6 info-label">Status:</div>
+                            <div class="col-6 info-value">
+                                <span class="status-badge" id="view_status_badge"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -375,19 +609,146 @@
 
 <%- contentFor('script') %>
 <script>
+    // Function to handle deposit calculation
+    function calculateDeposits() {
+        // Show the overlay loader
+        const loader = document.getElementById('overlayLoader');
+        loader.style.display = 'flex';
+        
+        // Disable all buttons and inputs to prevent user interaction
+        const buttons = document.querySelectorAll('button');
+        const inputs = document.querySelectorAll('input, select, textarea');
+        
+        buttons.forEach(button => button.disabled = true);
+        inputs.forEach(input => input.disabled = true);
+        
+        // Get the user ID
+        const userId = '<%= member.id %>';
+        
+        // Send request to the server
+        fetch(`/members/calculate-deposits/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide the loader
+            loader.style.display = 'none';
+            
+            // Re-enable all buttons and inputs
+            buttons.forEach(button => button.disabled = false);
+            inputs.forEach(input => input.disabled = false);
+            
+            if (data.success) {
+                // Show success message
+                alert('Calculation completed successfully!');
+                
+                // Reload the page to show updated data
+                window.location.reload();
+            } else {
+                // Show error message
+                alert('Error: ' + (data.message || 'An error occurred during calculation.'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            
+            // Hide the loader
+            loader.style.display = 'none';
+            
+            // Re-enable all buttons and inputs
+            buttons.forEach(button => button.disabled = false);
+            inputs.forEach(input => input.disabled = false);
+            
+            // Show error message
+            alert('An error occurred during calculation. Please try again.');
+        });
+    }
+    // Load active CD settings when Add Deposit modal is opened
+    document.getElementById('addDepositModal').addEventListener('show.bs.modal', function () {
+        loadActiveCDSettingForDeposit();
+    });
+    
+    // Load active CD setting for deposit
+    function loadActiveCDSettingForDeposit() {
+        const userId = '<%= member.id %>';
+        fetch('/members/cd-settings?user_id=' + userId)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success && data.settings && data.settings.length > 0) {
+                    // Find active setting
+                    const activeSetting = data.settings.find(function(setting) { 
+                        return setting.is_active; 
+                    });
+                    
+                    if (activeSetting) {
+                        // Set values in the form
+                        document.getElementById('deposit_setting_id').value = activeSetting.id;
+                        document.getElementById('deposit_per_day_rate').value = parseFloat(activeSetting.annual_rate/365).toFixed(2);
+                        document.getElementById('deposit_payment_interval').value = activeSetting.payment_interval;
+                        document.getElementById('required_amount').value = activeSetting.amount;
+                        
+                        // Set the paid amount to match the required amount by default
+                        document.getElementById('amount').value = activeSetting.amount;
+                        
+                        // Set focus on the payment method field since the amount is pre-filled
+                        setTimeout(function() {
+                            document.getElementById('payment_method').focus();
+                        }, 500);
+                    } else {
+                        alert('No active CD setting found. Please set up CD settings first.');
+                        // Close modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('addDepositModal'));
+                        modal.hide();
+                    }
+                } else {
+                    alert('No CD settings found. Please set up CD settings first.');
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addDepositModal'));
+                    modal.hide();
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert('An error occurred while loading CD settings.');
+            });
+    }
+    
     // Add Deposit Form Submission
     function submitAddDepositForm() {
         const form = document.getElementById('addDepositForm');
+        
+        // Add custom validation for required fields
+        const amount = document.getElementById('amount').value;
+        const payment_method = document.getElementById('payment_method').value;
+        const status = document.getElementById('deposit_status').value;
+        
+        // Check required fields manually
+        if (!amount || !payment_method || !status) {
+            alert('Please fill in all required fields: Paid Amount, Payment Method, and Status');
+            return;
+        }
         
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
         
-        const amount = document.getElementById('amount').value;
-        const payment_method = document.getElementById('payment_method').value;
-        const transaction_id = document.getElementById('transaction_id').value;
-        const notes = document.getElementById('notes').value;
+        // Get values from the form
+        const deposit_setting_id = document.getElementById('deposit_setting_id').value;
+        const required_amount = document.getElementById('required_amount').value;
+        const per_day_rate = document.getElementById('deposit_per_day_rate').value;
+        const payment_interval = document.getElementById('deposit_payment_interval').value;
+        const transaction_id = document.getElementById('transaction_id').value || ''; // Optional
+        const comments = document.getElementById('notes').value || ''; // Optional
+        
+        // Show loading state on the save button
+        const saveButton = document.querySelector('#addDepositModal .modal-footer .btn-primary');
+        const originalText = saveButton.textContent;
+        saveButton.textContent = 'Saving...';
+        saveButton.disabled = true;
         
         const memberId = '<%= member.id %>';
         
@@ -397,10 +758,15 @@
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
+                deposit_setting_id,
+                per_day_rate,
+                required_amount,
+                payment_interval,
                 amount,
                 payment_method,
                 transaction_id,
-                notes
+                comments,
+                status
             })
         })
         .then(response => response.json())
@@ -416,31 +782,98 @@
                 // Reload page to show new deposit
                 window.location.reload();
             } else {
+                // Show error message
                 alert('Error: ' + data.message);
+                
+                // Reset button state
+                saveButton.textContent = originalText;
+                saveButton.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error:', error);
             alert('An error occurred while adding the deposit.');
+            
+            // Reset button state
+            saveButton.textContent = originalText;
+            saveButton.disabled = false;
         });
     }
     
     // Edit Deposit Modal
     function openEditDepositModal(id, amount, payment_method, transaction_id, notes, status) {
-        document.getElementById('edit_deposit_id').value = id;
-        document.getElementById('edit_amount').value = amount;
-        document.getElementById('edit_payment_method').value = payment_method;
-        document.getElementById('edit_transaction_id').value = transaction_id;
-        document.getElementById('edit_notes').value = notes;
-        document.getElementById('edit_status').value = status;
+        // Find the deposit in the table to get all fields
+        const depositsData = <%- JSON.stringify(deposits || []) %>;
+        //console.log("openEditDepositModal depositsData", depositsData);
+        const deposit = depositsData.find(function(d) { 
+            return parseInt(d.id, 10) === parseInt(id, 10); 
+        });
+        //console.log("openEditDepositModal deposit", deposit);
         
-        const modal = new bootstrap.Modal(document.getElementById('editDepositModal'));
-        modal.show();
+        // If deposit doesn't have a setting_id, fetch the latest compulsory deposit setting
+        if(!deposit.setting_id){
+            // Get the user ID from the URL or a hidden field
+            const userId = '<%= member.id %>';
+            
+            // Fetch the latest active setting for this user
+            fetch('/members/cd-settings?user_id=' + userId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success && data.settings && data.settings.length > 0) {
+                        // Find active setting
+                        const activeSetting = data.settings.find(function(setting) { 
+                            return setting.is_active; 
+                        });
+                        
+                        if (activeSetting) {
+                            // Set the values from the active setting
+                            document.getElementById('edit_per_day_rate').value = parseFloat(activeSetting.annual_rate/365).toFixed(2) || '';
+                            document.getElementById('edit_required_amount').value = activeSetting.amount || '';
+                            document.getElementById('edit_payment_interval').value = activeSetting.payment_interval || 'Monthly';
+                            document.getElementById('edit_setting_id').value = activeSetting.id;
+                        }
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error fetching CD settings:', error);
+                });
+        }
+        
+        if (deposit) {
+            document.getElementById('edit_deposit_id').value = id;
+            document.getElementById('edit_setting_id').value = deposit.setting_id;
+            document.getElementById('edit_amount').value = amount;
+            document.getElementById('edit_per_day_rate').value = deposit.per_day_rate || '';
+            document.getElementById('edit_required_amount').value = deposit.required_amount || '';
+            document.getElementById('edit_payment_interval').value = deposit.payment_interval || 'Monthly';
+            document.getElementById('edit_payment_method').value = payment_method;
+            document.getElementById('edit_transaction_id').value = transaction_id;
+            document.getElementById('edit_penalty_amount').value = deposit.penality_amount || '0.00';
+            document.getElementById('edit_penalty_paid_amount').value = deposit.penality_paid_amount || '0.00';
+            document.getElementById('edit_comments').value = notes;
+            document.getElementById('edit_status').value = status;
+            
+            const modal = new bootstrap.Modal(document.getElementById('editDepositModal'));
+            modal.show();
+        } else {
+            alert('Deposit details not found.');
+        }
     }
     
     // Edit Deposit Form Submission
     function submitEditDepositForm() {
         const form = document.getElementById('editDepositForm');
+        
+        // Add custom validation for required fields
+        const amountValue = document.getElementById('edit_amount').value;
+        const paymentMethodValue = document.getElementById('edit_payment_method').value;
+        const statusValue = document.getElementById('edit_status').value;
+        
+        // Check required fields manually
+        if (!amountValue || !paymentMethodValue || !statusValue) {
+            alert('Please fill in all required fields: Paid Amount, Payment Method, and Status');
+            return;
+        }
         
         if (!form.checkValidity()) {
             form.reportValidity();
@@ -448,11 +881,22 @@
         }
         
         const depositId = document.getElementById('edit_deposit_id').value;
-        const amount = document.getElementById('edit_amount').value;
-        const payment_method = document.getElementById('edit_payment_method').value;
-        const transaction_id = document.getElementById('edit_transaction_id').value;
-        const notes = document.getElementById('edit_notes').value;
-        const status = document.getElementById('edit_status').value;
+        const per_day_rate = document.getElementById('edit_per_day_rate').value;
+        const required_amount = document.getElementById('edit_required_amount').value;
+        const payment_interval = document.getElementById('edit_payment_interval').value;
+        const transaction_id = document.getElementById('edit_transaction_id').value || '';
+        const penality_paid_amount = document.getElementById('edit_penalty_paid_amount').value || '0';
+        const comments = document.getElementById('edit_comments').value || '';
+        
+        // Get setting_id if available
+        const settingIdField = document.getElementById('edit_setting_id');
+        const setting_id = settingIdField ? settingIdField.value : null;
+        
+        // Show loading state on the update button
+        const updateButton = document.querySelector('#editDepositModal .modal-footer .btn-primary');
+        const originalText = updateButton.textContent;
+        updateButton.textContent = 'Updating...';
+        updateButton.disabled = true;
         
         fetch(`/members/compulsory-deposit/${depositId}`, {
             method: 'PUT',
@@ -460,11 +904,16 @@
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                amount,
-                payment_method,
+                amount: amountValue,
+                per_day_rate,
+                required_amount,
+                payment_interval,
+                payment_method: paymentMethodValue,
                 transaction_id,
-                notes,
-                status
+                penality_paid_amount,
+                comments,
+                status: statusValue,
+                setting_id: setting_id
             })
         })
         .then(response => response.json())
@@ -481,11 +930,19 @@
                 window.location.reload();
             } else {
                 alert('Error: ' + data.message);
+                
+                // Reset button state
+                updateButton.textContent = originalText;
+                updateButton.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error:', error);
             alert('An error occurred while updating the deposit.');
+            
+            // Reset button state
+            updateButton.textContent = originalText;
+            updateButton.disabled = false;
         });
     }
     
@@ -498,16 +955,47 @@
         });
         
         if (deposit) {
+            // Per Day Rate and Required Amount
+            document.getElementById('view_per_day_rate').textContent = deposit.per_day_rate ? deposit.per_day_rate + '%' : 'N/A';
+            document.getElementById('view_required_amount').textContent = '₹ ' + parseFloat(deposit.required_amount).toFixed(2);
+            
+            // Payment Interval and Paid Amount
+            document.getElementById('view_payment_interval').textContent = deposit.payment_interval || 'N/A';
             document.getElementById('view_amount').textContent = '₹ ' + parseFloat(deposit.amount).toFixed(2);
-            document.getElementById('view_date').textContent = new Date(deposit.deposit_date).toLocaleDateString();
+            
+            // Payment Method and Transaction ID
             document.getElementById('view_payment_method').textContent = deposit.payment_method || 'N/A';
             document.getElementById('view_transaction_id').textContent = deposit.transaction_id || 'N/A';
             
+            // Penalty Amount and Penalty Paid Amount
+            document.getElementById('view_penalty_amount').textContent = '₹ ' + parseFloat(deposit.penality_amount || 0).toFixed(2);
+            document.getElementById('view_penalty_paid_amount').textContent = '₹ ' + parseFloat(deposit.penality_paid_amount || 0).toFixed(2);
+            
+            // Total Days and Total Interest
+            const depositDate = new Date(deposit.deposit_date);
+            const currentDate = new Date();
+            const diffTime = Math.abs(currentDate - depositDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            document.getElementById('view_total_days').textContent = diffDays + ' days';
+            document.getElementById('view_interest_amount').textContent = '₹ ' + parseFloat(deposit.interest_amount || 0).toFixed(2);
+            
+            // Interest Added status
+            const interestAdded = deposit.interest_added === 1 || deposit.interest_added === true;
+            document.getElementById('view_interest_added').textContent = interestAdded ? 'Yes' : 'No';
+            
+            // Total Amount
+            document.getElementById('view_total_amount').textContent = '₹ ' + parseFloat(deposit.total_amount || 0).toFixed(2);
+            
+            // Notes
+            document.getElementById('view_notes').textContent = deposit.comments || 'N/A';
+            
+            // Date
+            document.getElementById('view_date').textContent = new Date(deposit.deposit_date).toLocaleDateString();
+            
+            // Status
             const statusBadge = document.getElementById('view_status_badge');
             statusBadge.textContent = deposit.status;
             statusBadge.className = 'status-badge status-' + deposit.status.toLowerCase();
-            
-            document.getElementById('view_notes').textContent = deposit.notes || 'N/A';
             
             const modal = new bootstrap.Modal(document.getElementById('viewDepositModal'));
             modal.show();

@@ -220,13 +220,22 @@ const registerUser = async (req, res) => {
         const referralSetting = await ReferralSetting.findOne(); 
         await UserReferralMoney.create({
             user_id: user.id,
-            referral_id: pay_key,
+            //referral_id: pay_key,
+            pay_key: pay_key,
             shared_money: referralSetting.shared_money,
             compulsory_deposit: referralSetting.compulsory_deposit,
             admission_fee: referralSetting.admission_fee,
             building_fund: referralSetting.building_fund,
             welfare_fund: referralSetting.welfare_fund,
             other_deposit: referralSetting.other_deposit
+        });
+
+        // Create user compulsory deposit
+        await CompulsoryDeposit.create({
+            user_id: user.id,
+            amount: referralSetting.compulsory_deposit,
+            total_amount: referralSetting.compulsory_deposit,
+            deposit_date: new Date()
         });
 
         if (user.parent_id) {
@@ -1939,6 +1948,7 @@ const getCompulsoryDeposit = async (req, res) => {
             where: { user_id: id },
             order: [['deposit_date', 'DESC']]
         });
+        // console.log(deposits);
 
         // Render the compulsory deposit page
         res.render('members/compulsory-deposit', {
@@ -1964,7 +1974,7 @@ const getCompulsoryDeposit = async (req, res) => {
 const addCompulsoryDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        const { amount, payment_method, transaction_id, notes } = req.body;
+        const { deposit_setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status } = req.body;
 
         // Validate user exists
         const user = await User.findByPk(id);
@@ -1974,16 +1984,27 @@ const addCompulsoryDeposit = async (req, res) => {
                 message: 'Member not found' 
             });
         }
+        
+        // Calculate interest amount based on annual rate
+        // const interestAmount = (parseFloat(amount) * parseFloat(annual_rate) / 100).toFixed(2);
+        
+        // Calculate total amount (principal + interest)
+        // const totalAmount = (parseFloat(amount) + parseFloat(interestAmount)).toFixed(2);
 
         // Create new deposit record
         const deposit = await CompulsoryDeposit.create({
             user_id: id,
+            setting_id: deposit_setting_id,
+            per_day_rate,
+            required_amount,
+            payment_interval,
             amount,
-            deposit_date: new Date(),
-            status: 'Pending',
+            total_amount: amount,            
             payment_method,
             transaction_id,
-            notes
+            comments,
+            deposit_date: new Date(),
+            status: status || 'Pending' 
         });
 
         return res.json({
@@ -2004,8 +2025,8 @@ const addCompulsoryDeposit = async (req, res) => {
 const updateCompulsoryDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        const { amount, payment_method, transaction_id, notes, status } = req.body;
-
+        const { per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_paid_amount, setting_id } = req.body;
+        console.log(req.body);
         // Find the deposit
         const deposit = await CompulsoryDeposit.findByPk(id);
         
@@ -2018,11 +2039,16 @@ const updateCompulsoryDeposit = async (req, res) => {
 
         // Update deposit
         await deposit.update({
-            amount: amount || deposit.amount,
-            payment_method: payment_method || deposit.payment_method,
-            transaction_id: transaction_id || deposit.transaction_id,
-            notes: notes || deposit.notes,
-            status: status || deposit.status
+            per_day_rate,
+            required_amount,
+            amount,
+            payment_interval,
+            payment_method,
+            transaction_id,
+            comments,
+            penality_paid_amount,
+            status,
+            setting_id
         });
 
         return res.json({
@@ -2036,6 +2062,125 @@ const updateCompulsoryDeposit = async (req, res) => {
             success: false,
             message: 'Error updating compulsory deposit',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while updating the deposit.'
+        });
+    }
+};
+
+// Calculate Deposits controller method
+const calculateDeposits = async (req, res) => {
+    try {
+        const { id } = req.params; // User ID
+        
+        // Find all deposits for the user
+        const deposits = await CompulsoryDeposit.findAll({
+            where: { user_id: id },
+            order: [['deposit_date', 'ASC']]
+        });
+        
+        if (!deposits || deposits.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No deposits found for this user'
+            });
+        }
+        
+        // Perform calculations for each deposit
+        // This is a placeholder for your actual calculation logic
+        for (const deposit of deposits) {
+            // Example calculation logic - update as needed
+            const depositDate = new Date(deposit.deposit_date);
+            const currentDate = new Date();
+            const diffTime = Math.abs(currentDate - depositDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const penality_paid_amount = deposit.penality_paid_amount;
+            
+            // Calculate interest based on per_day_rate and days
+            const interestAmount = parseFloat(deposit.amount) * (parseFloat(deposit.per_day_rate) / 100) * diffDays;
+            let totalAmount = parseFloat(deposit.amount) + interestAmount;
+            
+            
+            // Update the deposit record
+            await deposit.update({
+                total_days: diffDays,
+                interest_amount: interestAmount.toFixed(2),
+                total_amount: totalAmount.toFixed(2)
+            });
+        }
+        
+        return res.json({
+            success: true,
+            message: 'Deposits calculated successfully',
+            count: deposits.length
+        });
+    } catch (error) {
+        console.error('Calculate deposits error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error calculating deposits',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while calculating deposits.'
+        });
+    }
+};
+
+// Get CD Transactions with search and pagination
+const getCDTransactions = async (req, res) => {
+    try {
+        const { user_id, date, page = 1, limit = 10 } = req.query;
+        
+        // Validate user_id
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+        
+        // Build the where clause for filtering
+        const whereClause = { user_id };
+        
+        // Add exact date filter if provided
+        if (date) {
+            // Create start and end of the specified date
+            const filterDate = new Date(date);
+            const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+            
+            whereClause.deposit_date = {
+                [Op.gte]: startOfDay,
+                [Op.lte]: endOfDay
+            };
+        }
+        
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalCount = await CompulsoryDeposit.count({ where: whereClause });
+        
+        // Get transactions with pagination
+        const transactions = await CompulsoryDeposit.findAll({
+            where: whereClause,
+            order: [['deposit_date', 'DESC']],
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+        
+        return res.json({
+            success: true,
+            transactions,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(totalCount / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get CD transactions error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching CD transactions',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching transactions.'
         });
     }
 };
@@ -2262,6 +2407,8 @@ module.exports = {
     getCompulsoryDeposit,
     addCompulsoryDeposit,
     updateCompulsoryDeposit,
+    calculateDeposits,
+    getCDTransactions,
     getCDSettings,
     addCDSetting,
     updateCDSetting

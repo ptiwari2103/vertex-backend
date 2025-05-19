@@ -71,6 +71,10 @@ router.put('/:id/pinpasswordstatus', userController.updatePinPasswordStatus);
 router.get('/compulsory-deposit/:id', userController.getCompulsoryDeposit);
 router.post('/compulsory-deposit/:id', userController.addCompulsoryDeposit);
 router.put('/compulsory-deposit/:id', userController.updateCompulsoryDeposit);
+router.post('/calculate-deposits/:id', userController.calculateDeposits);
+
+// CD Transactions route
+router.get('/cd-transactions', userController.getCDTransactions);
 
 // CD Settings routes
 router.get('/cd-settings', userController.getCDSettings);

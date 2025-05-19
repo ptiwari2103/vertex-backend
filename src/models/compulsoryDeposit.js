@@ -15,9 +15,31 @@ const CompulsoryDeposit = sequelize.define('CompulsoryDeposit', {
       key: 'id'
     }
   },
-  comments: {
-    type: DataTypes.TEXT,
-    allowNull: true
+  setting_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true    
+  },
+  per_day_rate: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+    comment: 'Annual interest rate in percentage per day'
+  },
+  required_amount: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+    comment: 'Required amount'
+  },
+  payment_interval: {
+    type: DataTypes.ENUM('Daily', 'Monthly', 'Yearly'),
+    defaultValue: 'Monthly',
+    allowNull: false
+  },
+  amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0.00
   },
   payment_method: {
     type: DataTypes.STRING,
@@ -27,21 +49,14 @@ const CompulsoryDeposit = sequelize.define('CompulsoryDeposit', {
     type: DataTypes.STRING,
     allowNull: true
   },
-  amount: {
-    type: DataTypes.DECIMAL(10, 2),
+  comments: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  }, 
+  total_days: {
+    type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 0.00
-  },
-  annual_rate: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.00,
-    comment: 'Annual interest rate in percentage'
-  },
-  payment_interval: {
-    type: DataTypes.ENUM('Daily', 'Monthly', 'Yearly'),
-    defaultValue: 'Monthly',
-    allowNull: false
+    defaultValue: 0
   },
   interest_amount: {
     type: DataTypes.DECIMAL(10, 2),
@@ -67,6 +82,11 @@ const CompulsoryDeposit = sequelize.define('CompulsoryDeposit', {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
+  },
+  interest_added: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   },
   status: {
     type: DataTypes.ENUM('Pending', 'Approved', 'Rejected'),
