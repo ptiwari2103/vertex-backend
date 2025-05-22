@@ -1974,7 +1974,7 @@ const getCompulsoryDeposit = async (req, res) => {
 const addCompulsoryDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        const { deposit_setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status } = req.body;
+        const { deposit_setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_amount, penality_paid_amount } = req.body;
 
         // Validate user exists
         const user = await User.findByPk(id);
@@ -1999,7 +1999,7 @@ const addCompulsoryDeposit = async (req, res) => {
             required_amount,
             payment_interval,
             amount,
-            total_amount: amount,            
+            total_amount: parseFloat(amount) + parseFloat(penality_paid_amount || 0),            
             payment_method,
             transaction_id,
             comments,
@@ -2334,8 +2334,8 @@ const getRecurringDeposit = async (req, res) => {
 const addRecurringDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        const { deposit_setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status } = req.body;
-
+        const { setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_amount, penality_paid_amount } = req.body;
+        console.log(req.body);
         // Validate user exists
         const user = await User.findByPk(id);
         if (!user) {
@@ -2348,7 +2348,7 @@ const addRecurringDeposit = async (req, res) => {
         // Create new deposit record
         const deposit = await RecurringDeposit.create({
             user_id: id,
-            setting_id: deposit_setting_id,
+            setting_id: setting_id,
             per_day_rate,
             required_amount,
             payment_interval,
@@ -2358,6 +2358,8 @@ const addRecurringDeposit = async (req, res) => {
             transaction_id,
             comments,
             deposit_date: new Date(),
+            penality_amount: penality_amount || 0,
+            penality_paid_amount: penality_paid_amount || 0,
             status: status || 'Pending' 
         });
 
