@@ -73,8 +73,22 @@ router.post('/compulsory-deposit/:id', userController.addCompulsoryDeposit);
 router.put('/compulsory-deposit/:id', userController.updateCompulsoryDeposit);
 router.post('/calculate-deposits/:id', userController.calculateDeposits);
 
+// Recurring deposit routes
+router.get('/recurring-deposit/:id', userController.getRecurringDeposit);
+router.post('/recurring-deposit/:id', userController.addRecurringDeposit);
+router.put('/recurring-deposit/:id', userController.updateRecurringDeposit);
+router.post('/calculate-recurring-deposits/:id', userController.calculateRecurringDeposits);
+
 // CD Transactions route
 router.get('/cd-transactions', userController.getCDTransactions);
+
+// RD Transactions route
+router.get('/rd-transactions', userController.getRDTransactions);
+
+// RD Settings routes
+router.get('/rd-settings', userController.getRDSettings);
+router.post('/rd-settings', userController.addRDSetting);
+router.put('/rd-settings/:id', userController.updateRDSetting);
 
 // Overdraft Deposits route
 router.get('/overdraft-deposits', userController.getOverdraftDeposits);
@@ -83,6 +97,11 @@ router.get('/overdraft-deposits', userController.getOverdraftDeposits);
 router.get('/cd-settings', userController.getCDSettings);
 router.post('/cd-settings', userController.addCDSetting);
 router.put('/cd-settings/:id', userController.updateCDSetting);
+
+// RD Settings routes
+router.get('/rd-settings', userController.getRDSettings);
+router.post('/rd-settings', userController.addRDSetting);
+router.put('/rd-settings/:id', userController.updateRDSetting);
 
 // Member address management
 router.put('/address/:id/status', userController.updateAddressStatus);

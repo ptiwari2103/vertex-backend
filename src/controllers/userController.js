@@ -1,4 +1,4 @@
-const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting, CompulsoryDeposit, CompulsoryDepositSetting, OverdraftDeposit } = require("../models");
+const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting, CompulsoryDeposit, CompulsoryDepositSetting, OverdraftDeposit, RecurringDeposit, RecurringDepositSetting } = require("../models");
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
@@ -2278,6 +2278,479 @@ const getCDTransactions = async (req, res) => {
     }
 };
 
+// Recurring Deposit functionality
+const getRecurringDeposit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Get user details
+        const user = await User.findByPk(id, {
+            include: [
+                {
+                    model: Profile,
+                    as: 'profile'
+                }
+            ]
+        });
+
+        if (!user) {
+            return res.status(404).render('error', {
+                title: 'Error - Vertex Admin',
+                message: 'Member not found',
+                error: 'The requested member could not be found.',
+                style: '',
+                script: '',
+                user: null
+            });
+        }
+
+        // Get all recurring deposits for this user
+        const deposits = await RecurringDeposit.findAll({
+            where: { user_id: id },
+            order: [['deposit_date', 'DESC']]
+        });
+
+        // Render the recurring deposit page
+        res.render('members/recurring-deposit', {
+            title: 'Recurring Deposit - Vertex Admin',
+            currentPage: 'members',
+            user: JSON.stringify(req.session.user, null, 2),
+            member: user,
+            deposits: deposits
+        });
+    } catch (error) {
+        console.error('Recurring deposit error:', error);
+        res.render('error', {
+            title: 'Error - Vertex Admin',
+            message: 'Error fetching recurring deposit details',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching deposit details.',
+            style: '',
+            script: '',
+            user: null
+        });
+    }
+};
+
+const addRecurringDeposit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { deposit_setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status } = req.body;
+
+        // Validate user exists
+        const user = await User.findByPk(id);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Member not found' 
+            });
+        }
+
+        // Create new deposit record
+        const deposit = await RecurringDeposit.create({
+            user_id: id,
+            setting_id: deposit_setting_id,
+            per_day_rate,
+            required_amount,
+            payment_interval,
+            amount,
+            total_amount: amount,            
+            payment_method,
+            transaction_id,
+            comments,
+            deposit_date: new Date(),
+            status: status || 'Pending' 
+        });
+
+        return res.json({
+            success: true,
+            message: 'Recurring deposit added successfully',
+            deposit
+        });
+    } catch (error) {
+        console.error('Add recurring deposit error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error adding recurring deposit',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while adding the deposit.'
+        });
+    }
+};
+
+const updateRecurringDeposit = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_paid_amount, setting_id } = req.body;
+
+        // Find the deposit
+        const deposit = await RecurringDeposit.findByPk(id);
+        
+        if (!deposit) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Deposit record not found' 
+            });
+        }
+
+        // Update deposit
+        await deposit.update({
+            per_day_rate,
+            required_amount,
+            amount,
+            payment_interval,
+            payment_method,
+            transaction_id,
+            comments,
+            penality_paid_amount,
+            status,
+            setting_id
+        });
+
+        return res.json({
+            success: true,
+            message: 'Recurring deposit updated successfully',
+            deposit
+        });
+    } catch (error) {
+        console.error('Update recurring deposit error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error updating recurring deposit',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while updating the deposit.'
+        });
+    }
+};
+
+// Calculate Recurring Deposits controller method
+const calculateRecurringDeposits = async (req, res) => {
+    try {
+        const { id } = req.params; // User ID
+        
+        // Find all deposits for the user
+        const deposits = await RecurringDeposit.findAll({
+            where: { user_id: id },
+            order: [['deposit_date', 'ASC']]
+        });
+        
+        if (!deposits || deposits.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No deposits found for this user'
+            });
+        }
+        
+        // Perform calculations for each deposit
+        for (const deposit of deposits) {
+            // Example calculation logic - update as needed
+            const depositDate = new Date(deposit.deposit_date);
+            const currentDate = new Date();
+            const diffTime = Math.abs(currentDate - depositDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const penality_paid_amount = deposit.penality_paid_amount;
+            
+            // Calculate interest based on per_day_rate and days
+            const interestAmount = parseFloat(deposit.amount) * (parseFloat(deposit.per_day_rate) / 100) * diffDays;
+            let totalAmount = parseFloat(deposit.amount) + interestAmount;
+            
+            if(diffDays > process.env.CD_MINIMUM_INTEREST_HOLD_DAYS){
+                // Insert a copy of interest amount into OverdraftDeposit table
+                // Get the last record's total_amount for this user_id and type
+                let OverdraftTotalDeposit = 0.00;
+                const lastOverdraftRecord = await OverdraftDeposit.findOne({
+                    where: { user_id: deposit.user_id, type: 'RD' },
+                    order: [['created_at', 'DESC']]
+                });
+                
+                // If record found, add the interest amount to the last total_amount
+                if (lastOverdraftRecord) {
+                    OverdraftTotalDeposit = parseFloat(lastOverdraftRecord.total_amount) + interestAmount;
+                } else {
+                    // If no record found, initialize with just the interest amount
+                    OverdraftTotalDeposit = interestAmount;
+                }
+                
+                await OverdraftDeposit.create({
+                    user_id: deposit.user_id,
+                    type: 'RD',
+                    type_id: deposit.id,
+                    amount: deposit.amount,
+                    total_days: diffDays,
+                    interest_amount: interestAmount.toFixed(2),
+                    total_amount: OverdraftTotalDeposit.toFixed(2),
+                    deposit_date: new Date(),
+                    status: 'Approved'
+                });
+            }
+            
+            // Update the deposit record
+            await deposit.update({
+                total_days: diffDays,
+                interest_amount: interestAmount.toFixed(2),
+                total_amount: totalAmount.toFixed(2)
+            });
+        }
+        
+        return res.json({
+            success: true,
+            message: 'Deposits calculated successfully',
+            count: deposits.length
+        });
+    } catch (error) {
+        console.error('Calculate recurring deposits error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error calculating recurring deposits',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while calculating deposits.'
+        });
+    }
+};
+
+// Get RD Transactions with search and pagination
+const getRDTransactions = async (req, res) => {
+    try {
+        const { user_id, date, page = 1, limit = 10 } = req.query;
+        
+        // Validate user_id
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+        
+        // Build the where clause for filtering
+        const whereClause = { user_id };
+        
+        // Add exact date filter if provided
+        if (date) {
+            // Create start and end of the specified date
+            const filterDate = new Date(date);
+            const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+            
+            whereClause.deposit_date = {
+                [Op.gte]: startOfDay,
+                [Op.lte]: endOfDay
+            };
+        }
+        
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalCount = await RecurringDeposit.count({ where: whereClause });
+        
+        // Get transactions with pagination
+        const transactions = await RecurringDeposit.findAll({
+            where: whereClause,
+            order: [['deposit_date', 'DESC']],
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+        
+        return res.json({
+            success: true,
+            transactions,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(totalCount / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get RD transactions error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching RD transactions',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching transactions.'
+        });
+    }
+};
+
+// RD Settings controller methods
+const getRDSettings = async (req, res) => {
+    try {
+        const { user_id } = req.query;
+
+        // Build query conditions
+        const whereCondition = {};
+        if (user_id) {
+            whereCondition.user_id = user_id;
+        }
+
+        // Get RD settings
+        const settings = await RecurringDepositSetting.findAll({
+            where: whereCondition,
+            order: [['created_at', 'DESC']]
+        });
+
+        return res.json({
+            success: true,
+            settings
+        });
+    } catch (error) {
+        console.error('Get RD settings error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching RD settings',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching settings.'
+        });
+    }
+};
+
+const addRDSetting = async (req, res) => {
+    try {
+        let { user_id, annual_rate, payment_interval, amount, duration } = req.body;
+
+        // console.log('RD Settings payload:', { user_id, annual_rate, payment_interval, amount, duration });
+        
+        // Convert amount to a number if it's a string, or set default if empty
+        if (amount === '' || amount === null || amount === undefined) {
+            amount = 0;
+        }
+        
+        // Set default duration if not provided
+        if (duration === '' || duration === null || duration === undefined) {
+            duration = 1; // Default to 1 year
+        }
+
+        // Validate inputs
+        if (!user_id || !annual_rate || !payment_interval) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID, Annual Rate, and Payment Interval are required'
+            });
+        }
+
+        // Verify user exists
+        const user = await User.findByPk(user_id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check if user already has an active setting
+        const existingSetting = await RecurringDepositSetting.findOne({
+            where: {
+                user_id,
+                is_active: true
+            }
+        });
+
+        if (existingSetting) {
+            return res.status(400).json({
+                success: false,
+                message: 'User already has an active RD Setting. Please update the existing setting or deactivate it before creating a new one.'
+            });
+        }
+
+        // Create new RD setting
+        const setting = await RecurringDepositSetting.create({
+            user_id,
+            annual_rate,
+            payment_interval,
+            amount,
+            duration,
+            is_active: true
+        });
+
+        return res.json({
+            success: true,
+            message: 'RD Setting added successfully',
+            setting
+        });
+    } catch (error) {
+        console.error('Add RD setting error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error adding RD setting',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while adding the setting.'
+        });
+    }
+};
+
+const updateRDSetting = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { user_id, annual_rate, payment_interval, amount, duration, penality_rate, is_active } = req.body;
+        console.log('RD Settings payload:', { user_id, annual_rate, payment_interval, amount, duration, penality_rate });
+        // Find the setting
+        const setting = await RecurringDepositSetting.findByPk(id);
+        
+        if (!setting) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'RD Setting not found' 
+            });
+        }
+
+        // Check if trying to activate a setting
+        if (is_active === true && !setting.is_active) {
+            // Check if user already has an active setting
+            const existingSetting = await RecurringDepositSetting.findOne({
+                where: {
+                    user_id: user_id || setting.user_id,
+                    is_active: true,
+                    id: { [Op.ne]: id } // Exclude current setting
+                }
+            });
+
+            if (existingSetting) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'User already has an active RD Setting. Please deactivate it before activating this one.'
+                });
+            }
+        }
+        
+        // If this is an active setting being updated (not changing activation status),
+        // we should allow the update without additional checks
+        if (setting.is_active && is_active !== false) {
+            // This is an update to an already active setting, which is allowed
+        }
+
+        // Prepare update data
+        const updateData = {
+            annual_rate: annual_rate !== undefined ? annual_rate : setting.annual_rate,
+            payment_interval: payment_interval || setting.payment_interval,
+            amount: amount !== undefined ? amount : setting.amount,
+            is_active: is_active !== undefined ? is_active : setting.is_active,
+            duration: duration !== undefined ? duration : setting.duration,
+            penality_rate: penality_rate !== undefined ? penality_rate : setting.penality_rate
+        };
+
+        // If user_id is provided, verify user exists
+        if (user_id !== undefined && user_id !== setting.user_id) {
+            const user = await User.findByPk(user_id);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+            updateData.user_id = user_id;
+        }
+
+        // Update the setting
+        await setting.update(updateData);
+
+        return res.json({
+            success: true,
+            message: 'RD Setting updated successfully',
+            setting
+        });
+    } catch (error) {
+        console.error('Update RD setting error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error updating RD setting',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while updating the setting.'
+        });
+    }
+};
+
 // CD Settings controller methods
 const getCDSettings = async (req, res) => {
     try {
@@ -2505,5 +2978,13 @@ module.exports = {
     getCDTransactions,
     getCDSettings,
     addCDSetting,
-    updateCDSetting
+    updateCDSetting,
+    getRecurringDeposit,
+    addRecurringDeposit,
+    updateRecurringDeposit,
+    calculateRecurringDeposits,
+    getRDTransactions,
+    getRDSettings,
+    addRDSetting,
+    updateRDSetting
 };

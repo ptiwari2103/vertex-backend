@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const CompulsoryDepositSetting = sequelize.define('CompulsoryDepositSetting', {
+const RecurringDepositSetting = sequelize.define('RecurringDepositSetting', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -31,6 +31,11 @@ const CompulsoryDepositSetting = sequelize.define('CompulsoryDepositSetting', {
     allowNull: false,
     defaultValue: 0
   },
+  duration: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1
+  },
   penality_rate: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
@@ -41,10 +46,10 @@ const CompulsoryDepositSetting = sequelize.define('CompulsoryDepositSetting', {
     defaultValue: true
   }
 }, {
-  tableName: 'compulsory_deposit_settings',
+  tableName: 'recurring_deposit_settings',
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });
 
-module.exports = CompulsoryDepositSetting;
+module.exports = RecurringDepositSetting;
