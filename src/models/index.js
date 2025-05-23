@@ -24,6 +24,8 @@ const CompulsoryDepositSetting = require('./compulsoryDepositSetting');
 const OverdraftDeposit = require('./OverdraftDeposit');
 const RecurringDeposit = require('./recurringDeposit');
 const RecurringDepositSetting = require('./recurringDepositSetting');
+const FixedDeposit = require('./fixedDeposit');
+const FixedDepositSetting = require('./fixedDepositSetting');
 
 
 // Initialize models
@@ -52,7 +54,9 @@ const models = {
   CompulsoryDepositSetting,
   OverdraftDeposit,
   RecurringDeposit,
-  RecurringDepositSetting
+  RecurringDepositSetting,
+  FixedDeposit,
+  FixedDepositSetting
 };
 
 // Run associations if they exist

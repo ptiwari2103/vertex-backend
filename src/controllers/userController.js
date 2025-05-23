@@ -1,4 +1,4 @@
-const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting, CompulsoryDeposit, CompulsoryDepositSetting, OverdraftDeposit, RecurringDeposit, RecurringDepositSetting } = require("../models");
+const { User, Profile, UserBank, UserAddress, VertexPin, Agent, State, District, UserReferralMoney, ReferralSetting, CompulsoryDeposit, CompulsoryDepositSetting, OverdraftDeposit, RecurringDeposit, RecurringDepositSetting, AdminTransaction, sequelize } = require("../models");
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
@@ -2088,7 +2088,9 @@ const calculateDeposits = async (req, res) => {
         // This is a placeholder for your actual calculation logic
         for (const deposit of deposits) {
             // Example calculation logic - update as needed
-            const depositDate = new Date(deposit.deposit_date);
+            // Get the deposit date and set it to the first day of the month
+            const originalDepositDate = new Date(deposit.deposit_date);
+            const depositDate = new Date(originalDepositDate.getFullYear(), originalDepositDate.getMonth(), 1);
             const currentDate = new Date();
             const diffTime = Math.abs(currentDate - depositDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -2310,13 +2312,42 @@ const getRecurringDeposit = async (req, res) => {
             order: [['deposit_date', 'DESC']]
         });
 
-        // Render the recurring deposit page
+        // Find the active RD setting for this user
+        const activeSetting = await RecurringDepositSetting.findOne({
+            where: { user_id: id, is_active: true },
+            order: [['created_at', 'DESC']]
+        });
+        let totalPrincipal = 0, totalInterest = 0, totalPenalty = 0, totalNet = 0;
+        if (activeSetting) {
+            const totals = await RecurringDeposit.findAll({
+                where: { user_id: id, setting_id: activeSetting.id },
+                attributes: [
+                    [sequelize.fn('SUM', sequelize.col('amount')), 'totalPrincipal'],
+                    [sequelize.fn('SUM', sequelize.col('interest_amount')), 'totalInterest'],
+                    [sequelize.fn('SUM', sequelize.col('penality_paid_amount')), 'totalPenalty'],
+                    [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalNet']
+                ],
+                raw: true
+            });
+            if (totals && totals.length > 0) {
+                totalPrincipal = parseFloat(totals[0].totalPrincipal) || 0;
+                totalInterest = parseFloat(totals[0].totalInterest) || 0;
+                totalPenalty = parseFloat(totals[0].totalPenalty) || 0;
+                totalNet = parseFloat(totals[0].totalNet) || 0;
+            }
+        }
+        const { formatCurrency } = require('../utils/currencyFormatter');
         res.render('members/recurring-deposit', {
             title: 'Recurring Deposit - Vertex Admin',
             currentPage: 'members',
             user: JSON.stringify(req.session.user, null, 2),
             member: user,
-            deposits: deposits
+            deposits: deposits,
+            formatCurrency: formatCurrency,
+            totalPrincipal: totalPrincipal,
+            totalInterest: totalInterest,
+            totalPenalty: totalPenalty,
+            totalNet: totalNet
         });
     } catch (error) {
         console.error('Recurring deposit error:', error);
@@ -2331,14 +2362,24 @@ const getRecurringDeposit = async (req, res) => {
     }
 };
 
+// Helper function to format amount
+const formatAmount = (amount) => {
+    return parseFloat(parseFloat(amount || 0).toFixed(2));
+};
+
 const addRecurringDeposit = async (req, res) => {
+    // Begin transaction to ensure data consistency
+    const t = await sequelize.transaction();
+    
     try {
         const { id } = req.params;
         const { setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_amount, penality_paid_amount } = req.body;
-        console.log(req.body);
+        // console.log(req.body);
+        
         // Validate user exists
-        const user = await User.findByPk(id);
+        const user = await User.findByPk(id, { transaction: t });
         if (!user) {
+            await t.rollback();
             return res.status(404).json({ 
                 success: false, 
                 message: 'Member not found' 
@@ -2352,8 +2393,8 @@ const addRecurringDeposit = async (req, res) => {
             per_day_rate,
             required_amount,
             payment_interval,
-            amount,
-            total_amount: amount,            
+            amount: parseFloat(amount - penality_paid_amount),
+            total_amount: parseFloat(amount - penality_paid_amount),            
             payment_method,
             transaction_id,
             comments,
@@ -2361,7 +2402,33 @@ const addRecurringDeposit = async (req, res) => {
             penality_amount: penality_amount || 0,
             penality_paid_amount: penality_paid_amount || 0,
             status: status || 'Pending' 
-        });
+        }, { transaction: t });
+
+        // If penalty amount is greater than 0, create an AdminTransaction entry
+        if (penality_amount > 0) {
+            // Get the latest admin transaction to calculate the new balance
+            const latestAdminTransaction = await AdminTransaction.findOne({
+                order: [['id', 'DESC']]
+            }, { transaction: t });
+
+            // Calculate new admin balance
+            let adminBalance = formatAmount(penality_amount);
+            if (latestAdminTransaction) {
+                adminBalance = formatAmount(latestAdminTransaction.balance) + formatAmount(penality_amount);
+            }
+
+            // Create admin transaction entry for penalty amount
+            await AdminTransaction.create({
+                user_id: id,
+                type: 'Deposit',
+                comment: 'RD Penalty amount',
+                added: formatAmount(penality_amount),
+                balance: adminBalance
+            }, { transaction: t });
+        }
+
+        // Commit the transaction
+        await t.commit();
 
         return res.json({
             success: true,
@@ -2369,6 +2436,9 @@ const addRecurringDeposit = async (req, res) => {
             deposit
         });
     } catch (error) {
+        // If any error occurs, rollback the transaction
+        await t.rollback();
+        
         console.error('Add recurring deposit error:', error);
         return res.status(500).json({
             success: false,
@@ -2381,7 +2451,7 @@ const addRecurringDeposit = async (req, res) => {
 const updateRecurringDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        const { per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_paid_amount, setting_id } = req.body;
+        const { per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_paid_amount, setting_id, total_interest } = req.body;
 
         // Find the deposit
         const deposit = await RecurringDeposit.findByPk(id);
@@ -2393,11 +2463,16 @@ const updateRecurringDeposit = async (req, res) => {
             });
         }
 
+        // Calculate total amount based on required amount and interest
+        const totalAmount = parseFloat(required_amount) + parseFloat(total_interest || 0);
+
         // Update deposit
         await deposit.update({
             per_day_rate,
             required_amount,
-            amount,
+            amount: parseFloat(required_amount), // Base amount is the required amount
+            total_amount: totalAmount, // Total amount includes interest
+            interest_amount: parseFloat(total_interest || 0), // Update interest amount
             payment_interval,
             payment_method,
             transaction_id,
@@ -2439,34 +2514,33 @@ const calculateRecurringDeposits = async (req, res) => {
                 message: 'No deposits found for this user'
             });
         }
+        // console.log(deposits);
         
         // Perform calculations for each deposit
         for (const deposit of deposits) {
             // Example calculation logic - update as needed
-            const depositDate = new Date(deposit.deposit_date);
+            // Get the deposit date and set it to the first day of the month
+            const originalDepositDate = new Date(deposit.deposit_date);
+            const depositDate = new Date(originalDepositDate.getFullYear(), originalDepositDate.getMonth(), 1);
             const currentDate = new Date();
             const diffTime = Math.abs(currentDate - depositDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            const penality_paid_amount = deposit.penality_paid_amount;
             
-            // Calculate interest based on per_day_rate and days
             const interestAmount = parseFloat(deposit.amount) * (parseFloat(deposit.per_day_rate) / 100) * diffDays;
-            let totalAmount = parseFloat(deposit.amount) + interestAmount;
+            let totalAmount = parseFloat(deposit.amount) + parseFloat(interestAmount);
             
+                        
+            /*
             if(diffDays > process.env.CD_MINIMUM_INTEREST_HOLD_DAYS){
-                // Insert a copy of interest amount into OverdraftDeposit table
-                // Get the last record's total_amount for this user_id and type
                 let OverdraftTotalDeposit = 0.00;
                 const lastOverdraftRecord = await OverdraftDeposit.findOne({
                     where: { user_id: deposit.user_id, type: 'RD' },
                     order: [['created_at', 'DESC']]
                 });
                 
-                // If record found, add the interest amount to the last total_amount
                 if (lastOverdraftRecord) {
                     OverdraftTotalDeposit = parseFloat(lastOverdraftRecord.total_amount) + interestAmount;
                 } else {
-                    // If no record found, initialize with just the interest amount
                     OverdraftTotalDeposit = interestAmount;
                 }
                 
@@ -2482,8 +2556,10 @@ const calculateRecurringDeposits = async (req, res) => {
                     status: 'Approved'
                 });
             }
+            */ 
+           
+            console.log("=>",deposit.id,diffDays,interestAmount,totalAmount);
             
-            // Update the deposit record
             await deposit.update({
                 total_days: diffDays,
                 interest_amount: interestAmount.toFixed(2),
@@ -2602,9 +2678,9 @@ const getRDSettings = async (req, res) => {
 
 const addRDSetting = async (req, res) => {
     try {
-        let { user_id, annual_rate, payment_interval, amount, duration } = req.body;
+        let { user_id, annual_rate, payment_interval, amount, duration, penality_rate } = req.body;
 
-        // console.log('RD Settings payload:', { user_id, annual_rate, payment_interval, amount, duration });
+        console.log('RD Settings payload:', { user_id, annual_rate, payment_interval, amount, duration, penality_rate });
         
         // Convert amount to a number if it's a string, or set default if empty
         if (amount === '' || amount === null || amount === undefined) {
@@ -2655,6 +2731,7 @@ const addRDSetting = async (req, res) => {
             payment_interval,
             amount,
             duration,
+            penality_rate,
             is_active: true
         });
 

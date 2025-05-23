@@ -126,7 +126,7 @@
 <div class="main-content">
     <div class="welcome-section">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Recurring Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
+            <h2 class="mb-0">Fixed Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
             <div>
                 <a href="/members/view/<%= member.id %>" class="btn btn-secondary">
                     <i class="bx bx-arrow-back"></i> Back to Member
@@ -134,8 +134,8 @@
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDepositModal">
                     <i class="bx bx-plus"></i> Add New Deposit
                 </button>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rdSettingsModal">
-                    <i class="bx bx-cog"></i> RD Settings
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#fdSettingsModal">
+                    <i class="bx bx-cog"></i> FD settings
                 </button>
                 <button type="button" class="btn btn-success" id="calculateButton" onclick="calculateDeposits()">
                     <i class="bx bx-calculator"></i> Calculate
@@ -175,37 +175,6 @@
         </div>
     </div>
 
-    <!-- Totals Row -->
-    <div class="section-card">
-        <h4 class="section-title">Totals</h4>
-        <div class="row">
-            <div class="col-md-3">
-                <div class="info-row">
-                    <div class="info-label">Total Principal</div>
-                    <div class="info-value"><%= formatCurrency(totalPrincipal) %></div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="info-row">
-                    <div class="info-label">Total Interest</div>
-                    <div class="info-value"><%= formatCurrency(totalInterest) %></div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="info-row">
-                    <div class="info-label">Total Penalty</div>
-                    <div class="info-value"><%= formatCurrency(totalPenalty) %></div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="info-row">
-                    <div class="info-label">Total Net Amount</div>
-                    <div class="info-value"><%= formatCurrency(totalNet) %></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Deposit History -->
     <div class="section-card">
         <h4 class="section-title">Deposit History</h4>
@@ -233,14 +202,14 @@
                             <tr>
                                 <td><%= index + 1 %></td>
                                 <td><%= new Date(deposit.deposit_date).toLocaleDateString() %></td>
-                                <td><%= formatCurrency(deposit.amount) %></td>
+                                <td>₹ <%= deposit.amount.toFixed(2) %></td>
                                 <td><%= deposit.payment_method || 'N/A' %></td>
                                 <td><%= deposit.transaction_id || 'N/A' %></td>
                                 <td><%= deposit.per_day_rate || 'N/A' %></td>
                                 <td><%= deposit.payment_interval || 'N/A' %></td>
-                                <td><%= formatCurrency(deposit.interest_amount) || 'N/A' %></td>
-                                <td><%= formatCurrency(deposit.penality_paid_amount) || 'N/A' %></td>
-                                <td><%= formatCurrency(deposit.total_amount) || 'N/A' %></td>
+                                <td><%= deposit.interest_amount || 'N/A' %></td>
+                                <td><%= deposit.penality_paid_amount || 'N/A' %></td>
+                                <td><%= deposit.total_amount || 'N/A' %></td>
                                 <td>
                                     <span class="status-badge status-<%= deposit.status.toLowerCase() %>">
                                         <%= deposit.status %>
@@ -401,24 +370,19 @@
                         </div>
                         <div class="col-md-4">
                             <label for="edit_penalty_paid_amount" class="form-label">Paid Penality (₹)</label>
-                            <input type="number" class="form-control" id="edit_penalty_paid_amount" name="penality_paid_amount" min="0" step="0.01" readonly disabled>
+                            <input type="number" class="form-control" id="edit_penalty_paid_amount" name="penality_paid_amount" min="0" step="0.01">
                         </div>
                         <div class="col-md-4">
-                            <label for="total_interest" class="form-label">Total Interest (₹)</label>
-                            <input type="number" class="form-control" id="edit_total_interest" name="total_interest" required min="0" step="0.01" oninput="updateTotalPaidAmountFromInterest()">
+                            <label for="edit_amount" class="form-label">Total Paid Amount (₹)</label>
+                            <input type="number" class="form-control" id="edit_amount" name="amount" required min="1" step="0.01">
                         </div>
-                        
                     </div>
                     
                     <!-- Third row: Payment Method and Transaction ID -->
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <label for="edit_amount" class="form-label">Total Paid Amount (₹)</label>
-                            <input type="number" class="form-control" id="edit_amount" name="amount" required min="1" step="0.01" readonly disabled>
-                        </div>
-                        <div class="col-md-4">
                             <label for="edit_payment_method" class="form-label">Payment Method</label>
-                            <select class="form-select" id="edit_payment_method" name="payment_method" required readonly disabled>
+                            <select class="form-select" id="edit_payment_method" name="payment_method" required>
                                 <option value="">Select Payment Method</option>
                                 <option value="Cash">Cash</option>
                                 <option value="Bank Transfer">Bank Transfer</option>
@@ -429,12 +393,8 @@
                         </div>
                         <div class="col-md-4">
                             <label for="edit_transaction_id" class="form-label">Transaction ID</label>
-                            <input type="text" class="form-control" id="edit_transaction_id" name="transaction_id" readonly disabled>
+                            <input type="text" class="form-control" id="edit_transaction_id" name="transaction_id">
                         </div>
-                    </div>
-
-                    <!-- Fourth row: Payment Method and Transaction ID -->
-                    <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="edit_status" class="form-label">Status</label>
                             <select class="form-select" id="edit_status" name="status" required>
@@ -592,16 +552,16 @@
     </div>
 </div>
 
-<!-- RD Settings Modal -->
-<div class="modal fade" id="rdSettingsModal" tabindex="-1" aria-labelledby="rdSettingsModalLabel" aria-hidden="true">
+<!-- FD settings Modal -->
+<div class="modal fade" id="fdSettingsModal" tabindex="-1" aria-labelledby="fdSettingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="rdSettingsModalLabel">Recurring Deposit Settings</h5>
+                <h5 class="modal-title" id="fdSettingsModalLabel">Fixed Deposit Settings</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="rdSettingsForm">
+                <form id="fdSettingsForm">
                     <input type="hidden" id="rd_user_id" name="user_id" value="<%= member.id %>">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -616,7 +576,7 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="penality_rate" class="form-label">Penality Rate (per day) (₹)</label>
-                            <input type="number" class="form-control" id="penality_rate" name="penality_rate" required min="0.50" step="0.50" placeholder="Enter penality rate">
+                            <input type="number" class="form-control" id="penality_rate" name="penality_rate" required min="0.01" step="0.01" placeholder="Enter penality rate" value="1">
                         </div>                    
                         <div class="col-md-6">
                             <label for="duration" class="form-label">Duration</label>
@@ -647,8 +607,8 @@
                 </form>
 
                 <div class="mt-4">
-                    <h6>Current RD Settings</h6>
-                    <div id="rdSettingsList" class="table-responsive">
+                    <h6>Current FD settings</h6>
+                    <div id="fdSettingsList" class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
@@ -661,7 +621,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="rdSettingsTableBody">
+                            <tbody id="fdSettingsTableBody">
                                 <!-- Settings will be loaded here -->
                             </tbody>
                         </table>
@@ -670,7 +630,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="submitRDSettingsForm()">Save Settings</button>
+                <button type="button" class="btn btn-primary" onclick="submitfdSettingsForm()">Save Settings</button>
             </div>
         </div>
     </div>
@@ -678,44 +638,41 @@
 
 <%- contentFor('script') %>
 <script>
-    // Global variable to track if there are active RD settings
-    let hasActiveRDSettings = false;
+    // Global variable to track if there are active FD settings
+    let hasActivefdSettings = false;
     
-    // Check for RD Settings on page load
+    // Check for FD settings on page load
     document.addEventListener('DOMContentLoaded', function() {
-        checkRDSettings();
+        checkfdSettings();
     });
     
-    // Function to check if RD settings exist and open modal if not
-    function checkRDSettings() {
+    // Function to check if FD settings exist and open modal if not
+    function checkfdSettings() {
         const userId = document.getElementById('rd_user_id').value;
-        fetch('/members/rd-settings?user_id=' + userId)
+        fetch('/members/fd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
                     const settings = data.settings;
-                    hasActiveRDSettings = settings && settings.some(function(setting) { return setting.is_active; });
+                    hasActivefdSettings = settings && settings.some(function(setting) { return setting.is_active; });
                     
-                    if (!hasActiveRDSettings) {
-                        // No active RD settings found, open the settings modal
-                        const rdSettingsModal = new bootstrap.Modal(document.getElementById('rdSettingsModal'));
-                        rdSettingsModal.show();
+                    if (!hasActivefdSettings) {
+                        // No active FD settings found, open the settings modal
+                        const fdSettingsModal = new bootstrap.Modal(document.getElementById('fdSettingsModal'));
+                        fdSettingsModal.show();
                         
                         // Show warning message
                         const warningDiv = document.createElement('div');
                         warningDiv.className = 'alert alert-warning mb-3';
-                        warningDiv.id = 'rdSettingsWarning';
-                        warningDiv.innerHTML = '<strong>Important:</strong> You must set up Recurring Deposit settings before proceeding with any actions.';
+                        warningDiv.id = 'fdSettingsWarning';
+                        warningDiv.innerHTML = '<strong>Important:</strong> You must set up Fixed Deposit settings before proceeding with any actions.';
                         document.querySelector('.welcome-section').appendChild(warningDiv);
                         
                         // Disable all action buttons
                         disableAllActions();
-                    } else {
-                        // Enable all action buttons if there are active RD settings
-                        enableAllActions();
                     }
                 } else {
-                    console.error('Error checking RD settings:', data.message);
+                    console.error('Error checking FD settings:', data.message);
                 }
             })
             .catch(function(error) {
@@ -729,28 +686,14 @@
         const addDepositBtn = document.querySelector('button[data-bs-target="#addDepositModal"]');
         if (addDepositBtn) {
             addDepositBtn.disabled = true;
-            addDepositBtn.title = 'Please set up RD settings first';
+            addDepositBtn.title = 'Please set up FD settings first';
         }
-        
-        // Disable the Calculate button
-        const calculateBtn = document.getElementById('calculateButton');
-        if (calculateBtn) {
-            calculateBtn.disabled = true;
-            calculateBtn.title = 'Please set up RD settings first';
-        }
-        
-        // Disable all Edit buttons in the deposit history table
-        const editButtons = document.querySelectorAll('button.btn-warning');
-        editButtons.forEach(function(btn) {
-            btn.disabled = true;
-            btn.title = 'Please set up RD settings first';
-        });
         
         // Disable other action buttons if any
         const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(function(btn) {
             btn.disabled = true;
-            btn.title = 'Please set up RD settings first';
+            btn.title = 'Please set up FD settings first';
         });
     }
     
@@ -763,20 +706,6 @@
             addDepositBtn.title = '';
         }
         
-        // Enable the Calculate button
-        const calculateBtn = document.getElementById('calculateButton');
-        if (calculateBtn) {
-            calculateBtn.disabled = false;
-            calculateBtn.title = '';
-        }
-        
-        // Enable all Edit buttons in the deposit history table
-        const editButtons = document.querySelectorAll('button.btn-warning');
-        editButtons.forEach(function(btn) {
-            btn.disabled = false;
-            btn.title = '';
-        });
-        
         // Enable other action buttons if any
         const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(function(btn) {
@@ -785,21 +714,21 @@
         });
         
         // Remove warning message if exists
-        const warningDiv = document.getElementById('rdSettingsWarning');
+        const warningDiv = document.getElementById('fdSettingsWarning');
         if (warningDiv) {
             warningDiv.remove();
         }
     }
     
-    // Load RD Settings when Add Deposit Modal is opened
+    // Load FD settings when Add Deposit Modal is opened
     document.getElementById('addDepositModal').addEventListener('show.bs.modal', function () {
-        loadActiveRDSettingForDeposit();
+        loadActiveFDSettingForDeposit();
     });
     
-    // Function to load active RD Setting for deposit
-    function loadActiveRDSettingForDeposit() {
+    // Function to load active FD setting for deposit
+    function loadActiveFDSettingForDeposit() {
         const userId = '<%= member.id %>';
-        fetch('/members/rd-settings?user_id=' + userId)
+        fetch('/members/fd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
@@ -816,30 +745,24 @@
                         
                         // Calculate penalty amount based on grace period and days from start of month
                         calculatePenaltyAmount(activeSetting.penality_rate);
-                        
-                        // Enable all action buttons
-                        enableAllActions();
                     } else {
-                        alert('No active RD Setting found. Please create an active RD Setting first.');
+                        alert('No active FD setting found. Please create an active FD setting first.');
                         // Close the modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('addDepositModal'));
                         modal.hide();
                         
-                        // Open the RD Settings modal
-                        const rdSettingsModal = new bootstrap.Modal(document.getElementById('rdSettingsModal'));
-                        rdSettingsModal.show();
-                        
-                        // Disable all action buttons
-                        disableAllActions();
+                        // Open the FD settings modal
+                        const fdSettingsModal = new bootstrap.Modal(document.getElementById('fdSettingsModal'));
+                        fdSettingsModal.show();
                     }
                 } else {
-                    console.error('Error loading RD settings:', data.message);
-                    alert('Error loading RD settings: ' + data.message);
+                    console.error('Error loading FD settings:', data.message);
+                    alert('Error loading FD settings: ' + data.message);
                 }
             })
             .catch(function(error) {
                 console.error('Error:', error);
-                alert('An error occurred while loading RD settings.');
+                alert('An error occurred while loading FD settings.');
             });
     }
     
@@ -876,26 +799,20 @@
     
     // Function to update the total paid amount when penalty paid amount changes
     function updateTotalPaidAmount() {
-        const penalityPaidAmount = parseFloat(document.getElementById('penality_paid_amount').value) || 0;
+        // Get the required amount (regular payment amount)
         const requiredAmount = parseFloat(document.getElementById('required_amount').value) || 0;
         
-        // Update the total amount field
-        document.getElementById('amount').value = (requiredAmount + penalityPaidAmount).toFixed(2);
+        // Get the penalty paid amount
+        const penalityPaidAmount = parseFloat(document.getElementById('penality_paid_amount').value) || 0;
+        
+        // Calculate the total paid amount (required amount + penalty paid amount)
+        const totalPaidAmount = requiredAmount + penalityPaidAmount;
+        
+        // Update the paid amount field
+        document.getElementById('amount').value = totalPaidAmount.toFixed(2);
         
         // Set the min attribute to ensure the total paid amount cannot be less than required amount
         document.getElementById('amount').setAttribute('min', requiredAmount);
-    }
-    
-    // Function to update the Total Paid Amount when Total Interest value changes in Edit form
-    function updateTotalPaidAmountFromInterest() {
-        const depositAmount = parseFloat(document.getElementById('edit_required_amount').value) || 0;
-        const totalInterest = parseFloat(document.getElementById('edit_total_interest').value) || 0;
-        
-        // Calculate the new total amount (deposit amount + interest)
-        const totalAmount = depositAmount + totalInterest;
-        
-        // Update the Total Paid Amount field
-        document.getElementById('edit_amount').value = totalAmount.toFixed(2);
     }
     
     // Add event listeners to penalty paid amount fields to update the total paid amount when they change
@@ -970,7 +887,7 @@
         const penality_paid_amount = document.getElementById('penality_paid_amount').value;
         
         // Send request to the server
-        fetch('/members/recurring-deposit/<%= member.id %>', {
+        fetch('/members/fixed-deposit/<%= member.id %>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1039,7 +956,7 @@
         const userId = '<%= member.id %>';
         
         // Send request to the server
-        fetch(`/members/calculate-recurring-deposits/${userId}`, {
+        fetch(`/members/calculate-deposits/${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1092,7 +1009,7 @@
         });
         //console.log("openEditDepositModal deposit", deposit);
         
-        // If deposit doesn't have a setting_id, fetch the latest Recurring Deposit setting
+        // If deposit doesn't have a setting_id, fetch the latest Fixed Deposit setting
         if(!deposit.setting_id){
             // Get the user ID from the URL or a hidden field
             const userId = '<%= member.id %>';
@@ -1124,17 +1041,16 @@
         if (deposit) {
             document.getElementById('edit_deposit_id').value = id;
             document.getElementById('edit_setting_id').value = deposit.setting_id;
-            document.getElementById('edit_amount').value = deposit.total_amount;
+            document.getElementById('edit_amount').value = amount;
             document.getElementById('edit_per_day_rate').value = deposit.per_day_rate || '';
             document.getElementById('edit_required_amount').value = deposit.required_amount || '';
             document.getElementById('edit_payment_interval').value = deposit.payment_interval || 'Monthly';
-            document.getElementById('edit_payment_method').value = deposit.payment_method;
-            document.getElementById('edit_transaction_id').value = deposit.transaction_id;
+            document.getElementById('edit_payment_method').value = payment_method;
+            document.getElementById('edit_transaction_id').value = transaction_id;
             document.getElementById('edit_penalty_amount').value = deposit.penality_amount || '0.00';
             document.getElementById('edit_penalty_paid_amount').value = deposit.penality_paid_amount || '0.00';
-            document.getElementById('edit_total_interest').value = deposit.interest_amount || '0.00';
-            document.getElementById('edit_comments').value = deposit.comments;
-            document.getElementById('edit_status').value = deposit.status;
+            document.getElementById('edit_comments').value = notes;
+            document.getElementById('edit_status').value = status;
             
             const modal = new bootstrap.Modal(document.getElementById('editDepositModal'));
             modal.show();
@@ -1179,7 +1095,6 @@
         const transaction_id = document.getElementById('edit_transaction_id').value || '';
         const penality_amount = document.getElementById('edit_penalty_amount').value || '0';
         const penality_paid_amount = document.getElementById('edit_penalty_paid_amount').value || '0';
-        const total_interest = document.getElementById('edit_total_interest').value || '0';
         const comments = document.getElementById('edit_comments').value || '';
         
         // Get setting_id if available
@@ -1192,7 +1107,7 @@
         updateButton.textContent = 'Updating...';
         updateButton.disabled = true;
         
-        fetch(`/members/recurring-deposit/${depositId}`, {
+        fetch(`/members/fixed-deposit/${depositId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1206,7 +1121,6 @@
                 transaction_id,
                 penality_amount,
                 penality_paid_amount,
-                total_interest,
                 comments,
                 status: statusValue,
                 setting_id: setting_id
@@ -1300,50 +1214,40 @@
         }
     }
     
-    // RD Settings Functions
+    // FD settings Functions
     
-    // Load RD Settings when modal is opened
-    document.getElementById('rdSettingsModal').addEventListener('show.bs.modal', function () {
-        loadRDSettings();
+    // Load FD settings when modal is opened
+    document.getElementById('fdSettingsModal').addEventListener('show.bs.modal', function () {
+        loadfdSettings();
     });
     
-    // Load RD Settings from the server
-    function loadRDSettings() {
+    // Load FD settings from the server
+    function loadfdSettings() {
         const userId = document.getElementById('rd_user_id').value;
-        fetch('/members/rd-settings?user_id=' + userId)
+        fetch('/members/fd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
-                    displayRDSettings(data.settings);
+                    displayfdSettings(data.settings);
                 } else {
-                    console.error('Error loading RD settings:', data.message);
-                    alert('Error loading RD settings: ' + data.message);
+                    console.error('Error loading FD settings:', data.message);
+                    alert('Error loading FD settings: ' + data.message);
                 }
             })
             .catch(function(error) {
                 console.error('Error:', error);
-                alert('An error occurred while loading RD settings.');
+                alert('An error occurred while loading FD settings.');
             });
     }
     
-    // Display RD Settings in the table
-    function displayRDSettings(settings) {
-        const tableBody = document.getElementById('rdSettingsTableBody');
+    // Display FD settings in the table
+    function displayfdSettings(settings) {
+        const tableBody = document.getElementById('fdSettingsTableBody');
         tableBody.innerHTML = '';
-        
-        // Update global variable for active RD settings
-        hasActiveRDSettings = settings && settings.some(function(setting) { return setting.is_active; });
-        
-        // Enable or disable action buttons based on active settings
-        if (hasActiveRDSettings) {
-            enableAllActions();
-        } else {
-            disableAllActions();
-        }
         
         // Check if there's an active setting to determine if we should show the Add button
         const hasActiveSetting = settings && settings.some(function(setting) { return setting.is_active; });
-        hasActiveRDSettings = hasActiveSetting; // Update global variable
+        hasActivefdSettings = hasActiveSetting; // Update global variable
         
         // If we have active settings now, enable all actions
         if (hasActiveSetting) {
@@ -1352,7 +1256,7 @@
             disableAllActions();
         }
         
-        const addButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
+        const addButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
         
         if (hasActiveSetting) {
             // If there's an active setting, disable the Add button
@@ -1363,8 +1267,8 @@
             // Add a message at the top of the table
             // const messageDiv = document.createElement('div');
             // messageDiv.className = 'alert alert-info mb-3';
-            // messageDiv.textContent = 'Only one active RD Setting is allowed. Deactivate the current setting to add a new one.';
-            // document.getElementById('rdSettingsList').prepend(messageDiv);
+            // messageDiv.textContent = 'Only one active FD setting is allowed. Deactivate the current setting to add a new one.';
+            // document.getElementById('fdSettingsList').prepend(messageDiv);
         } else {
             // If there's no active setting, enable the Add button
             addButton.textContent = 'Save Settings';
@@ -1372,7 +1276,7 @@
             addButton.title = '';
             
             // Remove any existing message
-            const existingMessage = document.getElementById('rdSettingsList').querySelector('.alert');
+            const existingMessage = document.getElementById('fdSettingsList').querySelector('.alert');
             if (existingMessage) {
                 existingMessage.remove();
             }
@@ -1382,21 +1286,6 @@
             settings.forEach(function(setting) {
                 const row = document.createElement('tr');
                 
-                // row.innerHTML = 
-                //     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
-                //     '<td>' + setting.payment_interval + '</td>' +
-                //     '<td>₹ ' + setting.amount + '</td>' +
-                //     '<td>₹ ' + setting.penality_rate + '</td>' +
-                //     '<td>' + setting.duration/12 + ' ' + (setting.duration == 1 ? 'Year' : 'Years') + '</td>' +
-                //     '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
-                //     (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
-                //     '<td><div class="button-group">' +
-                //     '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
-                //     '<i class="bx bx-edit"></i></button>' +
-                //     '<button class="btn btn-sm btn-' + (setting.is_active ? 'danger' : 'success') + '" onclick="toggleRDSettingStatus(' + setting.id + ', ' + (!setting.is_active ? 'true' : 'false') + ')">' +
-                //     '<i class="bx bx-' + (setting.is_active ? 'power-off' : 'check') + '"></i></button>' +
-                //     '</div></td>';
-
                 row.innerHTML = 
                     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
                     '<td>' + setting.payment_interval + '</td>' +
@@ -1406,29 +1295,31 @@
                     '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
                     (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
                     '<td><div class="button-group">' +
-                    '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ','+ setting.penality_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
+                    '<button class="btn btn-sm btn-warning" onclick="editFDSetting(' + setting.id + ', ' + setting.annual_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
                     '<i class="bx bx-edit"></i></button>' +
+                    '<button class="btn btn-sm btn-' + (setting.is_active ? 'danger' : 'success') + '" onclick="togglefdSettingstatus(' + setting.id + ', ' + (!setting.is_active ? 'true' : 'false') + ')">' +
+                    '<i class="bx bx-' + (setting.is_active ? 'power-off' : 'check') + '"></i></button>' +
                     '</div></td>';
                 
                 tableBody.appendChild(row);
             });
         } else {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="7" class="text-center">No RD settings found</td>';
+            row.innerHTML = '<td colspan="5" class="text-center">No FD settings found</td>';
             tableBody.appendChild(row);
         }
     }
     
-    // Submit RD Settings Form
-    function submitRDSettingsForm() {
-        const form = document.getElementById('rdSettingsForm');
+    // Submit FD settings Form
+    function submitfdSettingsForm() {
+        const form = document.getElementById('fdSettingsForm');
         
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
         
-        // Set a flag to indicate we're submitting RD settings
+        // Set a flag to indicate we're submitting FD settings
         
         const user_id = document.getElementById('rd_user_id').value;
         const annual_rate = document.getElementById('annual_rate').value;
@@ -1436,14 +1327,14 @@
         const amount = document.getElementById('rd_amount').value;
         const duration = document.getElementById('duration').value;
         const penality_rate = document.getElementById('penality_rate').value;
-        //console.log(user_id, annual_rate, payment_interval, amount, duration, penality_rate);
+        
         // Show loading state
-        const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
+        const saveButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
         const originalText = saveButton.textContent;
         saveButton.textContent = 'Saving...';
         saveButton.disabled = true;
         
-        fetch('/members/rd-settings', {
+        fetch('/members/fd-settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1464,10 +1355,10 @@
                 form.reset();
                 
                 // Show success message
-                alert('RD Setting added successfully!');
+                alert('FD setting added successfully!');
                 
                 // Reload settings
-                loadRDSettings();
+                loadfdSettings();
             } else {
                 // Show error message
                 alert('Error1: ' + data.message);
@@ -1479,7 +1370,7 @@
         })
         .catch(function(error) {
             console.error('Error2:', error);
-            alert('An error occurred while adding the RD setting.');
+            alert('An error occurred while adding the FD setting.');
             
             // Reset button state
             saveButton.textContent = originalText;
@@ -1487,17 +1378,16 @@
         });
     }
     
-    // Edit RD Setting
-    function editRDSetting(id, annual_rate, penality_rate, payment_interval, amount, duration, is_active) {
+    // Edit FD setting
+    function editFDSetting(id, annual_rate, payment_interval, amount, duration, is_active) {
         // Set form values
         document.getElementById('annual_rate').value = annual_rate;
-        document.getElementById('penality_rate').value = penality_rate;
         document.getElementById('payment_interval').value = payment_interval;
         document.getElementById('rd_amount').value = amount;
         document.getElementById('duration').value = duration;
         
         // Change button to update
-        const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
+        const saveButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
         saveButton.textContent = 'Update Setting';
         saveButton.disabled = false; // Always enable the button for editing
         
@@ -1506,7 +1396,7 @@
         
         // Set new onclick function
         saveButton.onclick = function() {
-            updateRDSetting(id);
+            updateFDSetting(id);
             
             // After updating, restore the original onclick function
             setTimeout(function() {
@@ -1515,9 +1405,9 @@
         };
     }
     
-    // Update RD Setting
-    function updateRDSetting(id) {
-        const form = document.getElementById('rdSettingsForm');
+    // Update FD setting
+    function updateFDSetting(id) {
+        const form = document.getElementById('fdSettingsForm');
         
         if (!form.checkValidity()) {
             form.reportValidity();
@@ -1526,12 +1416,11 @@
         
         const user_id = document.getElementById('rd_user_id').value;
         const annual_rate = document.getElementById('annual_rate').value;
-        const penality_rate = document.getElementById('penality_rate').value;
         const payment_interval = document.getElementById('payment_interval').value;
         const amount = document.getElementById('rd_amount').value;
         const duration = document.getElementById('duration').value;
         
-        fetch('/members/rd-settings/' + id, {
+        fetch('/members/fd-settings/' + id, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1539,7 +1428,6 @@
             body: JSON.stringify({
                 user_id: user_id,
                 annual_rate: annual_rate,
-                penality_rate: penality_rate,
                 payment_interval: payment_interval,
                 amount: amount,
                 duration: duration
@@ -1552,33 +1440,33 @@
                 form.reset();
                 
                 // Reset button
-                const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
+                const saveButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
                 saveButton.textContent = 'Save Settings';
-                saveButton.onclick = submitRDSettingsForm;
+                saveButton.onclick = submitfdSettingsForm;
                 
                 // Show success message
-                alert('RD Setting updated successfully!');
+                alert('FD setting updated successfully!');
                 
                 // Reload settings
-                loadRDSettings();
+                loadfdSettings();
             } else {
                 alert('Error: ' + data.message);
             }
         })
         .catch(function(error) {
             console.error('Error:', error);
-            alert('An error occurred while updating the RD setting.');
+            alert('An error occurred while updating the FD setting.');
         });
     }
     
-    // Toggle RD Setting Status (Active/Inactive)
-    function toggleRDSettingStatus(id, makeActive) {
-        if (!confirm('Are you sure you want to ' + (makeActive ? 'activate' : 'deactivate') + ' this RD setting?')) {
+    // Toggle FD setting Status (Active/Inactive)
+    function togglefdSettingstatus(id, makeActive) {
+        if (!confirm('Are you sure you want to ' + (makeActive ? 'activate' : 'deactivate') + ' this FD setting?')) {
             return;
         }
         
         // If we're deactivating the only active setting, warn the user
-        if (!makeActive && hasActiveRDSettings) {
+        if (!makeActive && hasActivefdSettings) {
             if (!confirm('Warning: Deactivating this setting will prevent any deposit actions until a new setting is activated. Continue?')) {
                 return;
             }
@@ -1590,7 +1478,7 @@
         button.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
         button.disabled = true;
         
-        fetch('/members/rd-settings/' + id, {
+        fetch('/members/fd-settings/' + id, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1603,10 +1491,10 @@
         .then(function(data) {
             if (data.success) {
                 // Show success message
-                alert('RD Setting ' + (makeActive ? 'activated' : 'deactivated') + ' successfully!');
+                alert('FD setting ' + (makeActive ? 'activated' : 'deactivated') + ' successfully!');
                 
                 // Reload settings
-                loadRDSettings();
+                loadfdSettings();
             } else {
                 // Show error message
                 alert('Error: ' + data.message);
@@ -1618,7 +1506,7 @@
         })
         .catch(function(error) {
             console.error('Error:', error);
-            alert('An error occurred while updating the RD setting status.');
+            alert('An error occurred while updating the FD setting status.');
             
             // Reset button state
             button.innerHTML = originalHTML;

@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
+const fixedDepositController = require("../controllers/fixedDepositController");
 const { body, validationResult } = require('express-validator');
 const { User, State, District } = require('../models');
 const bcrypt = require('bcryptjs');
@@ -79,11 +80,20 @@ router.post('/recurring-deposit/:id', userController.addRecurringDeposit);
 router.put('/recurring-deposit/:id', userController.updateRecurringDeposit);
 router.post('/calculate-recurring-deposits/:id', userController.calculateRecurringDeposits);
 
+// Fixed deposit routes
+router.get('/fixed-deposit/:id', fixedDepositController.getFixedDeposit);
+router.post('/fixed-deposit/:id', fixedDepositController.addFixedDeposit);
+router.put('/fixed-deposit/:id', fixedDepositController.updateFixedDeposit);
+router.post('/calculate-fixed-deposits/:id', fixedDepositController.calculateFixedDeposits);
+
 // CD Transactions route
 router.get('/cd-transactions', userController.getCDTransactions);
 
 // RD Transactions route
 router.get('/rd-transactions', userController.getRDTransactions);
+
+// FD Transactions route
+router.get('/fd-transactions', fixedDepositController.getFDTransactions);
 
 // RD Settings routes
 router.get('/rd-settings', userController.getRDSettings);
@@ -132,5 +142,10 @@ router.post('/request-agent', verifyApiToken, userController.requestAgent);
 router.get('/:id/agent-status', verifyApiToken, userController.updateAgentStatus);
 
 router.get('/:id/agent-members', verifyApiToken, userController.getAgentmembers);
+
+// FD Settings routes
+router.get('/fd-settings', fixedDepositController.getFDSettings);
+router.post('/fd-settings', fixedDepositController.addFDSetting);
+router.put('/fd-settings/:id', fixedDepositController.updateFDSetting);
 
 module.exports = router;
