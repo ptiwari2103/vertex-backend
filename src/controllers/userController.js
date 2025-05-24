@@ -2644,17 +2644,15 @@ const getRDDepositsBySetting = async (req, res) => {
             });
         }
 
-        return res.render('members/recurring-deposit', {
-            member,
+        return res.json({
+            success: true,
             deposits,
-            setting: selectedSetting,
-            allSettings,
-            selectedSettingId: selectedSetting ? selectedSetting.id : null,
-            totalPrincipal,
-            totalInterest,
-            totalPenalty,
-            totalNet,
-            formatCurrency: (amount) => this.formatAmount(amount)
+            totals: {
+                totalPrincipal,
+                totalInterest,
+                totalPenalty,
+                totalNet
+            }
         });
     } catch (error) {
         console.error('Get RD deposits by setting error:', error);
@@ -2732,7 +2730,7 @@ const getRDTransactions = async (req, res) => {
 // RD Settings controller methods
 const getRDSettings = async (req, res) => {
     try {
-        const { user_id } = req.query;
+        const { user_id, setting_id } = req.query;
 
         // Build query conditions
         const whereCondition = {};
@@ -2740,16 +2738,34 @@ const getRDSettings = async (req, res) => {
             whereCondition.user_id = user_id;
         }
 
-        // Get RD settings
-        const settings = await RecurringDepositSetting.findAll({
-            where: whereCondition,
-            order: [['created_at', 'DESC']]
-        });
+        if (setting_id) {
+            whereCondition.id = setting_id;
+        }
 
-        return res.json({
-            success: true,
-            settings
-        });
+        // Get RD settings
+        if (setting_id) {
+            // If setting_id is provided, find that specific setting
+            const setting = await RecurringDepositSetting.findOne({
+                where: whereCondition,
+                order: [['created_at', 'DESC']]
+            });
+            
+            return res.json({
+                success: true,
+                settings: setting ? setting : null
+            });
+        } else {
+            // If no setting_id, get all settings
+            const settings = await RecurringDepositSetting.findAll({
+                where: whereCondition,
+                order: [['created_at', 'DESC']]
+            });
+            
+            return res.json({
+                success: true,
+                settings
+            });
+        }
     } catch (error) {
         console.error('Get RD settings error:', error);
         return res.status(500).json({
