@@ -2622,6 +2622,16 @@ const getRDDepositsBySetting = async (req, res) => {
                 message: 'Setting not found'
             });
         }
+        
+        // Determine the setting status
+        let settingStatus = 'N/A';
+        if (setting.is_active === true || setting.is_active === 1 || String(setting.is_active) === '1') {
+            settingStatus = 'Active';
+        } else if (setting.is_active === 2 || String(setting.is_active) === '2') {
+            settingStatus = 'Closed';
+        } else {
+            settingStatus = 'Inactive';
+        }
 
         // Get deposits for the setting
         const deposits = await RecurringDeposit.findAll({
@@ -2652,7 +2662,8 @@ const getRDDepositsBySetting = async (req, res) => {
                 totalInterest,
                 totalPenalty,
                 totalNet
-            }
+            },
+            settingStatus: settingStatus
         });
     } catch (error) {
         console.error('Get RD deposits by setting error:', error);
@@ -2750,9 +2761,17 @@ const getRDSettings = async (req, res) => {
                 order: [['created_at', 'DESC']]
             });
             
+            // Convert setting to plain object if it exists
+            const settingData = setting ? setting.get({ plain: true }) : null;
+            
+            // Ensure is_active is treated as a string for consistent comparison
+            if (settingData && settingData.is_active !== null && settingData.is_active !== undefined) {
+                settingData.is_active = String(settingData.is_active);
+            }
+            
             return res.json({
                 success: true,
-                settings: setting ? setting : null
+                settings: settingData
             });
         } else {
             // If no setting_id, get all settings
@@ -2761,9 +2780,18 @@ const getRDSettings = async (req, res) => {
                 order: [['created_at', 'DESC']]
             });
             
+            // Convert settings to plain objects and ensure is_active is treated as a string
+            const settingsData = settings.map(setting => {
+                const plainSetting = setting.get({ plain: true });
+                if (plainSetting.is_active !== null && plainSetting.is_active !== undefined) {
+                    plainSetting.is_active = String(plainSetting.is_active);
+                }
+                return plainSetting;
+            });
+            
             return res.json({
                 success: true,
-                settings
+                settings: settingsData
             });
         }
     } catch (error) {

@@ -131,7 +131,7 @@
                 <a href="/members/view/<%= member.id %>" class="btn btn-secondary">
                     <i class="bx bx-arrow-back"></i> Back to Member
                 </a>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDepositModal">
+                <button type="button" class="btn btn-primary" id="addNewDepositBtn" data-bs-toggle="modal" data-bs-target="#addDepositModal">
                     <i class="bx bx-plus"></i> Add New Deposit
                 </button>
                 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rdSettingsModal">
@@ -179,7 +179,7 @@
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="section-title mb-0">Totals</h4>
-            <input type="hidden" id="selected_setting_id" value="">
+            <input type="text" id="selected_setting_id" value="">
 
             <% if (allSettings && allSettings.length > 0) { %>
             <div class="form-group mb-0" style="width: 300px;">
@@ -206,18 +206,37 @@
                     <div class="info-value" id="totalInterestValue"><%= formatCurrency(totalInterest) %></div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="info-row">
                     <div class="info-label">Total Penalty</div>
                     <div class="info-value" id="totalPenaltyValue"><%= formatCurrency(totalPenalty) %></div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="info-row">
-                    <div class="info-label">Total Net Amount</div>
+                    <div class="info-label">Total Net</div>
                     <div class="info-value" id="totalNetValue"><%= formatCurrency(totalNet) %></div>
                 </div>
             </div>
+            <div class="col-md-2">
+                <div class="info-row">
+                    <div class="info-label">Status</div>
+                    <div class="info-value" id="settingStatusValue">
+                        <% if (activeSetting) { %>
+                            <% if (activeSetting.is_active === true || activeSetting.is_active === 1 || String(activeSetting.is_active) === '1') { %>
+                                <span class="badge bg-success">Active</span>
+                            <% } else if (activeSetting.is_active === 2 || String(activeSetting.is_active) === '2') { %>
+                                <span class="badge bg-warning">Closed</span>
+                            <% } else { %>
+                                <span class="badge bg-danger">Inactive</span>
+                            <% } %>
+                        <% } else { %>
+                            N/A
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            
         </div>
     </div>
 
@@ -400,11 +419,7 @@
                         </div>
                         <div class="col-md-4">
                             <label for="edit_payment_interval" class="form-label">Payment Interval</label>
-                            <select class="form-select" id="edit_payment_interval" name="payment_interval" required readonly disabled>
-                                <option value="Daily">Daily</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="Yearly">Yearly</option>
-                            </select>
+                            <input type="text" class="form-control" id="edit_payment_interval" name="payment_interval" required readonly disabled>
                         </div>
                     </div>
                     
@@ -686,6 +701,19 @@
                         </table>
                     </div>
                 </div>
+                <div class="info-value" id="settingStatusValue">
+                    <% if (activeSetting) { %>
+                        <% if (String(activeSetting.is_active) === '1') { %>
+                            <span class="badge bg-success">Active</span>
+                        <% } else if (String(activeSetting.is_active) === '2') { %>
+                            <span class="badge bg-warning">Closed</span>
+                        <% } else { %>
+                            <span class="badge bg-danger">Inactive</span>
+                        <% } %>
+                    <% } else { %>
+                        N/A
+                    <% } %>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -697,18 +725,81 @@
 
 <%- contentFor('script') %>
 <script>
-    // Global variable to track if there are active RD settings
+    // Global variables
     let hasActiveRDSettings = false;
+    let currentDeposits = <%- JSON.stringify(deposits || []) %>; // Store the current deposits data
     
     
-    // Helper function to format currency
+    // Helper function    // Format currency helper function
     function formatCurrency(amount) {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
+        if (!amount) return '₹0.00';
+        return new Intl.NumberFormat('en-IN', { 
+            style: 'currency', 
             currency: 'INR',
             minimumFractionDigits: 2
         }).format(amount);
     }
+    
+    // Helper function to enable/disable buttons based on setting status
+    function updateButtonStates(isActive) {
+        const addNewDepositBtn = document.getElementById('addNewDepositBtn');
+        const calculateBtn = document.getElementById('calculateButton');
+        
+        if (addNewDepositBtn) {
+            if (!isActive) {
+                // Disable Add New Deposit button
+                addNewDepositBtn.disabled = true;
+                addNewDepositBtn.setAttribute('disabled', 'disabled');
+                addNewDepositBtn.removeAttribute('data-bs-toggle');
+                addNewDepositBtn.removeAttribute('data-bs-target');
+                addNewDepositBtn.classList.add('opacity-50');
+                addNewDepositBtn.title = 'Only available for active RD settings';
+            } else {
+                // Enable Add New Deposit button
+                addNewDepositBtn.disabled = false;
+                addNewDepositBtn.removeAttribute('disabled');
+                addNewDepositBtn.setAttribute('data-bs-toggle', 'modal');
+                addNewDepositBtn.setAttribute('data-bs-target', '#addDepositModal');
+                addNewDepositBtn.classList.remove('opacity-50');
+                addNewDepositBtn.title = '';
+            }
+        }
+        
+        if (calculateBtn) {
+            if (!isActive) {
+                // Disable Calculate button
+                calculateBtn.disabled = true;
+                calculateBtn.setAttribute('disabled', 'disabled');
+                calculateBtn.classList.add('opacity-50');
+                calculateBtn.title = 'Only available for active RD settings';
+            } else {
+                // Enable Calculate button
+                calculateBtn.disabled = false;
+                calculateBtn.removeAttribute('disabled');
+                calculateBtn.classList.remove('opacity-50');
+                calculateBtn.title = '';
+            }
+        }
+    }
+    
+    // Initialize the selected setting ID with the active setting and handle button states
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if setting is active and set button states accordingly
+        let isActive = false;
+        <% if (activeSetting && (activeSetting.is_active === true || activeSetting.is_active === 1 || String(activeSetting.is_active) === '1')) { %>
+            isActive = true;
+        <% } %>
+        console.log('Setting active status:', isActive);
+        
+        // Initialize the selected setting ID if an active setting exists
+        const activeSettingId = '<%= activeSetting ? activeSetting.id : "" %>';
+        if (activeSettingId) {
+            document.getElementById('selected_setting_id').value = activeSettingId;
+        }
+        
+        // Update button states based on setting status
+        updateButtonStates(isActive);
+    });
     
     // Check for RD Settings on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -726,6 +817,7 @@
         document.getElementById('totalInterestValue').innerHTML = '<small>Loading...</small>';
         document.getElementById('totalPenaltyValue').innerHTML = '<small>Loading...</small>';
         document.getElementById('totalNetValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('settingStatusValue').innerHTML = '<small>Loading...</small>';
         
         // Fetch data for the selected setting
         fetch('/members/rd-deposits-by-setting?setting_id=' + settingId)
@@ -738,7 +830,26 @@
                     document.getElementById('totalPenaltyValue').textContent = formatCurrency(data.totals.totalPenalty);
                     document.getElementById('totalNetValue').textContent = formatCurrency(data.totals.totalNet);
                     
-                    // Update the deposit history table
+                    // Use the setting status from the API response
+                    if (data.settingStatus) {
+                        let statusText = 'N/A';
+                        const isActive = data.settingStatus === 'Active';
+                        
+                        if (isActive) {
+                            statusText = '<span class="badge bg-success">Active</span>';
+                        } else if (data.settingStatus === 'Closed') {
+                            statusText = '<span class="badge bg-warning">Closed</span>';
+                        } else {
+                            statusText = '<span class="badge bg-danger">Inactive</span>';
+                        }
+                        
+                        // Update button states based on setting status
+                        updateButtonStates(isActive);
+                        
+                        document.getElementById('settingStatusValue').innerHTML = statusText;
+                    }
+                    // Update deposits table and store the new data
+                    currentDeposits = data.deposits;
                     updateDepositTable(data.deposits);
                     
                     // Update URL without refreshing the page
@@ -792,10 +903,12 @@
                     <td><span class="status-badge ${statusClass}">${deposit.status}</span></td>
                     <td>
                         <div class="button-group">
-                            <button class="btn btn-sm btn-warning" onclick="openEditDepositModal(${deposit.id})">
+                            <button class="btn btn-sm btn-warning" 
+                                onclick="openEditDepositModal('${deposit.id}')">
                                 <i class="bx bx-edit"></i> Edit
                             </button>
-                            <button class="btn btn-sm btn-info" onclick="viewDepositDetails(${deposit.id})">
+                            <button class="btn btn-sm btn-info" 
+                                onclick="viewDepositDetails('${deposit.id}')">
                                 <i class="bx bx-info-circle"></i> View
                             </button>
                         </div>
@@ -1231,14 +1344,17 @@
 
     
     // Edit Deposit Modal
-    function openEditDepositModal(id) {
-        // Find the deposit in the table to get all fields
-        const depositsData = <%- JSON.stringify(deposits || []) %>;
-        //console.log("openEditDepositModal depositsData", depositsData);
+    function openEditDepositModal(id, amount, payment_method, transaction_id, notes, status) {
+        console.log('openEditDepositModal called with id:', id);
+        
+        // Use the current deposits data (which may have been updated by the dropdown selection)
+        const depositsData = currentDeposits;
+        console.log('Current deposits data:', depositsData);
+        
         const deposit = depositsData.find(function(d) { 
-            return parseInt(d.id, 10) === parseInt(id, 10); 
+            return String(d.id) === String(id); 
         });
-        //console.log("openEditDepositModal deposit", deposit);
+        console.log('Found deposit:', deposit);
         
         if (!deposit) {
             alert('Deposit details not found.');
@@ -1272,7 +1388,7 @@
                 const userId = '<%= member.id %>';
                 
                 // Fetch the latest active setting for this user
-                fetch('/api/user/rd-settings?user_id=' + userId)
+                fetch('/members/rd-settings?user_id=' + userId)
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.settings && data.settings.length > 0) {
@@ -1426,11 +1542,16 @@
     
     // View Deposit Details
     function viewDepositDetails(depositId) {
-        // Find the deposit in the table
-        const depositsData = <%- JSON.stringify(deposits || []) %>;
+        console.log('viewDepositDetails called with id:', depositId);
+        
+        // Use the current deposits data (which may have been updated by the dropdown selection)
+        const depositsData = currentDeposits;
+        console.log('Current deposits data for view:', depositsData);
+        
         const deposit = depositsData.find(function(d) { 
-            return parseInt(d.id, 10) === parseInt(depositId, 10); 
+            return String(d.id) === String(depositId); 
         });
+        console.log('Found deposit for view:', deposit);
         
         if (deposit) {
             // Per Day Rate and Required Amount
