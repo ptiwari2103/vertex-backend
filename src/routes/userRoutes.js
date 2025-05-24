@@ -100,6 +100,9 @@ router.get('/rd-settings', userController.getRDSettings);
 router.post('/rd-settings', userController.addRDSetting);
 router.put('/rd-settings/:id', userController.updateRDSetting);
 
+// RD Deposits by Setting route
+router.get('/rd-deposits-by-setting', userController.getRDDepositsBySetting);
+
 // Overdraft Deposits route
 router.get('/overdraft-deposits', userController.getOverdraftDeposits);
 
@@ -107,11 +110,6 @@ router.get('/overdraft-deposits', userController.getOverdraftDeposits);
 router.get('/cd-settings', userController.getCDSettings);
 router.post('/cd-settings', userController.addCDSetting);
 router.put('/cd-settings/:id', userController.updateCDSetting);
-
-// RD Settings routes
-router.get('/rd-settings', userController.getRDSettings);
-router.post('/rd-settings', userController.addRDSetting);
-router.put('/rd-settings/:id', userController.updateRDSetting);
 
 // Member address management
 router.put('/address/:id/status', userController.updateAddressStatus);

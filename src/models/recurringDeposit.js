@@ -32,8 +32,7 @@ const RecurringDeposit = sequelize.define('RecurringDeposit', {
     comment: 'Required amount'
   },
   payment_interval: {
-    type: DataTypes.ENUM('Daily', 'Monthly', 'Yearly'),
-    defaultValue: 'Monthly',
+    type: DataTypes.STRING,
     allowNull: false
   },
   amount: {
@@ -44,6 +43,16 @@ const RecurringDeposit = sequelize.define('RecurringDeposit', {
   payment_method: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  due_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  deposit_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
   },
   transaction_id: {
     type: DataTypes.STRING,
@@ -78,11 +87,7 @@ const RecurringDeposit = sequelize.define('RecurringDeposit', {
     allowNull: false,
     defaultValue: 0.00
   },
-  deposit_date: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
-  },
+  
   interest_added: {
     type: DataTypes.BOOLEAN,
     allowNull: false,

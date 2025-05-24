@@ -124,6 +124,7 @@
 </div>
 
 <div class="main-content">
+    <input type="hidden" id="rd_user_id" value="<%= member.id %>">
     <div class="welcome-section">
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="mb-0">Fixed Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
@@ -655,30 +656,33 @@
                 if (data.success) {
                     const settings = data.settings;
                     hasActivefdSettings = settings && settings.some(function(setting) { return setting.is_active; });
-                    
+
                     if (!hasActivefdSettings) {
                         // No active FD settings found, open the settings modal
                         const fdSettingsModal = new bootstrap.Modal(document.getElementById('fdSettingsModal'));
                         fdSettingsModal.show();
-                        
+
                         // Show warning message
-                        const warningDiv = document.createElement('div');
-                        warningDiv.className = 'alert alert-warning mb-3';
-                        warningDiv.id = 'fdSettingsWarning';
-                        warningDiv.innerHTML = '<strong>Important:</strong> You must set up Fixed Deposit settings before proceeding with any actions.';
-                        document.querySelector('.welcome-section').appendChild(warningDiv);
-                        
+                        let warningDiv = document.getElementById('fdSettingsWarning');
+                        if (!warningDiv) {
+                            warningDiv = document.createElement('div');
+                            warningDiv.className = 'alert alert-warning mb-3';
+                            warningDiv.id = 'fdSettingsWarning';
+                            warningDiv.innerHTML = '<strong>Important:</strong> You must set up Fixed Deposit settings before proceeding with any actions.';
+                            document.querySelector('.welcome-section').appendChild(warningDiv);
+                        }
+
                         // Disable all action buttons
                         disableAllActions();
+                    } else {
+                        // Enable all action buttons if there are active FD settings
+                        enableAllActions();
                     }
                 } else {
-                    // Only show alert if the backend indicates a real error
-                    alert('Error loading FD settings: ' + (data.message || 'Unknown error'));
                     console.error('Error checking FD settings:', data.message);
                 }
             })
             .catch(function(error) {
-                // Only log error to console, do not show misleading alert for empty settings
                 console.error('Error:', error);
             });
     }
@@ -691,7 +695,21 @@
             addDepositBtn.disabled = true;
             addDepositBtn.title = 'Please set up FD settings first';
         }
-        
+
+        // Disable the Calculate button if present
+        const calculateBtn = document.getElementById('calculateButton');
+        if (calculateBtn) {
+            calculateBtn.disabled = true;
+            calculateBtn.title = 'Please set up FD settings first';
+        }
+
+        // Disable all Edit buttons in the deposit history table
+        const editButtons = document.querySelectorAll('button.btn-warning');
+        editButtons.forEach(function(btn) {
+            btn.disabled = true;
+            btn.title = 'Please set up FD settings first';
+        });
+
         // Disable other action buttons if any
         const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(function(btn) {
@@ -708,14 +726,28 @@
             addDepositBtn.disabled = false;
             addDepositBtn.title = '';
         }
-        
+
+        // Enable the Calculate button if present
+        const calculateBtn = document.getElementById('calculateButton');
+        if (calculateBtn) {
+            calculateBtn.disabled = false;
+            calculateBtn.title = '';
+        }
+
+        // Enable all Edit buttons in the deposit history table
+        const editButtons = document.querySelectorAll('button.btn-warning');
+        editButtons.forEach(function(btn) {
+            btn.disabled = false;
+            btn.title = '';
+        });
+
         // Enable other action buttons if any
         const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(function(btn) {
             btn.disabled = false;
             btn.title = '';
         });
-        
+
         // Remove warning message if exists
         const warningDiv = document.getElementById('fdSettingsWarning');
         if (warningDiv) {
@@ -1308,7 +1340,7 @@
             });
         } else {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="7" class="text-center">No FD settings found</td>';
+            row.innerHTML = '<td colspan="5" class="text-center">No FD settings found</td>';
             tableBody.appendChild(row);
         }
     }
@@ -1363,8 +1395,8 @@
                 // Reload settings
                 loadfdSettings();
             } else {
-                // Only show alert if the backend indicates a real error (not just empty settings)
-                alert('Error saving FD settings: ' + (data.message || 'Unknown error'));
+                // Show error message
+                alert('Error1: ' + data.message);
                 
                 // Reset button state
                 saveButton.textContent = originalText;

@@ -2279,24 +2279,18 @@ const getCDTransactions = async (req, res) => {
         });
     }
 };
-
-// Recurring Deposit functionality
 const getRecurringDeposit = async (req, res) => {
     try {
         const { id } = req.params;
+        const { setting_id } = req.query;
         
-        // Get user details
+        // Validate user exists
         const user = await User.findByPk(id, {
-            include: [
-                {
-                    model: Profile,
-                    as: 'profile'
-                }
-            ]
+            include: [{ model: Profile, as: 'profile' }]
         });
-
+        
         if (!user) {
-            return res.status(404).render('error', {
+            return res.render('error', {
                 title: 'Error - Vertex Admin',
                 message: 'Member not found',
                 error: 'The requested member could not be found.',
@@ -2306,36 +2300,60 @@ const getRecurringDeposit = async (req, res) => {
             });
         }
 
-        // Get all recurring deposits for this user
+        // Get all active RD settings for this user
+        const allSettings = await RecurringDepositSetting.findAll({
+            where: { 
+                user_id: id, 
+                is_active: { [Op.ne]: 0 }
+            },
+            order: [['id', 'ASC']]
+        });
+        
+        // Find the setting to display - either the one specified by setting_id, the active one, or the first one
+        let selectedSetting;
+        if (setting_id) {
+            // If setting_id is provided, find that specific setting
+            selectedSetting = await RecurringDepositSetting.findOne({
+                where: { id: setting_id, user_id: id }
+            });
+        }
+        
+        // If no setting_id provided or not found, use the active setting
+        if (!selectedSetting) {
+            selectedSetting = await RecurringDepositSetting.findOne({
+                where: { user_id: id, is_active: { [Op.ne]: 0 } },
+                order: [['created_at', 'DESC']]
+            });
+        }
+        
+        // If still no setting found, use the first one if available
+        if (!selectedSetting && allSettings && allSettings.length > 0) {
+            selectedSetting = allSettings[0];
+        }
+        
+        // Get deposits for the selected setting if available, otherwise get all deposits
+        let depositWhere = { user_id: id };
+        if (selectedSetting) {
+            depositWhere.setting_id = selectedSetting.id;
+        }
+        
         const deposits = await RecurringDeposit.findAll({
-            where: { user_id: id },
+            where: depositWhere,
             order: [['deposit_date', 'DESC']]
         });
-
-        // Find the active RD setting for this user
-        const activeSetting = await RecurringDepositSetting.findOne({
-            where: { user_id: id, is_active: true },
-            order: [['created_at', 'DESC']]
-        });
+        
+        // Calculate totals for the displayed deposits
         let totalPrincipal = 0, totalInterest = 0, totalPenalty = 0, totalNet = 0;
-        if (activeSetting) {
-            const totals = await RecurringDeposit.findAll({
-                where: { user_id: id, setting_id: activeSetting.id },
-                attributes: [
-                    [sequelize.fn('SUM', sequelize.col('amount')), 'totalPrincipal'],
-                    [sequelize.fn('SUM', sequelize.col('interest_amount')), 'totalInterest'],
-                    [sequelize.fn('SUM', sequelize.col('penality_paid_amount')), 'totalPenalty'],
-                    [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalNet']
-                ],
-                raw: true
+        
+        if (deposits && deposits.length > 0) {
+            deposits.forEach(deposit => {
+                totalPrincipal += parseFloat(deposit.required_amount || 0);
+                totalInterest += parseFloat(deposit.interest_amount || 0);
+                totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
+                totalNet += parseFloat(deposit.total_amount || 0);
             });
-            if (totals && totals.length > 0) {
-                totalPrincipal = parseFloat(totals[0].totalPrincipal) || 0;
-                totalInterest = parseFloat(totals[0].totalInterest) || 0;
-                totalPenalty = parseFloat(totals[0].totalPenalty) || 0;
-                totalNet = parseFloat(totals[0].totalNet) || 0;
-            }
         }
+        
         const { formatCurrency } = require('../utils/currencyFormatter');
         res.render('members/recurring-deposit', {
             title: 'Recurring Deposit - Vertex Admin',
@@ -2347,7 +2365,9 @@ const getRecurringDeposit = async (req, res) => {
             totalPrincipal: totalPrincipal,
             totalInterest: totalInterest,
             totalPenalty: totalPenalty,
-            totalNet: totalNet
+            totalNet: totalNet,
+            activeSetting: selectedSetting,
+            allSettings: allSettings
         });
     } catch (error) {
         console.error('Recurring deposit error:', error);
@@ -2582,6 +2602,70 @@ const calculateRecurringDeposits = async (req, res) => {
     }
 };
 
+// Get RD Deposits by Setting ID (for AJAX)
+const getRDDepositsBySetting = async (req, res) => {
+    try {
+        const { setting_id } = req.query;
+
+        if (!setting_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Setting ID is required'
+            });
+        }
+
+        // Find the setting
+        const setting = await RecurringDepositSetting.findByPk(setting_id);
+        if (!setting) {
+            return res.status(404).json({
+                success: false,
+                message: 'Setting not found'
+            });
+        }
+
+        // Get deposits for the setting
+        const deposits = await RecurringDeposit.findAll({
+            where: { setting_id: setting_id },
+            order: [['deposit_date', 'DESC']]
+        });
+
+        // Calculate totals
+        let totalPrincipal = 0;
+        let totalInterest = 0;
+        let totalPenalty = 0;
+        let totalNet = 0;
+
+        if (deposits && deposits.length > 0) {
+            deposits.forEach(deposit => {
+                totalPrincipal += parseFloat(deposit.required_amount || 0);
+                totalInterest += parseFloat(deposit.interest_amount || 0);
+                totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
+                totalNet += parseFloat(deposit.total_amount || 0);
+            });
+        }
+
+        return res.render('members/recurring-deposit', {
+            member,
+            deposits,
+            setting: selectedSetting,
+            allSettings,
+            selectedSettingId: selectedSetting ? selectedSetting.id : null,
+            totalPrincipal,
+            totalInterest,
+            totalPenalty,
+            totalNet,
+            formatCurrency: (amount) => this.formatAmount(amount)
+        });
+    } catch (error) {
+        console.error('Get RD deposits by setting error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching RD deposits by setting',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching deposits.'
+        });
+    }
+};
+
 // Get RD Transactions with search and pagination
 const getRDTransactions = async (req, res) => {
     try {
@@ -2680,7 +2764,7 @@ const addRDSetting = async (req, res) => {
     try {
         let { user_id, annual_rate, payment_interval, amount, duration, penality_rate } = req.body;
 
-        console.log('RD Settings payload:', { user_id, annual_rate, payment_interval, amount, duration, penality_rate });
+        //console.log('RD Settings payload:', { user_id, annual_rate, payment_interval, amount, duration, penality_rate });
         
         // Convert amount to a number if it's a string, or set default if empty
         if (amount === '' || amount === null || amount === undefined) {
@@ -2710,19 +2794,19 @@ const addRDSetting = async (req, res) => {
         }
 
         // Check if user already has an active setting
-        const existingSetting = await RecurringDepositSetting.findOne({
-            where: {
-                user_id,
-                is_active: true
-            }
-        });
+        // const existingSetting = await RecurringDepositSetting.findOne({
+        //     where: {
+        //         user_id,
+        //         is_active: true
+        //     }
+        // });
 
-        if (existingSetting) {
-            return res.status(400).json({
-                success: false,
-                message: 'User already has an active RD Setting. Please update the existing setting or deactivate it before creating a new one.'
-            });
-        }
+        // if (existingSetting) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'User already has an active RD Setting. Please update the existing setting or deactivate it before creating a new one.'
+        //     });
+        // }
 
         // Create new RD setting
         const setting = await RecurringDepositSetting.create({
@@ -3065,5 +3149,6 @@ module.exports = {
     getRDTransactions,
     getRDSettings,
     addRDSetting,
-    updateRDSetting
+    updateRDSetting,
+    getRDDepositsBySetting
 };

@@ -177,30 +177,43 @@
 
     <!-- Totals Row -->
     <div class="section-card">
-        <h4 class="section-title">Totals</h4>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="section-title mb-0">Totals</h4>
+            <% if (allSettings && allSettings.length > 0) { %>
+            <div class="form-group mb-0" style="width: 300px;">
+                <select class="form-select" id="rdSettingDropdown" onchange="loadSelectedRDSetting(this.value)">
+                    <% allSettings.forEach(function(setting) { %>
+                    <option value="<%= setting.id %>" <%= (activeSetting && activeSetting.id === setting.id) ? 'selected' : '' %>>
+                        RD<%= setting.id %> - <%= formatCurrency(setting.amount) %>/<%= setting.payment_interval %> (<%= setting.annual_rate %>%)
+                    </option>
+                    <% }); %>
+                </select>
+            </div>
+            <% } %>
+        </div>
         <div class="row">
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Principal</div>
-                    <div class="info-value"><%= formatCurrency(totalPrincipal) %></div>
+                    <div class="info-value" id="totalPrincipalValue"><%= formatCurrency(totalPrincipal) %></div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Interest</div>
-                    <div class="info-value"><%= formatCurrency(totalInterest) %></div>
+                    <div class="info-value" id="totalInterestValue"><%= formatCurrency(totalInterest) %></div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Penalty</div>
-                    <div class="info-value"><%= formatCurrency(totalPenalty) %></div>
+                    <div class="info-value" id="totalPenaltyValue"><%= formatCurrency(totalPenalty) %></div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Net Amount</div>
-                    <div class="info-value"><%= formatCurrency(totalNet) %></div>
+                    <div class="info-value" id="totalNetValue"><%= formatCurrency(totalNet) %></div>
                 </div>
             </div>
         </div>
@@ -639,6 +652,8 @@
                                 <option value="">Select Payment Interval</option>
                                 <option value="Daily">Daily</option>
                                 <option value="Monthly">Monthly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Half Yearly">Half Yearly</option>
                                 <option value="Yearly">Yearly</option>
                             </select>
                         </div>
@@ -652,6 +667,7 @@
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
+                                    <th>RD ID</th>
                                     <th>Annual Rate</th>
                                     <th>Payment Interval</th>
                                     <th>Amount</th>
@@ -681,10 +697,153 @@
     // Global variable to track if there are active RD settings
     let hasActiveRDSettings = false;
     
+    // Function to load deposits for the selected RD setting
+    function loadSelectedRDSetting(settingId) {
+        if (!settingId) return;
+        
+        // Show loading indicator
+        const tableBody = document.querySelector('table.table-hover tbody');
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="12" class="text-center">Loading...</td></tr>';
+        }
+        
+        // Fetch deposits for the selected setting
+        fetch(`/api/user/rd-deposits-by-setting?setting_id=${settingId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update totals
+                    document.getElementById('totalPrincipalValue').textContent = formatCurrency(data.totals.totalPrincipal);
+                    document.getElementById('totalInterestValue').textContent = formatCurrency(data.totals.totalInterest);
+                    document.getElementById('totalPenaltyValue').textContent = formatCurrency(data.totals.totalPenalty);
+                    document.getElementById('totalNetValue').textContent = formatCurrency(data.totals.totalNet);
+                    
+                    // Update deposits table
+                    updateDepositTable(data.deposits);
+                } else {
+                    // Show error message
+                    if (tableBody) {
+                        tableBody.innerHTML = 
+                            `<tr><td colspan="12" class="text-center text-danger">${data.message || 'Error loading deposits'}</td></tr>`;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching deposits:', error);
+                if (tableBody) {
+                    tableBody.innerHTML = 
+                        '<tr><td colspan="12" class="text-center text-danger">Error loading deposits. Please try again.</td></tr>';
+                }
+            });
+    }
+    
+    // Helper function to format currency
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 2
+        }).format(amount);
+    }
+    
     // Check for RD Settings on page load
     document.addEventListener('DOMContentLoaded', function() {
         checkRDSettings();
     });
+    
+    // Function to handle RD setting selection from dropdown
+    function loadSelectedRDSetting(settingId) {
+        if (!settingId) return;
+        
+        // Show loading indicator
+        document.getElementById('totalPrincipalValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('totalInterestValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('totalPenaltyValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('totalNetValue').innerHTML = '<small>Loading...</small>';
+        
+        // Fetch data for the selected setting
+        fetch('/members/rd-deposits-by-setting?setting_id=' + settingId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the totals
+                    document.getElementById('totalPrincipalValue').textContent = formatCurrency(data.totals.totalPrincipal);
+                    document.getElementById('totalInterestValue').textContent = formatCurrency(data.totals.totalInterest);
+                    document.getElementById('totalPenaltyValue').textContent = formatCurrency(data.totals.totalPenalty);
+                    document.getElementById('totalNetValue').textContent = formatCurrency(data.totals.totalNet);
+                    
+                    // Update the deposit history table
+                    updateDepositTable(data.deposits);
+                    
+                    // Update URL without refreshing the page
+                    history.pushState(null, '', window.location.pathname + '?setting_id=' + settingId);
+                } else {
+                    console.error('Error loading data for setting:', data.message);
+                    alert('Error loading data for the selected setting');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while loading data for the selected setting');
+            });
+    }
+    
+    // Format currency helper function
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
+    }
+    
+    // Function to update the deposit history table
+    function updateDepositTable(deposits) {
+        const tableBody = document.querySelector('table.table-hover tbody');
+        if (!tableBody) return;
+        
+        tableBody.innerHTML = '';
+        
+        if (deposits && deposits.length > 0) {
+            deposits.forEach((deposit, index) => {
+                const row = document.createElement('tr');
+                
+                // Format the date
+                const depositDate = new Date(deposit.deposit_date);
+                const formattedDate = depositDate.toLocaleDateString('en-IN');
+                
+                // Create status badge class based on status
+                const statusClass = deposit.status === 'Approved' ? 'status-approved' : 
+                                   deposit.status === 'Rejected' ? 'status-rejected' : 'status-pending';
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${formattedDate}</td>
+                    <td>${formatCurrency(deposit.required_amount)}</td>
+                    <td>${deposit.payment_method || 'N/A'}</td>
+                    <td>${deposit.transaction_id || 'N/A'}</td>
+                    <td>${parseFloat(deposit.per_day_rate).toFixed(2)}%</td>
+                    <td>${deposit.payment_interval || 'N/A'}</td>
+                    <td>${formatCurrency(deposit.interest_amount || 0)}</td>
+                    <td>${formatCurrency(deposit.penality_paid_amount || 0)}</td>
+                    <td>${formatCurrency(deposit.total_amount || 0)}</td>
+                    <td><span class="status-badge ${statusClass}">${deposit.status}</span></td>
+                    <td>
+                        <div class="button-group">
+                            <button class="btn btn-sm btn-warning" onclick="openEditDepositModal(${deposit.id}, ${deposit.amount}, '${deposit.payment_method || ''}', '${deposit.transaction_id || ''}', '${deposit.comments || ''}', '${deposit.status}')">
+                                <i class="bx bx-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-info" onclick="viewDepositDetails(${deposit.id})">
+                                <i class="bx bx-info-circle"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        } else {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="12" class="text-center">No deposits found for this RD setting</td>';
+            tableBody.appendChild(row);
+        }
+    }
     
     // Function to check if RD settings exist and open modal if not
     function checkRDSettings() {
@@ -795,6 +954,10 @@
     document.getElementById('addDepositModal').addEventListener('show.bs.modal', function () {
         loadActiveRDSettingForDeposit();
     });
+    
+
+    
+
     
     // Function to load active RD Setting for deposit
     function loadActiveRDSettingForDeposit() {
@@ -1334,6 +1497,7 @@
         // Update global variable for active RD settings
         hasActiveRDSettings = settings && settings.some(function(setting) { return setting.is_active; });
         
+
         // Enable or disable action buttons based on active settings
         if (hasActiveRDSettings) {
             enableAllActions();
@@ -1357,14 +1521,8 @@
         if (hasActiveSetting) {
             // If there's an active setting, disable the Add button
             addButton.textContent = 'Save Settings';
-            addButton.disabled = true;
+            // addButton.disabled = true;
             addButton.title = 'Deactivate the current active setting before adding a new one';
-            
-            // Add a message at the top of the table
-            // const messageDiv = document.createElement('div');
-            // messageDiv.className = 'alert alert-info mb-3';
-            // messageDiv.textContent = 'Only one active RD Setting is allowed. Deactivate the current setting to add a new one.';
-            // document.getElementById('rdSettingsList').prepend(messageDiv);
         } else {
             // If there's no active setting, enable the Add button
             addButton.textContent = 'Save Settings';
@@ -1377,6 +1535,8 @@
                 existingMessage.remove();
             }
         }
+        
+
         
         if (settings && settings.length > 0) {
             settings.forEach(function(setting) {
@@ -1398,11 +1558,12 @@
                 //     '</div></td>';
 
                 row.innerHTML = 
+                    '<td> RD' + setting.id + '</td>' +
                     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
                     '<td>' + setting.payment_interval + '</td>' +
                     '<td>₹ ' + setting.amount + '</td>' +
                     '<td>₹ ' + setting.penality_rate + '</td>' +
-                    '<td>' + setting.duration/12 + ' ' + (setting.duration == 1 ? 'Year' : 'Years') + '</td>' +
+                    '<td>' + (setting.duration/12) + ' ' + ((setting.duration/12 === 1 || setting.duration/12 === 0.5) ? 'Year' : 'Years') + '</td>' +
                     '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
                     (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
                     '<td><div class="button-group">' +
@@ -1414,7 +1575,7 @@
             });
         } else {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="7" class="text-center">No RD settings found</td>';
+            row.innerHTML = '<td colspan="8" class="text-center">No RD settings found</td>';
             tableBody.appendChild(row);
         }
     }
@@ -1470,12 +1631,11 @@
                 loadRDSettings();
             } else {
                 // Show error message
-                alert('Error1: ' + data.message);
-                
-                // Reset button state
-                saveButton.textContent = originalText;
-                saveButton.disabled = false;
+                alert('Error1: ' + data.message);              
             }
+            // Reset button state
+            saveButton.textContent = originalText;
+            saveButton.disabled = false;
         })
         .catch(function(error) {
             console.error('Error2:', error);

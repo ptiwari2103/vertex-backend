@@ -18,18 +18,16 @@ const RecurringDepositSetting = sequelize.define('RecurringDepositSetting', {
   annual_rate: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: false,
-    defaultValue: 0.00,
-    comment: 'Annual interest rate in percentage'
+    defaultValue: 0.00
   },
   payment_interval: {
-    type: DataTypes.ENUM('Daily', 'Monthly', 'Yearly'),
-    defaultValue: 'Monthly',
+    type: DataTypes.STRING,
     allowNull: false
   },
   amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 0
+    defaultValue: 0.00
   },
   duration: {
     type: DataTypes.INTEGER,
@@ -39,11 +37,32 @@ const RecurringDepositSetting = sequelize.define('RecurringDepositSetting', {
   penality_rate: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-    defaultValue: 1.00
+    defaultValue: 0.00
+  },
+  total_principal: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  total_interest: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  total_penality: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  total_net_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
   },
   is_active: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
+    defaultValue: true,
+    comment: '0=>Inactive, 1=>Active, 2=>Closed'
   }
 }, {
   tableName: 'recurring_deposit_settings',
