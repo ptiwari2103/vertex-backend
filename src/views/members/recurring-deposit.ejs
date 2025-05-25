@@ -138,7 +138,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="mb-0">Recurring Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
             <div>
-                <a href="/members/view/<%= member.id %>" class="btn btn-secondary">
+                <a href="/recurring-deposits/view/<%= member.id %>" class="btn btn-secondary">
                     <i class="bx bx-arrow-back"></i> Back to Member
                 </a>
                 <button type="button" class="btn btn-primary" id="addNewDepositBtn" data-bs-toggle="modal" data-bs-target="#addDepositModal">
@@ -289,15 +289,13 @@
                                 <td><%= formatCurrency(deposit.penality_paid_amount) || 'N/A' %></td>
                                 <td><%= formatCurrency(deposit.total_amount) || 'N/A' %></td>
                                 <td>
-                                    <span class="status-badge status-<%= deposit.status.toLowerCase() %>">
-                                        <%= deposit.status %>
-                                    </span>
+                                    <span class="status-badge status-<%= deposit.status.toLowerCase() %>"><%= deposit.status %></span>
                                 </td>
                                 <td>
                                     <div class="button-group">
                                         <button class="btn btn-sm btn-warning" 
                                             onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.comments %>', '<%= deposit.status %>')" 
-                                            <% if (deposit.status === 'Closed') { %>disabled="disabled"<% } %>>
+                                            <%= deposit.status === 'Closed' ? 'disabled="disabled"' : '' %>>
                                             <i class="bx bx-edit"></i> Edit
                                         </button>
                                         <button class="btn btn-sm btn-info" 
@@ -851,7 +849,7 @@
         document.getElementById('settingStatusValue').innerHTML = '<small>Loading...</small>';
         
         // Fetch data for the selected setting
-        fetch('/members/rd-deposits-by-setting?setting_id=' + settingId)
+        fetch('/recurring-deposits/rd-deposits-by-setting?setting_id=' + settingId)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -959,7 +957,7 @@
     // Function to check if RD settings exist and open modal if not
     function checkRDSettings() {
         const userId = document.getElementById('rd_user_id').value;
-        fetch('/members/rd-settings?user_id=' + userId)
+        fetch('/recurring-deposits/rd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
@@ -1084,7 +1082,7 @@
             }
         }
         
-        fetch('/members/rd-settings?user_id=' + userId + '&setting_id=' + settingId)
+        fetch('/recurring-deposits/rd-settings?user_id=' + userId + '&setting_id=' + settingId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
@@ -1262,7 +1260,7 @@
         const penality_paid_amount = document.getElementById('penality_paid_amount').value;
         
         // Send request to the server
-        fetch('/members/recurring-deposit/<%= member.id %>', {
+        fetch('/recurring-deposits/rd-deposit/<%= member.id %>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1345,7 +1343,7 @@
         }
         
         // Send request to the server
-        fetch(`/members/calculate-recurring-deposits/${userId}?setting_id=${settingId}`, {
+        fetch(`/recurring-deposits/calculate-recurring-deposits/${userId}?setting_id=${settingId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1456,7 +1454,7 @@
                 const userId = '<%= member.id %>';
                 
                 // Fetch the latest active setting for this user
-                fetch('/members/rd-settings?user_id=' + userId)
+                fetch('/recurring-deposits/rd-settings?user_id=' + userId)
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.settings && data.settings.length > 0) {
@@ -1558,7 +1556,7 @@
         updateButton.textContent = 'Updating...';
         updateButton.disabled = true;
         
-        fetch(`/members/recurring-deposit/${depositId}`, {
+        fetch(`/recurring-deposits/${depositId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1681,7 +1679,7 @@
     // Load RD Settings from the server
     function loadRDSettings() {
         const userId = document.getElementById('rd_user_id').value;
-        fetch('/members/rd-settings?user_id=' + userId)
+        fetch('/recurring-deposits/rd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
@@ -1832,7 +1830,7 @@
         saveButton.textContent = 'Saving...';
         saveButton.disabled = true;
         
-        fetch('/members/rd-settings', {
+        fetch('/recurring-deposits/rd-settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1919,7 +1917,7 @@
         const amount = document.getElementById('rd_amount').value;
         const duration = document.getElementById('duration').value;
         
-        fetch('/members/rd-settings/' + id, {
+        fetch('/recurring-deposits/rd-settings/' + id, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1978,7 +1976,7 @@
         button.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
         button.disabled = true;
         
-        fetch('/members/rd-settings/' + id, {
+        fetch('/recurring-deposits/rd-settings/' + id, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -2040,7 +2038,7 @@
         document.getElementById('settlement_date').value = today;
         
         // Get the setting details to display in the modal
-        fetch(`/members/rd-settings?user_id=<%= member.id %>&setting_id=${settingId}`)
+        fetch(`/recurring-deposits/rd-settings?user_id=<%= member.id %>&setting_id=${settingId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.settings) {
@@ -2134,7 +2132,7 @@
         confirmBtn.textContent = 'Processing...';
         
         // Send settlement request to server
-        fetch(`/members/rd-settlement/${userId}`, {
+        fetch(`/recurring-deposits/rd-settlement/${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

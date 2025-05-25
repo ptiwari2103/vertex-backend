@@ -74,12 +74,7 @@ router.post('/compulsory-deposit/:id', userController.addCompulsoryDeposit);
 router.put('/compulsory-deposit/:id', userController.updateCompulsoryDeposit);
 router.post('/calculate-deposits/:id', userController.calculateDeposits);
 
-// Recurring deposit routes
-router.get('/recurring-deposit/:id', userController.getRecurringDeposit);
-router.post('/recurring-deposit/:id', userController.addRecurringDeposit);
-router.put('/recurring-deposit/:id', userController.updateRecurringDeposit);
-router.post('/calculate-recurring-deposits/:id', userController.calculateRecurringDeposits); // :id is userId, setting_id is passed as query param
-router.post('/rd-settlement/:id', userController.settleRecurringDeposit); // Handle RD settlement
+// Recurring deposit routes - moved to recurringDepositRoutes.js
 
 // Fixed deposit routes
 router.get('/fixed-deposit/:id', fixedDepositController.getFixedDeposit);
@@ -90,19 +85,19 @@ router.post('/calculate-fixed-deposits/:id', fixedDepositController.calculateFix
 // CD Transactions route
 router.get('/cd-transactions', userController.getCDTransactions);
 
-// RD Transactions route
-router.get('/rd-transactions', userController.getRDTransactions);
+// RD Transactions route - moved to recurringDepositRoutes.js
 
 // FD Transactions route
 router.get('/fd-transactions', fixedDepositController.getFDTransactions);
 
-// RD Settings routes
-router.get('/rd-settings', userController.getRDSettings);
-router.post('/rd-settings', userController.addRDSetting);
-router.put('/rd-settings/:id', userController.updateRDSetting);
+// RD Settings routes - moved to recurringDepositRoutes.js
 
-// RD Deposits by Setting route
-router.get('/rd-deposits-by-setting', userController.getRDDepositsBySetting);
+// RD Deposits by Setting route - moved to recurringDepositRoutes.js
+
+// Redirect for backward compatibility with RD routes
+router.get('/recurring-deposit/:id', (req, res) => {
+    res.redirect(`/recurring-deposits/${req.params.id}`);
+});
 
 // Overdraft Deposits route
 router.get('/overdraft-deposits', userController.getOverdraftDeposits);
