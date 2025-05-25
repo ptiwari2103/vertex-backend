@@ -79,6 +79,7 @@ router.get('/recurring-deposit/:id', userController.getRecurringDeposit);
 router.post('/recurring-deposit/:id', userController.addRecurringDeposit);
 router.put('/recurring-deposit/:id', userController.updateRecurringDeposit);
 router.post('/calculate-recurring-deposits/:id', userController.calculateRecurringDeposits); // :id is userId, setting_id is passed as query param
+router.post('/rd-settlement/:id', userController.settleRecurringDeposit); // Handle RD settlement
 
 // Fixed deposit routes
 router.get('/fixed-deposit/:id', fixedDepositController.getFixedDeposit);

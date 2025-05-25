@@ -200,25 +200,25 @@
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Principal</div>
-                    <div class="info-value" id="totalPrincipalValue"><%= formatCurrency(activeSetting.total_principal) %></div>
+                    <div class="info-value" id="totalPrincipalValue"><%= formatCurrency(activeSetting?.total_principal || 0) %></div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Interest</div>
-                    <div class="info-value" id="totalInterestValue"><%= formatCurrency(activeSetting.total_interest) %></div>
+                    <div class="info-value" id="totalInterestValue"><%= formatCurrency(activeSetting?.total_interest || 0) %></div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="info-row">
                     <div class="info-label">Total Penalty</div>
-                    <div class="info-value" id="totalPenaltyValue"><%= formatCurrency(activeSetting.total_penalty) %></div>
+                    <div class="info-value" id="totalPenaltyValue"><%= formatCurrency(activeSetting?.total_penality || 0) %></div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="info-row">
                     <div class="info-label">Total Net</div>
-                    <div class="info-value" id="totalNetValue"><%= formatCurrency(activeSetting.total_net_amount) %></div>
+                    <div class="info-value" id="totalNetValue"><%= formatCurrency(activeSetting?.total_net_amount || 0) %></div>
                 </div>
             </div>
             <div class="col-md-2">
@@ -1984,4 +1984,241 @@
             button.disabled = false;
         });
     }
+    
+    // Function to handle settlement process
+    function settlementDeposits() {
+        // Get the selected setting ID
+        let settingId = document.getElementById('selected_setting_id').value;
+        
+        // If no setting ID is selected, get it from the dropdown
+        if (!settingId) {
+            const dropdown = document.getElementById('rdSettingDropdown');
+            if (dropdown && dropdown.value) {
+                settingId = dropdown.value;
+                // Update the hidden field
+                document.getElementById('selected_setting_id').value = settingId;
+            } else {
+                alert('Please select an RD setting first');
+                return;
+            }
+        }
+        
+        // Set the setting ID in the settlement form
+        document.getElementById('settlement_setting_id').value = settingId;
+        
+        // Set default settlement date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('settlement_date').value = today;
+        
+        // Get the setting details to display in the modal
+        fetch(`/members/rd-settings?user_id=<%= member.id %>&setting_id=${settingId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.settings) {
+                    const setting = data.settings;
+                    // Format currency for display without the currency symbol
+                    const formatAmount = (amount) => {
+                        return parseFloat(amount || 0).toFixed(2);
+                    };
+                    
+                    // Update the settlement modal with setting details
+                    document.getElementById('settlement_principal').value = formatAmount(setting.total_principal);
+                    document.getElementById('settlement_interest').value = formatAmount(setting.total_interest);
+                    document.getElementById('settlement_penalty').value = formatAmount(setting.total_penality);
+                    document.getElementById('settlement_net').value = formatAmount(setting.total_net_amount);
+                    
+                    // Add event listeners to update the net amount when interest value changes
+                    const principalInput = document.getElementById('settlement_principal');
+                    const interestInput = document.getElementById('settlement_interest');
+                    const netInput = document.getElementById('settlement_net');
+                    
+                    // Store the original net amount from the setting
+                    const originalNetAmount = parseFloat(setting.total_net_amount || 0);
+                    
+                    // Display the original net amount
+                    document.getElementById('settlement_net').value = formatAmount(originalNetAmount);
+                    document.getElementById('settlement_amount').value = formatAmount(originalNetAmount);
+                    
+                    // Function to update net amount when interest changes
+                    const updateNetAmount = () => {
+                        // Get the original principal and penalty
+                        const principal = parseFloat(principalInput.value) || 0;
+                        const interest = parseFloat(interestInput.value) || 0;
+                        
+                        // Calculate net amount: Principal + Interest
+                        const netAmount = principal + interest;
+                        netInput.value = netAmount.toFixed(2);
+                        
+                        // Store the net amount for settlement
+                        document.getElementById('settlement_amount').value = netAmount.toFixed(2);
+                    };
+                    
+                    // Only add event listener to the editable field (interest)
+                    interestInput.addEventListener('input', updateNetAmount);
+                    
+                    // Initial calculation
+                    updateNetAmount();
+                    
+                    // Show the settlement modal
+                    const settlementModal = new bootstrap.Modal(document.getElementById('settlementModal'));
+                    settlementModal.show();
+                } else {
+                    alert('Error loading RD setting details');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading RD setting details');
+            });
+    }
+    
+    // Function to confirm settlement
+    function confirmSettlement() {
+        // Get form data
+        const settingId = document.getElementById('settlement_setting_id').value;
+        const userId = document.getElementById('settlement_user_id').value;
+        const settlementDate = document.getElementById('settlement_date').value;
+        const principal = document.getElementById('settlement_principal').value;
+        const interest = document.getElementById('settlement_interest').value;
+        const penalty = document.getElementById('settlement_penalty').value;
+        const netAmount = document.getElementById('settlement_net').value;
+        const settlementAmount = document.getElementById('settlement_amount').value;
+        const notes = document.getElementById('settlement_notes').value;
+        
+        // Validate form
+        if (!settlementDate) {
+            alert('Please select a settlement date');
+            return;
+        }
+        
+        if (!settlementAmount || parseFloat(settlementAmount) < 0) {
+            alert('Settlement amount must be a valid number');
+            return;
+        }
+        
+        // Confirm with user
+        if (!confirm('Are you sure you want to settle this RD account with a net amount of ₹' + settlementAmount + '? This action cannot be undone.')) {
+            return;
+        }
+        
+        // Disable the confirm button to prevent multiple submissions
+        const confirmBtn = document.getElementById('confirmSettlementBtn');
+        const originalBtnText = confirmBtn.textContent;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Processing...';
+        
+        // Send settlement request to server
+        fetch(`/members/rd-settlement/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                setting_id: settingId,
+                settlement_date: settlementDate,
+                total_principal: principal,
+                total_interest: interest,
+                total_penality: penalty,
+                settlement_amount: settlementAmount,
+                notes: notes
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Re-enable the button
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalBtnText;
+            
+            if (data.success) {
+                // Close the modal
+                const settlementModal = bootstrap.Modal.getInstance(document.getElementById('settlementModal'));
+                settlementModal.hide();
+                
+                // Show success message
+                alert('RD account settled successfully!');
+                
+                // Reload the page to reflect changes
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Failed to settle RD account'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing settlement');
+            
+            // Re-enable the button
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalBtnText;
+        });
+    }
 </script>
+
+<!-- Settlement Modal -->
+<div class="modal fade" id="settlementModal" tabindex="-1" aria-labelledby="settlementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="settlementModalLabel">RD Settlement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <p><strong>Note:</strong> Settling this RD account will mark it as closed and finalize all calculations.</p>
+                </div>
+                
+                
+                <form id="settlementForm">
+                    <input type="hidden" id="settlement_setting_id" name="setting_id">
+                    <input type="hidden" id="settlement_user_id" name="user_id" value="<%= member.id %>">
+                    <input type="hidden" id="settlement_amount" name="settlement_amount">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_principal" class="form-label">Total Principal</label>
+                                <input type="text" class="form-control" id="settlement_principal" name="principal" readonly disabled>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_penalty" class="form-label">Total Penalty</label>
+                                <input type="text" class="form-control" id="settlement_penalty" name="penalty" readonly disabled>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_interest" class="form-label">Total Interest</label>
+                                <input type="text" class="form-control" id="settlement_interest" name="interest">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_net" class="form-label">Total Net</label>
+                                <input type="text" class="form-control" id="settlement_net" name="net_amount" readonly disabled>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="settlement_date" class="form-label">Settlement Date</label>
+                        <input type="date" class="form-control" id="settlement_date" name="settlement_date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="settlement_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="settlement_notes" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSettlementBtn" onclick="confirmSettlement()">Confirm Settlement</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -2618,7 +2618,7 @@ const calculateRecurringDeposits = async (req, res) => {
                 await rdSetting.update({
                     total_principal: totalPrincipal.toFixed(2),
                     total_interest: totalInterest.toFixed(2),
-                    total_penalty: totalPenalty.toFixed(2),
+                    total_penality: totalPenalty.toFixed(2),
                     total_net_amount: totalNetAmount.toFixed(2),
                     last_calculated_at: new Date()
                 });
@@ -3197,6 +3197,95 @@ const updateCDSetting = async (req, res) => {
     }
 };
 
+// Settle Recurring Deposit controller method
+const settleRecurringDeposit = async (req, res) => {
+    const t = await sequelize.transaction();
+    
+    try {
+        const { id } = req.params; // User ID
+        const { 
+            setting_id, 
+            settlement_date, 
+            settlement_amount, 
+            total_principal,
+            total_interest,
+            total_penality, // Using the correct field name
+            notes 
+        } = req.body;
+        
+        // Validate required fields
+        if (!setting_id || !settlement_date || !settlement_amount) {
+            return res.status(400).json({
+                success: false,
+                message: 'Setting ID, settlement date, and settlement amount are required'
+            });
+        }
+        
+        // Find the RD setting
+        const rdSetting = await RecurringDepositSetting.findOne({
+            where: { id: setting_id, user_id: id }
+        });
+        
+        if (!rdSetting) {
+            return res.status(404).json({
+                success: false,
+                message: 'RD setting not found'
+            });
+        }
+        
+        // Check if setting is already closed
+        if (rdSetting.is_active === 2 || String(rdSetting.is_active) === '2') {
+            return res.status(400).json({
+                success: false,
+                message: 'This RD setting is already settled/closed'
+            });
+        }
+        
+        // Update the RD setting to closed status with the new values
+        await rdSetting.update({
+            is_active: 2, // Set status to closed
+            settlement_date: settlement_date,
+            settlement_notes: notes,
+            total_principal: total_principal || rdSetting.total_principal,
+            total_interest: total_interest || rdSetting.total_interest,
+            total_penality: total_penality || rdSetting.total_penality,
+            total_net_amount: settlement_amount,
+            last_updated_at: new Date()
+        }, { transaction: t });
+        
+        // Create a transaction record for the settlement
+        await OverdraftDeposit.create({
+            user_id: rdSetting.user_id,
+            type: 'RD',
+            type_id: setting_id,
+            amount: total_principal,
+            interest_amount: total_interest,
+            total_amount: settlement_amount,
+            deposit_date: new Date(),
+            status: 'Approved'
+        }, { transaction: t });
+        
+        // Commit the transaction
+        await t.commit();
+        
+        return res.json({
+            success: true,
+            message: 'RD account settled successfully',
+            settingId: setting_id
+        });
+    } catch (error) {
+        // Rollback transaction in case of error
+        await t.rollback();
+        
+        console.error('Settle recurring deposit error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error settling recurring deposit',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while settling the account.'
+        });
+    }
+};
+
 module.exports = {
     addMember,
     getAllMembers,
@@ -3245,5 +3334,6 @@ module.exports = {
     getRDSettings,
     addRDSetting,
     updateRDSetting,
-    getRDDepositsBySetting
+    getRDDepositsBySetting,
+    settleRecurringDeposit
 };

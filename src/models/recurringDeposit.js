@@ -94,7 +94,7 @@ const RecurringDeposit = sequelize.define('RecurringDeposit', {
     defaultValue: false
   },
   status: {
-    type: DataTypes.ENUM('Pending', 'Approved', 'Rejected'),
+    type: DataTypes.ENUM('Pending', 'Approved', 'Rejected','Closed'),
     defaultValue: 'Pending'
   }
 }, {

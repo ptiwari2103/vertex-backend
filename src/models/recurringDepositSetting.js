@@ -60,9 +60,17 @@ const RecurringDepositSetting = sequelize.define('RecurringDepositSetting', {
     defaultValue: 0.00
   },
   is_active: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
     comment: '0=>Inactive, 1=>Active, 2=>Closed'
+  },
+  settlement_date: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  settlement_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'recurring_deposit_settings',
