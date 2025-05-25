@@ -97,6 +97,16 @@
         background-color: #dc3545;
         color: #fff;
     }
+    .status-closed {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    /* Style for disabled buttons */
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
     #viewDepositModal .modal-body {
         padding: 1.5rem;
     }
@@ -286,7 +296,8 @@
                                 <td>
                                     <div class="button-group">
                                         <button class="btn btn-sm btn-warning" 
-                                            onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.comments %>', '<%= deposit.status %>')">
+                                            onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.comments %>', '<%= deposit.status %>')" 
+                                            <% if (deposit.status === 'Closed') { %>disabled="disabled"<% } %>>
                                             <i class="bx bx-edit"></i> Edit
                                         </button>
                                         <button class="btn btn-sm btn-info" 
@@ -721,6 +732,17 @@
     let hasActiveRDSettings = false;
     let currentDeposits = <%- JSON.stringify(deposits || []) %>; // Store the current deposits data
     
+    // Add event listener to refresh page when RD Settings modal is closed
+    document.addEventListener('DOMContentLoaded', function() {
+        const rdSettingsModal = document.getElementById('rdSettingsModal');
+        if (rdSettingsModal) {
+            rdSettingsModal.addEventListener('hidden.bs.modal', function() {
+                // Refresh the page when the modal is closed
+                window.location.reload();
+            });
+        }
+    });
+    
     
     // Helper function    // Format currency helper function
     function formatCurrency(amount) {
@@ -913,7 +935,8 @@
                     <td>
                         <div class="button-group">
                             <button class="btn btn-sm btn-warning" 
-                                onclick="openEditDepositModal('${deposit.id}')">
+                                onclick="openEditDepositModal('${deposit.id}', '${deposit.amount}', '${deposit.payment_method}', '${deposit.transaction_id}', '${deposit.comments}', '${deposit.status}')" 
+                                ${deposit.status === 'Closed' ? 'disabled="disabled"' : ''}>
                                 <i class="bx bx-edit"></i> Edit
                             </button>
                             <button class="btn btn-sm btn-info" 
@@ -1341,7 +1364,7 @@
             
             if (data.success) {
                 // Show success message
-                alert(`${data.count} deposits calculated successfully`);
+                alert(`Total ${data.count} records deposits calculated successfully`);
                 
                 // Update totals in the UI if they were returned
                 if (data.totals) {
@@ -1385,6 +1408,12 @@
     // Edit Deposit Modal
     function openEditDepositModal(id, amount, payment_method, transaction_id, notes, status) {
         console.log('openEditDepositModal called with id:', id);
+        
+        // Check if the deposit is closed - prevent editing
+        if (status === 'Closed') {
+            alert('Closed deposits cannot be edited.');
+            return;
+        }
         
         // Use the current deposits data (which may have been updated by the dropdown selection)
         const depositsData = currentDeposits;
@@ -2037,7 +2066,6 @@
                     
                     // Display the original net amount
                     document.getElementById('settlement_net').value = formatAmount(originalNetAmount);
-                    document.getElementById('settlement_amount').value = formatAmount(originalNetAmount);
                     
                     // Function to update net amount when interest changes
                     const updateNetAmount = () => {
@@ -2049,8 +2077,7 @@
                         const netAmount = principal + interest;
                         netInput.value = netAmount.toFixed(2);
                         
-                        // Store the net amount for settlement
-                        document.getElementById('settlement_amount').value = netAmount.toFixed(2);
+                        
                     };
                     
                     // Only add event listener to the editable field (interest)
@@ -2082,7 +2109,6 @@
         const interest = document.getElementById('settlement_interest').value;
         const penalty = document.getElementById('settlement_penalty').value;
         const netAmount = document.getElementById('settlement_net').value;
-        const settlementAmount = document.getElementById('settlement_amount').value;
         const notes = document.getElementById('settlement_notes').value;
         
         // Validate form
@@ -2091,13 +2117,13 @@
             return;
         }
         
-        if (!settlementAmount || parseFloat(settlementAmount) < 0) {
-            alert('Settlement amount must be a valid number');
+        if (!netAmount || parseFloat(netAmount) < 0) {
+            alert('Net amount must be a valid number');
             return;
         }
         
         // Confirm with user
-        if (!confirm('Are you sure you want to settle this RD account with a net amount of ₹' + settlementAmount + '? This action cannot be undone.')) {
+        if (!confirm('Are you sure you want to settle this RD account with a net amount of ₹' + netAmount + '? This action cannot be undone.')) {
             return;
         }
         
@@ -2119,7 +2145,7 @@
                 total_principal: principal,
                 total_interest: interest,
                 total_penality: penalty,
-                settlement_amount: settlementAmount,
+                net_amount: netAmount,
                 notes: notes
             })
         })
@@ -2171,19 +2197,18 @@
                 <form id="settlementForm">
                     <input type="hidden" id="settlement_setting_id" name="setting_id">
                     <input type="hidden" id="settlement_user_id" name="user_id" value="<%= member.id %>">
-                    <input type="hidden" id="settlement_amount" name="settlement_amount">
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="settlement_principal" class="form-label">Total Principal</label>
-                                <input type="text" class="form-control" id="settlement_principal" name="principal" readonly disabled>
+                                <input type="text" class="form-control" id="settlement_principal" name="principal" readonly disabled="disabled">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="settlement_penalty" class="form-label">Total Penalty</label>
-                                <input type="text" class="form-control" id="settlement_penalty" name="penalty" readonly disabled>
+                                <input type="text" class="form-control" id="settlement_penalty" name="penalty" readonly disabled="disabled">
                             </div>
                         </div>
                         
@@ -2199,7 +2224,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="settlement_net" class="form-label">Total Net</label>
-                                <input type="text" class="form-control" id="settlement_net" name="net_amount" readonly disabled>
+                                <input type="text" class="form-control" id="settlement_net" name="net_amount" readonly disabled="disabled">
                             </div>
                         </div>
                     </div>

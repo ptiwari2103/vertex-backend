@@ -3206,7 +3206,7 @@ const settleRecurringDeposit = async (req, res) => {
         const { 
             setting_id, 
             settlement_date, 
-            settlement_amount, 
+            net_amount, 
             total_principal,
             total_interest,
             total_penality, // Using the correct field name
@@ -3214,10 +3214,10 @@ const settleRecurringDeposit = async (req, res) => {
         } = req.body;
         
         // Validate required fields
-        if (!setting_id || !settlement_date || !settlement_amount) {
+        if (!setting_id || !settlement_date || !net_amount) {
             return res.status(400).json({
                 success: false,
-                message: 'Setting ID, settlement date, and settlement amount are required'
+                message: 'Setting ID, settlement date, and net amount are required'
             });
         }
         
@@ -3249,21 +3249,24 @@ const settleRecurringDeposit = async (req, res) => {
             total_principal: total_principal || rdSetting.total_principal,
             total_interest: total_interest || rdSetting.total_interest,
             total_penality: total_penality || rdSetting.total_penality,
-            total_net_amount: settlement_amount,
+            total_net_amount: net_amount,
             last_updated_at: new Date()
         }, { transaction: t });
-        
-        // Create a transaction record for the settlement
+
         await OverdraftDeposit.create({
             user_id: rdSetting.user_id,
             type: 'RD',
             type_id: setting_id,
             amount: total_principal,
             interest_amount: total_interest,
-            total_amount: settlement_amount,
+            total_amount: net_amount,
             deposit_date: new Date(),
             status: 'Approved'
         }, { transaction: t });
+        
+        await RecurringDeposit.update({
+            status: 'Closed'            
+        }, { where: { setting_id: setting_id }, transaction: t });
         
         // Commit the transaction
         await t.commit();
