@@ -140,6 +140,9 @@
                 <button type="button" class="btn btn-success" id="calculateButton" onclick="calculateDeposits()">
                     <i class="bx bx-calculator"></i> Calculate
                 </button>
+                <button type="button" class="btn btn-warning" id="settlementButton" onclick="settlementDeposits()">
+                    <i class="bx bx-money"></i> Settlement
+                </button>
             </div>
         </div>
     </div>
@@ -179,7 +182,7 @@
     <div class="section-card">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="section-title mb-0">Totals</h4>
-            <input type="text" id="selected_setting_id" value="">
+            <input type="hidden" id="selected_setting_id" value="">
 
             <% if (allSettings && allSettings.length > 0) { %>
             <div class="form-group mb-0" style="width: 300px;">
@@ -197,25 +200,25 @@
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Principal</div>
-                    <div class="info-value" id="totalPrincipalValue"><%= formatCurrency(totalPrincipal) %></div>
+                    <div class="info-value" id="totalPrincipalValue"><%= formatCurrency(activeSetting.total_principal) %></div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="info-row">
                     <div class="info-label">Total Interest</div>
-                    <div class="info-value" id="totalInterestValue"><%= formatCurrency(totalInterest) %></div>
+                    <div class="info-value" id="totalInterestValue"><%= formatCurrency(activeSetting.total_interest) %></div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="info-row">
                     <div class="info-label">Total Penalty</div>
-                    <div class="info-value" id="totalPenaltyValue"><%= formatCurrency(totalPenalty) %></div>
+                    <div class="info-value" id="totalPenaltyValue"><%= formatCurrency(activeSetting.total_penalty) %></div>
                 </div>
             </div>
             <div class="col-md-2">
                 <div class="info-row">
                     <div class="info-label">Total Net</div>
-                    <div class="info-value" id="totalNetValue"><%= formatCurrency(totalNet) %></div>
+                    <div class="info-value" id="totalNetValue"><%= formatCurrency(activeSetting.total_net_amount) %></div>
                 </div>
             </div>
             <div class="col-md-2">
@@ -693,6 +696,7 @@
                                     <th>Duration</th>
                                     <th>Status</th>
                                     <th>Actions</th>
+                                    
                                 </tr>
                             </thead>
                             <tbody id="rdSettingsTableBody">
@@ -701,19 +705,7 @@
                         </table>
                     </div>
                 </div>
-                <div class="info-value" id="settingStatusValue">
-                    <% if (activeSetting) { %>
-                        <% if (String(activeSetting.is_active) === '1') { %>
-                            <span class="badge bg-success">Active</span>
-                        <% } else if (String(activeSetting.is_active) === '2') { %>
-                            <span class="badge bg-warning">Closed</span>
-                        <% } else { %>
-                            <span class="badge bg-danger">Inactive</span>
-                        <% } %>
-                    <% } else { %>
-                        N/A
-                    <% } %>
-                </div>
+                
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -744,6 +736,7 @@
     function updateButtonStates(isActive) {
         const addNewDepositBtn = document.getElementById('addNewDepositBtn');
         const calculateBtn = document.getElementById('calculateButton');
+        const settlementBtn = document.getElementById('settlementButton');
         
         if (addNewDepositBtn) {
             if (!isActive) {
@@ -778,6 +771,22 @@
                 calculateBtn.removeAttribute('disabled');
                 calculateBtn.classList.remove('opacity-50');
                 calculateBtn.title = '';
+            }
+        }
+        
+        if (settlementBtn) {
+            if (!isActive) {
+                // Disable Settlement button
+                settlementBtn.disabled = true;
+                settlementBtn.setAttribute('disabled', 'disabled');
+                settlementBtn.classList.add('opacity-50');
+                settlementBtn.title = 'Only available for active RD settings';
+            } else {
+                // Enable Settlement button
+                settlementBtn.disabled = false;
+                settlementBtn.removeAttribute('disabled');
+                settlementBtn.classList.remove('opacity-50');
+                settlementBtn.title = '';
             }
         }
     }
@@ -1034,8 +1043,7 @@
         loadActiveRDSettingForDeposit();
     });
     
-
-    
+   
 
     
     // Function to load active RD Setting for deposit
@@ -1285,9 +1293,11 @@
     
     // Function to handle deposit calculation
     function calculateDeposits() {
-        // Show the overlay loader
-        const loader = document.getElementById('overlayLoader');
-        loader.style.display = 'flex';
+        // Show a loader or spinner
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'block';
+        }
         
         // Disable all buttons and inputs to prevent user interaction
         const buttons = document.querySelectorAll('button');
@@ -1298,9 +1308,21 @@
         
         // Get the user ID
         const userId = '<%= member.id %>';
+
+        let settingId = document.getElementById('selected_setting_id').value;
+        
+        // If selected_setting_id is empty, get the value from the dropdown
+        if (!settingId) {
+            const dropdown = document.getElementById('rdSettingDropdown');
+            if (dropdown && dropdown.value) {
+                settingId = dropdown.value;
+                // Update the hidden field
+                document.getElementById('selected_setting_id').value = settingId;
+            }
+        }
         
         // Send request to the server
-        fetch(`/members/calculate-recurring-deposits/${userId}`, {
+        fetch(`/members/calculate-recurring-deposits/${userId}?setting_id=${settingId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1309,7 +1331,9 @@
         .then(response => response.json())
         .then(data => {
             // Hide the loader
-            loader.style.display = 'none';
+            if (loader) {
+                loader.style.display = 'none';
+            }
             
             // Re-enable all buttons and inputs
             buttons.forEach(button => button.disabled = false);
@@ -1317,10 +1341,23 @@
             
             if (data.success) {
                 // Show success message
-                alert('Calculation completed successfully!');
+                alert(`${data.count} deposits calculated successfully`);
                 
-                // Reload the page to show updated data
-                window.location.reload();
+                // Update totals in the UI if they were returned
+                if (data.totals) {
+                    document.getElementById('totalPrincipalValue').innerHTML = formatCurrency(data.totals.principal);
+                    document.getElementById('totalInterestValue').innerHTML = formatCurrency(data.totals.interest);
+                    document.getElementById('totalPenaltyValue').innerHTML = formatCurrency(data.totals.penalty);
+                    document.getElementById('totalNetValue').innerHTML = formatCurrency(data.totals.netAmount);
+                    
+                    // Reload the deposits table without refreshing the page
+                    loadSelectedRDSetting(settingId);
+                } else {
+                    // Reload the page to show updated values if totals weren't returned
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }
             } else {
                 // Show error message
                 alert('Error: ' + (data.message || 'An error occurred during calculation.'));
@@ -1330,7 +1367,9 @@
             console.error('Error:', error);
             
             // Hide the loader
-            loader.style.display = 'none';
+            if (loader) {
+                loader.style.display = 'none';
+            }
             
             // Re-enable all buttons and inputs
             buttons.forEach(button => button.disabled = false);
@@ -1697,6 +1736,27 @@
                 //     '<i class="bx bx-' + (setting.is_active ? 'power-off' : 'check') + '"></i></button>' +
                 //     '</div></td>';
 
+                // Debug the is_active value
+                //console.log('Setting ID:', setting.id, 'is_active value:', setting.is_active, 'type:', typeof setting.is_active);
+                                
+                // Debug the is_active value with JSON stringification to see exact value
+                console.log('Setting ID:', setting.id, 'is_active value:', JSON.stringify(setting.is_active), 'type:', typeof setting.is_active);
+                
+                // Directly check the value and convert to string for comparison if needed
+                let statusClass = 'status-rejected';
+                let statusText = 'Inactive';
+                
+                // Convert to string for comparison to handle all possible formats
+                const isActiveStr = String(setting.is_active).toLowerCase();
+                
+                if (isActiveStr === 'true' || isActiveStr === '1') {
+                    statusClass = 'status-approved';
+                    statusText = 'Active';
+                } else if (isActiveStr === '2') {
+                    statusClass = 'status-pending';
+                    statusText = 'Closed';
+                }
+                
                 row.innerHTML = 
                     '<td> RD' + setting.id + '</td>' +
                     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
@@ -1704,10 +1764,9 @@
                     '<td>₹ ' + setting.amount + '</td>' +
                     '<td>₹ ' + setting.penality_rate + '</td>' +
                     '<td>' + (setting.duration/12) + ' ' + ((setting.duration/12 === 1 || setting.duration/12 === 0.5) ? 'Year' : 'Years') + '</td>' +
-                    '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
-                    (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+                    '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span></td>' +
                     '<td><div class="button-group">' +
-                    '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ','+ setting.penality_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
+                    '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ','+ setting.penality_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', \'' + setting.is_active + '\')">' +
                     '<i class="bx bx-edit"></i></button>' +
                     '</div></td>';
                 

@@ -2326,9 +2326,19 @@ const getRecurringDeposit = async (req, res) => {
             });
         }
         
-        // If still no setting found, use the first one if available
+        // If still no setting found, try to find an active one from allSettings
         if (!selectedSetting && allSettings && allSettings.length > 0) {
-            selectedSetting = allSettings[0];
+            // First try to find an active setting
+            const activeSetting = allSettings.find(setting => 
+                setting.is_active == 1 
+            );
+            
+            if (activeSetting) {
+                selectedSetting = activeSetting;
+            } else {
+                // If no active setting found, use the most recent one
+                selectedSetting = allSettings[0]; // allSettings is already ordered by created_at DESC
+            }
         }
         
         // Get deposits for the selected setting if available, otherwise get all deposits
@@ -2340,19 +2350,8 @@ const getRecurringDeposit = async (req, res) => {
         const deposits = await RecurringDeposit.findAll({
             where: depositWhere,
             order: [['deposit_date', 'DESC']]
-        });
+        });        
         
-        // Calculate totals for the displayed deposits
-        let totalPrincipal = 0, totalInterest = 0, totalPenalty = 0, totalNet = 0;
-        
-        if (deposits && deposits.length > 0) {
-            deposits.forEach(deposit => {
-                totalPrincipal += parseFloat(deposit.required_amount || 0);
-                totalInterest += parseFloat(deposit.interest_amount || 0);
-                totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
-                totalNet += parseFloat(deposit.total_amount || 0);
-            });
-        }
         
         const { formatCurrency } = require('../utils/currencyFormatter');
         res.render('members/recurring-deposit', {
@@ -2362,10 +2361,6 @@ const getRecurringDeposit = async (req, res) => {
             member: user,
             deposits: deposits,
             formatCurrency: formatCurrency,
-            totalPrincipal: totalPrincipal,
-            totalInterest: totalInterest,
-            totalPenalty: totalPenalty,
-            totalNet: totalNet,
             activeSetting: selectedSetting,
             allSettings: allSettings
         });
@@ -2425,16 +2420,16 @@ const addRecurringDeposit = async (req, res) => {
         }, { transaction: t });
 
         // If penalty amount is greater than 0, create an AdminTransaction entry
-        if (penality_amount > 0) {
+        if (penality_paid_amount > 0) {
             // Get the latest admin transaction to calculate the new balance
             const latestAdminTransaction = await AdminTransaction.findOne({
                 order: [['id', 'DESC']]
             }, { transaction: t });
 
             // Calculate new admin balance
-            let adminBalance = formatAmount(penality_amount);
+            let adminBalance = formatAmount(penality_paid_amount);
             if (latestAdminTransaction) {
-                adminBalance = formatAmount(latestAdminTransaction.balance) + formatAmount(penality_amount);
+                adminBalance = formatAmount(latestAdminTransaction.balance) + formatAmount(penality_paid_amount);
             }
 
             // Create admin transaction entry for penalty amount
@@ -2442,7 +2437,7 @@ const addRecurringDeposit = async (req, res) => {
                 user_id: id,
                 type: 'Deposit',
                 comment: 'RD Penalty amount',
-                added: formatAmount(penality_amount),
+                added: formatAmount(penality_paid_amount),
                 balance: adminBalance
             }, { transaction: t });
         }
@@ -2521,10 +2516,19 @@ const updateRecurringDeposit = async (req, res) => {
 const calculateRecurringDeposits = async (req, res) => {
     try {
         const { id } = req.params; // User ID
+        const { setting_id } = req.query; // Get setting_id from query params
         
-        // Find all deposits for the user
+        // Build the where clause based on available parameters
+        let whereClause = { user_id: id };
+        
+        // If setting_id is provided, add it to the where clause
+        if (setting_id) {
+            whereClause.setting_id = setting_id;
+        }
+        
+        // Find deposits for the user with optional setting filter
         const deposits = await RecurringDeposit.findAll({
-            where: { user_id: id },
+            where: whereClause,
             order: [['deposit_date', 'ASC']]
         });
         
@@ -2587,6 +2591,53 @@ const calculateRecurringDeposits = async (req, res) => {
             });
         }
         
+        // Calculate and update the totals in the RD setting
+        if (setting_id) {
+            // Find the RD setting
+            const rdSetting = await RecurringDepositSetting.findByPk(setting_id);
+            
+            if (rdSetting) {
+                // Calculate totals from all deposits associated with this setting
+                const settingDeposits = await RecurringDeposit.findAll({
+                    where: { setting_id: setting_id }
+                });
+                
+                let totalPrincipal = 0;
+                let totalInterest = 0;
+                let totalPenalty = 0;
+                let totalNetAmount = 0;
+                
+                settingDeposits.forEach(deposit => {
+                    totalPrincipal += parseFloat(deposit.amount || 0);
+                    totalInterest += parseFloat(deposit.interest_amount || 0);
+                    totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
+                    totalNetAmount += parseFloat(deposit.total_amount || 0);
+                });
+                
+                // Update the RD setting with the new totals
+                await rdSetting.update({
+                    total_principal: totalPrincipal.toFixed(2),
+                    total_interest: totalInterest.toFixed(2),
+                    total_penalty: totalPenalty.toFixed(2),
+                    total_net_amount: totalNetAmount.toFixed(2),
+                    last_calculated_at: new Date()
+                });
+                
+                return res.json({
+                    success: true,
+                    message: 'Deposits calculated successfully',
+                    count: deposits.length,
+                    totals: {
+                        principal: totalPrincipal.toFixed(2),
+                        interest: totalInterest.toFixed(2),
+                        penalty: totalPenalty.toFixed(2),
+                        netAmount: totalNetAmount.toFixed(2)
+                    }
+                });
+            }
+        }
+        
+        // If no setting_id or setting not found, return the basic success response
         return res.json({
             success: true,
             message: 'Deposits calculated successfully',
