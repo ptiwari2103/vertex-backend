@@ -18,12 +18,10 @@ const FixedDepositSetting = sequelize.define('FixedDepositSetting', {
   annual_rate: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: false,
-    defaultValue: 0.00,
-    comment: 'Annual interest rate in percentage'
+    defaultValue: 0.00
   },
   payment_interval: {
-    type: DataTypes.ENUM('Daily', 'Monthly', 'Yearly'),
-    defaultValue: 'Monthly',
+    type: DataTypes.STRING,
     allowNull: false
   },
   amount: {
@@ -34,18 +32,45 @@ const FixedDepositSetting = sequelize.define('FixedDepositSetting', {
   duration: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    defaultValue: 12,
-    comment: 'Duration in months'
+    defaultValue: 1
   },
   penality_rate: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
     defaultValue: 0.00
   },
+  total_principal: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  total_interest: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  total_penality: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  total_net_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
   is_active: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-    defaultValue: true
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
+    comment: '0=>Inactive, 1=>Active, 2=>Closed'
+  },
+  settlement_date: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  settlement_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'fixed_deposit_settings',

@@ -26,14 +26,13 @@ const FixedDeposit = sequelize.define('FixedDeposit', {
     comment: 'Annual interest rate in percentage per day'
   },
   required_amount: {
-    type: DataTypes.DECIMAL(10, 2),
+    type: DataTypes.DECIMAL(5, 2),
     allowNull: false,
     defaultValue: 0.00,
     comment: 'Required amount'
   },
   payment_interval: {
-    type: DataTypes.ENUM('Daily', 'Monthly', 'Yearly'),
-    defaultValue: 'Monthly',
+    type: DataTypes.STRING,
     allowNull: false
   },
   amount: {
@@ -44,6 +43,16 @@ const FixedDeposit = sequelize.define('FixedDeposit', {
   payment_method: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  due_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  deposit_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
   },
   transaction_id: {
     type: DataTypes.STRING,
@@ -78,22 +87,14 @@ const FixedDeposit = sequelize.define('FixedDeposit', {
     allowNull: false,
     defaultValue: 0.00
   },
-  deposit_date: {
-    type: DataTypes.DATE,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
-  },
-  maturity_date: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
+  
   interest_added: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false
   },
   status: {
-    type: DataTypes.ENUM('Pending', 'Approved', 'Rejected', 'Matured'),
+    type: DataTypes.ENUM('Pending', 'Approved', 'Rejected','Closed'),
     defaultValue: 'Pending'
   }
 }, {

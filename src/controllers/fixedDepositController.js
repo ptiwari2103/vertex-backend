@@ -1,12 +1,17 @@
-const { User, Profile, FixedDeposit, FixedDepositSetting, OverdraftDeposit } = require("../models");
+const { User, Profile, FixedDepositSetting, FixedDeposit, OverdraftDeposit, AdminTransaction } = require('../models');
+const sequelize = require('../config/database');
+const { Op, Sequelize } = require('sequelize');
+const { formatCurrency, formatamount } = require('../utils/currencyFormatter');
 
-// Fixed Deposit functionality
+
+// Get Fixed Deposit controller method
 const getFixedDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        
-        // Get user details
-        const user = await User.findByPk(id, {
+        const { setting_id } = req.query;
+
+        // Find the user
+        const member = await User.findByPk(id, {
             include: [
                 {
                     model: Profile,
@@ -15,53 +20,83 @@ const getFixedDeposit = async (req, res) => {
             ]
         });
 
-        if (!user) {
-            return res.status(404).render('error', {
-                title: 'Error - Vertex Admin',
-                message: 'Member not found',
-                error: 'The requested member could not be found.',
-                style: '',
-                script: '',
-                user: null
+        if (!member) {
+            return res.status(404).json({
+                success: false,
+                message: 'Member not found'
             });
         }
 
-        // Get all fixed deposits for this user
-        const deposits = await FixedDeposit.findAll({
+        // Find RD settings for the user
+        const settings = await FixedDepositSetting.findAll({
             where: { user_id: id },
-            order: [['deposit_date', 'DESC']]
+            order: [['created_at', 'DESC']]
         });
 
-        // Render the fixed deposit page
+        // Find active setting
+        let activeSetting = null;
+        if (setting_id) {
+            // If setting_id is provided, use that
+            activeSetting = await FixedDepositSetting.findOne({
+                where: { id: setting_id, user_id: id }
+            });
+        } else {
+            // Otherwise, find the active setting
+            activeSetting = await FixedDepositSetting.findOne({
+                where: { user_id: id, is_active: 1 },
+                order: [['created_at', 'DESC']]
+            });
+        }
+
+        // Get deposits for the active setting
+        let deposits = [];
+        if (activeSetting) {
+            deposits = await FixedDeposit.findAll({
+                where: { setting_id: activeSetting.id },
+                order: [['deposit_date', 'DESC']]
+            });
+        }
+
+        // Get the formatCurrency utility
+        const { formatCurrency, formatamount } = require('../utils/currencyFormatter');
+        
+        // Render the view
         res.render('members/fixed-deposit', {
             title: 'Fixed Deposit - Vertex Admin',
             currentPage: 'members',
             user: JSON.stringify(req.session.user, null, 2),
-            member: user,
-            deposits: deposits
+            member,
+            deposits,
+            formatCurrency: formatCurrency,
+            activeSetting,
+            allSettings: settings
         });
     } catch (error) {
-        console.error('Fixed deposit error:', error);
-        res.render('error', {
-            title: 'Error - Vertex Admin',
-            message: 'Error fetching fixed deposit details',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching deposit details.',
-            style: '',
-            script: '',
-            user: null
+        console.error('Get fixed deposit error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching fixed deposit data',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching data.'
         });
     }
 };
 
+// Add Fixed Deposit controller method
 const addFixedDeposit = async (req, res) => {
+    // Begin transaction to ensure data consistency
+    // const { formatCurrency, formatamount } = require('../utils/currencyFormatter');
+    
+    const t = await sequelize.transaction();
+    
     try {
         const { id } = req.params;
-        const { setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_amount, penality_paid_amount, maturity_date } = req.body;
-        console.log(req.body);
+        const { setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_amount, penality_paid_amount } = req.body;
+        // console.log(req.body);
         
         // Validate user exists
-        const user = await User.findByPk(id);
+        const user = await User.findByPk(id, { transaction: t });
         if (!user) {
+            await t.rollback();
             return res.status(404).json({ 
                 success: false, 
                 message: 'Member not found' 
@@ -75,17 +110,42 @@ const addFixedDeposit = async (req, res) => {
             per_day_rate,
             required_amount,
             payment_interval,
-            amount,
-            total_amount: amount,            
+            amount: parseFloat(amount - penality_paid_amount),
+            total_amount: parseFloat(amount - penality_paid_amount),            
             payment_method,
             transaction_id,
             comments,
             deposit_date: new Date(),
-            maturity_date: maturity_date || null,
             penality_amount: penality_amount || 0,
             penality_paid_amount: penality_paid_amount || 0,
             status: status || 'Pending' 
-        });
+        }, { transaction: t });
+
+        // If penalty amount is greater than 0, create an AdminTransaction entry
+        if (penality_paid_amount > 0) {
+            // Get the latest admin transaction to calculate the new balance
+            const latestAdminTransaction = await AdminTransaction.findOne({
+                order: [['id', 'DESC']]
+            }, { transaction: t });
+
+            // Calculate new admin balance
+            let adminBalance = formatamount(penality_paid_amount);
+            if (latestAdminTransaction) {
+                adminBalance = formatamount(latestAdminTransaction.balance) + formatamount(penality_paid_amount);
+            }
+
+            // Create admin transaction entry for penalty amount
+            await AdminTransaction.create({
+                user_id: id,
+                type: 'Deposit',
+                comment: 'RD Penalty amount',
+                added: formatamount(penality_paid_amount),
+                balance: adminBalance
+            }, { transaction: t });
+        }
+
+        // Commit the transaction
+        await t.commit();
 
         return res.json({
             success: true,
@@ -93,6 +153,9 @@ const addFixedDeposit = async (req, res) => {
             deposit
         });
     } catch (error) {
+        // If any error occurs, rollback the transaction
+        await t.rollback();
+        
         console.error('Add fixed deposit error:', error);
         return res.status(500).json({
             success: false,
@@ -102,10 +165,12 @@ const addFixedDeposit = async (req, res) => {
     }
 };
 
+
+// Update Fixed Deposit controller method
 const updateFixedDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        const { per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_amount, penality_paid_amount, setting_id, maturity_date } = req.body;
+        const { per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_paid_amount, setting_id, total_interest } = req.body;
 
         // Find the deposit
         const deposit = await FixedDeposit.findByPk(id);
@@ -117,32 +182,35 @@ const updateFixedDeposit = async (req, res) => {
             });
         }
 
+        // Calculate total amount based on required amount and interest
+        const totalAmount = parseFloat(required_amount) + parseFloat(total_interest || 0);
+
         // Update deposit
         await deposit.update({
             per_day_rate,
             required_amount,
-            amount,
+            amount: parseFloat(required_amount), // Base amount is the required amount
+            total_amount: totalAmount, // Total amount includes interest
+            interest_amount: parseFloat(total_interest || 0), // Update interest amount
             payment_interval,
             payment_method,
             transaction_id,
             comments,
-            penality_amount,
             penality_paid_amount,
-            maturity_date,
             status,
             setting_id
         });
 
         return res.json({
             success: true,
-            message: 'Fixed deposit updated successfully',
+            message: 'Recurring deposit updated successfully',
             deposit
         });
     } catch (error) {
-        console.error('Update fixed deposit error:', error);
+        console.error('Update recurring deposit error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Error updating fixed deposit',
+            message: 'Error updating recurring deposit',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while updating the deposit.'
         });
     }
@@ -152,10 +220,19 @@ const updateFixedDeposit = async (req, res) => {
 const calculateFixedDeposits = async (req, res) => {
     try {
         const { id } = req.params; // User ID
+        const { setting_id } = req.query; // Get setting_id from query params
         
-        // Find all deposits for the user
+        // Build the where clause based on available parameters
+        let whereClause = { user_id: id };
+        
+        // If setting_id is provided, add it to the where clause
+        if (setting_id) {
+            whereClause.setting_id = setting_id;
+        }
+        
+        // Find deposits for the user with optional setting filter
         const deposits = await FixedDeposit.findAll({
-            where: { user_id: id },
+            where: whereClause,
             order: [['deposit_date', 'ASC']]
         });
         
@@ -165,39 +242,39 @@ const calculateFixedDeposits = async (req, res) => {
                 message: 'No deposits found for this user'
             });
         }
+        // console.log(deposits);
         
         // Perform calculations for each deposit
         for (const deposit of deposits) {
             // Example calculation logic - update as needed
-            const depositDate = new Date(deposit.deposit_date);
+            // Get the deposit date and set it to the first day of the month
+            const originalDepositDate = new Date(deposit.deposit_date);
+            const depositDate = new Date(originalDepositDate.getFullYear(), originalDepositDate.getMonth(), 1);
             const currentDate = new Date();
             const diffTime = Math.abs(currentDate - depositDate);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
-            // Calculate interest based on per_day_rate and days
             const interestAmount = parseFloat(deposit.amount) * (parseFloat(deposit.per_day_rate) / 100) * diffDays;
-            let totalAmount = parseFloat(deposit.amount) + interestAmount;
+            let totalAmount = parseFloat(deposit.amount) + parseFloat(interestAmount);
             
-            if(diffDays > process.env.FD_MINIMUM_INTEREST_HOLD_DAYS || 30){
-                // Insert a copy of interest amount into OverdraftDeposit table
-                // Get the last record's total_amount for this user_id and type
+                        
+            /*
+            if(diffDays > process.env.CD_MINIMUM_INTEREST_HOLD_DAYS){
                 let OverdraftTotalDeposit = 0.00;
                 const lastOverdraftRecord = await OverdraftDeposit.findOne({
-                    where: { user_id: deposit.user_id, type: 'FD' },
+                    where: { user_id: deposit.user_id, type: 'RD' },
                     order: [['created_at', 'DESC']]
                 });
                 
-                // If record found, add the interest amount to the last total_amount
                 if (lastOverdraftRecord) {
                     OverdraftTotalDeposit = parseFloat(lastOverdraftRecord.total_amount) + interestAmount;
                 } else {
-                    // If no record found, initialize with just the interest amount
                     OverdraftTotalDeposit = interestAmount;
                 }
                 
                 await OverdraftDeposit.create({
                     user_id: deposit.user_id,
-                    type: 'FD',
+                    type: 'RD',
                     type_id: deposit.id,
                     amount: deposit.amount,
                     total_days: diffDays,
@@ -207,8 +284,10 @@ const calculateFixedDeposits = async (req, res) => {
                     status: 'Approved'
                 });
             }
+            */ 
+           
+            console.log("=>",deposit.id,diffDays,interestAmount,totalAmount);
             
-            // Update the deposit record
             await deposit.update({
                 total_days: diffDays,
                 interest_amount: interestAmount.toFixed(2),
@@ -216,241 +295,525 @@ const calculateFixedDeposits = async (req, res) => {
             });
         }
         
+        // Calculate and update the totals in the RD setting
+        if (setting_id) {
+            // Find the RD setting
+            const rdSetting = await RecurringDepositSetting.findByPk(setting_id);
+            
+            if (rdSetting) {
+                // Calculate totals from all deposits associated with this setting
+                const settingDeposits = await RecurringDeposit.findAll({
+                    where: { setting_id: setting_id }
+                });
+                
+                let totalPrincipal = 0;
+                let totalInterest = 0;
+                let totalPenalty = 0;
+                let totalNetAmount = 0;
+                
+                settingDeposits.forEach(deposit => {
+                    totalPrincipal += parseFloat(deposit.amount || 0);
+                    totalInterest += parseFloat(deposit.interest_amount || 0);
+                    totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
+                    totalNetAmount += parseFloat(deposit.total_amount || 0);
+                });
+                
+                // Update the RD setting with the new totals
+                await rdSetting.update({
+                    total_principal: totalPrincipal.toFixed(2),
+                    total_interest: totalInterest.toFixed(2),
+                    total_penality: totalPenalty.toFixed(2),
+                    total_net_amount: totalNetAmount.toFixed(2),
+                    last_calculated_at: new Date()
+                });
+                
+                return res.json({
+                    success: true,
+                    message: 'Deposits calculated successfully',
+                    count: deposits.length,
+                    totals: {
+                        principal: totalPrincipal.toFixed(2),
+                        interest: totalInterest.toFixed(2),
+                        penalty: totalPenalty.toFixed(2),
+                        netAmount: totalNetAmount.toFixed(2)
+                    }
+                });
+            }
+        }
+        
+        // If no setting_id or setting not found, return the basic success response
         return res.json({
             success: true,
             message: 'Deposits calculated successfully',
             count: deposits.length
         });
     } catch (error) {
-        console.error('Calculate fixed deposits error:', error);
+        console.error('Calculate recurring deposits error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Error calculating fixed deposits',
+            message: 'Error calculating recurring deposits',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while calculating deposits.'
         });
     }
 };
 
-// FD Settings controller methods
-const getFDSettings = async (req, res) => {
+
+// Get FD Transactions controller method
+const getFDTransactions = async (req, res) => {
     try {
-        const { user_id } = req.query;
+        const { user_id, setting_id, date, page = 1, limit = 10 } = req.query;
         
-        let whereClause = {};
-        if (user_id) {
-            whereClause.user_id = user_id;
+        console.log('Request query params:', req.query);
+        
+        // Validate user_id
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
         }
         
-        const settings = await FixedDepositSetting.findAll({
+        // Build the where clause for filtering
+        const whereClause = { user_id: parseInt(user_id, 10) };
+        
+        // Add setting_id filter if provided
+        if (setting_id) {
+            whereClause.setting_id = parseInt(setting_id, 10);
+            console.log('Filtering by setting_id:', whereClause.setting_id);
+        }
+        
+        // Add exact date filter if provided
+        if (date) {
+            // Create start and end of the specified date
+            const filterDate = new Date(date);
+            const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+            
+            whereClause.deposit_date = {
+                [Op.gte]: startOfDay,
+                [Op.lte]: endOfDay
+            };
+        }
+        
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalCount = await RecurringDeposit.count({ where: whereClause });
+        
+        // Log the where clause for debugging
+        console.log('Final where clause:', JSON.stringify(whereClause));
+        
+        // Get transactions with pagination
+        const transactions = await RecurringDeposit.findAll({
             where: whereClause,
-            order: [['created_at', 'DESC']]
+            order: [['deposit_date', 'DESC']],
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            include: [
+                {
+                    model: RecurringDepositSetting,
+                    as: 'setting',
+                    attributes: ['payment_interval', 'amount']
+                }
+            ]
+        }).catch(err => {
+            console.error('Error in findAll query:', err);
+            throw err;
         });
         
+        console.log(`Found ${transactions.length} transactions for the query`);
+        
+        // Format the transactions to include setting information
+        const formattedTransactions = transactions.map(transaction => {
+            const plainTransaction = transaction.get({ plain: true });
+            return {
+                ...plainTransaction,
+                payment_interval: plainTransaction.setting?.payment_interval || '',
+                amount: plainTransaction.setting?.amount || 0
+            };
+        });
+        
+        return res.json({
+            success: true,
+            transactions: formattedTransactions,
+            pagination: {
+                total: totalCount,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(totalCount / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get RD transactions error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching RD transactions',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching transactions.'
+        });
+    }
+};
+
+// Get FD Settings controller method
+const getFDSettings = async (req, res) => {
+    try {
+        const { user_id, setting_id } = req.query;
+
+        // Build query conditions
+        const whereCondition = {};
+        if (user_id) {
+            whereCondition.user_id = user_id;
+        }
+        if (setting_id) {
+            whereCondition.id = setting_id;
+        }
+
+        // Get RD settings
+        const settings = await RecurringDepositSetting.findAll({
+            where: whereCondition,
+            order: [['created_at', 'DESC']]
+        });
+
+        // If setting_id is provided, return the specific setting
+        if (setting_id) {
+            const setting = settings.length > 0 ? settings[0] : null;
+            return res.json({
+                success: true,
+                settings: setting
+            });
+        }
+
         return res.json({
             success: true,
             settings
         });
     } catch (error) {
-        console.error('Get FD settings error:', error);
+        console.error('Get RD settings error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Error fetching FD settings',
+            message: 'Error fetching RD settings',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching settings.'
         });
     }
 };
 
+// Add FD Setting controller method
 const addFDSetting = async (req, res) => {
     try {
-        const { user_id, annual_rate, payment_interval, amount, duration, penality_rate, is_active } = req.body;
-        
-        // Validate user exists
-        const user = await User.findByPk(user_id);
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Member not found' 
+        const { user_id,annual_rate,payment_interval,amount,duration,penality_rate } = req.body;
+        // console.log(req.body);
+        // Validate inputs
+        if (!user_id || !amount || !annual_rate || !payment_interval || !duration || !penality_rate) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
             });
         }
-        
-        // If is_active is true, set all other settings to inactive
-        if (is_active) {
-            await FixedDepositSetting.update(
-                { is_active: false },
-                { where: { user_id } }
-            );
+
+        // Verify user exists
+        const user = await User.findByPk(user_id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
         }
-        
-        // Create new setting
-        const setting = await FixedDepositSetting.create({
+
+        // // Check if user already has an active setting
+        // const existingSetting = await RecurringDepositSetting.findOne({
+        //     where: {
+        //         user_id,
+        //         is_active: 1
+        //     }
+        // });
+
+        // if (existingSetting) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'User already has an active RD Setting. Please update the existing setting or deactivate it before creating a new one.'
+        //     });
+        // }
+
+        // Create new RD setting
+        const setting = await RecurringDepositSetting.create({
             user_id,
+            amount,
             annual_rate,
             payment_interval,
-            amount,
+            is_active: 1,
+            total_principal: 0,
+            total_interest: 0,
+            total_penality: 0,
+            total_net_amount: 0,
             duration,
-            penality_rate,
-            is_active
+            penality_rate
         });
-        
+
         return res.json({
             success: true,
-            message: 'Fixed deposit setting added successfully',
+            message: 'RD Setting added successfully',
             setting
         });
     } catch (error) {
-        console.error('Add FD setting error:', error);
+        console.error('Add RD setting error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Error adding FD setting',
+            message: 'Error adding RD setting',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while adding the setting.'
         });
     }
 };
 
+// Update FD Setting controller method
 const updateFDSetting = async (req, res) => {
     try {
         const { id } = req.params;
-        const { annual_rate, payment_interval, amount, duration, penality_rate, is_active } = req.body;
-        
+        const { user_id, amount, annual_rate, payment_interval, is_active,duration,penality_rate } = req.body;
+
         // Find the setting
-        const setting = await FixedDepositSetting.findByPk(id);
+        const setting = await RecurringDepositSetting.findByPk(id);
         
         if (!setting) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'Setting not found' 
+                message: 'RD Setting not found' 
             });
         }
+
         
-        // If is_active is being set to true, set all other settings to inactive
-        if (is_active) {
-            await FixedDepositSetting.update(
-                { is_active: false },
-                { 
-                    where: { 
-                        user_id: setting.user_id,
-                        id: { [Op.ne]: id } // Not equal to the current setting ID
-                    } 
-                }
-            );
-        }
-        
+        // Prepare update data
+        const updateData = {
+            amount: amount !== undefined ? amount : setting.amount,
+            annual_rate: annual_rate !== undefined ? annual_rate : setting.annual_rate,
+            payment_interval: payment_interval || setting.payment_interval,
+            is_active: is_active !== undefined ? is_active : setting.is_active,
+            duration: duration || setting.duration,
+            penality_rate: penality_rate || setting.penality_rate
+        };
+
         // Update setting
-        await setting.update({
-            annual_rate,
-            payment_interval,
-            amount,
-            duration,
-            penality_rate,
-            is_active
-        });
-        
+        await setting.update(updateData);
+
         return res.json({
             success: true,
-            message: 'Fixed deposit setting updated successfully',
+            message: 'RD Setting updated successfully',
             setting
         });
     } catch (error) {
-        console.error('Update FD setting error:', error);
+        console.error('Update RD setting error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Error updating FD setting',
+            message: 'Error updating RD setting',
             error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while updating the setting.'
         });
     }
 };
 
-// Get FD Transactions with search and pagination
-const getFDTransactions = async (req, res) => {
+// Get FD Deposits by Setting controller method
+const getFDBySetting = async (req, res) => {
     try {
-        const { page = 1, limit = 10, search = '', status = '' } = req.query;
-        const offset = (page - 1) * limit;
-        
-        // Build where clause for search
-        let whereClause = {};
-        if (search) {
-            whereClause = {
-                [Op.or]: [
-                    { '$User.name$': { [Op.like]: `%${search}%` } },
-                    { '$User.mobile_number$': { [Op.like]: `%${search}%` } },
-                    { '$User.account_number$': { [Op.like]: `%${search}%` } },
-                    { '$User.user_id$': { [Op.like]: `%${search}%` } }
-                ]
-            };
+        const { setting_id } = req.query;
+
+        if (!setting_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Setting ID is required'
+            });
+        }
+
+        // Find the setting
+        const setting = await RecurringDepositSetting.findByPk(setting_id);
+        if (!setting) {
+            return res.status(404).json({
+                success: false,
+                message: 'Setting not found'
+            });
         }
         
-        // Add status filter if provided
-        if (status) {
-            whereClause.status = status;
+        // Determine the setting status
+        let settingStatus = 'N/A';
+        if (setting.is_active === true || setting.is_active === 1 || String(setting.is_active) === '1') {
+            settingStatus = 'Active';
+        } else if (setting.is_active === 2 || String(setting.is_active) === '2') {
+            settingStatus = 'Closed';
+        } else {
+            settingStatus = 'Inactive';
         }
-        
-        // Get total count for pagination
-        const totalCount = await FixedDeposit.count({
-            where: whereClause,
-            include: [
-                {
-                    model: User,
-                    attributes: ['id', 'name', 'mobile_number', 'account_number', 'user_id']
-                }
-            ],
-            distinct: true
+
+        // Get deposits for the setting
+        const deposits = await RecurringDeposit.findAll({
+            where: { setting_id: setting_id },
+            order: [['deposit_date', 'DESC']]
         });
-        
-        // Get transactions with pagination
-        const transactions = await FixedDeposit.findAll({
-            where: whereClause,
-            include: [
-                {
-                    model: User,
-                    attributes: ['id', 'name', 'mobile_number', 'account_number', 'user_id']
-                }
-            ],
-            order: [['created_at', 'DESC']],
-            limit: parseInt(limit),
-            offset: parseInt(offset)
-        });
-        
-        // Calculate pagination info
-        const totalPages = Math.ceil(totalCount / limit);
-        const hasNextPage = page < totalPages;
-        const hasPrevPage = page > 1;
-        
-        res.render('transactions/fd-transactions', {
-            title: 'Fixed Deposit Transactions - Vertex Admin',
-            currentPage: 'fd-transactions',
-            user: JSON.stringify(req.session.user, null, 2),
-            transactions,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalItems: totalCount,
-                totalPages,
-                hasNextPage,
-                hasPrevPage
+
+        // Calculate totals
+        let totalPrincipal = 0;
+        let totalInterest = 0;
+        let totalPenalty = 0;
+        let totalNet = 0;
+
+        if (deposits && deposits.length > 0) {
+            deposits.forEach(deposit => {
+                totalPrincipal += parseFloat(deposit.required_amount || 0);
+                totalInterest += parseFloat(deposit.interest_amount || 0);
+                totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
+                totalNet += parseFloat(deposit.total_amount || 0);
+            });
+        }
+
+        return res.json({
+            success: true,
+            deposits,
+            totals: {
+                totalPrincipal,
+                totalInterest,
+                totalPenalty,
+                totalNet
             },
-            search,
-            status
+            settingStatus: settingStatus
         });
     } catch (error) {
-        console.error('Get FD transactions error:', error);
-        res.render('error', {
-            title: 'Error - Vertex Admin',
-            message: 'Error fetching FD transactions',
-            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching transactions.',
-            style: '',
-            script: '',
-            user: null
+        console.error('Get RD deposits by setting error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching RD deposits by setting',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching deposits.'
+        });
+    }
+};
+
+// Settle Fixed Deposit controller method
+const settleFixedDeposit = async (req, res) => {
+    const t = await sequelize.transaction();
+    
+    try {
+        const { id } = req.params; // User ID
+        const { 
+            setting_id, 
+            settlement_date, 
+            net_amount, 
+            total_principal,
+            total_interest,
+            total_penality, // Using the correct field name
+            notes 
+        } = req.body;
+        
+        // Validate required fields
+        if (!setting_id || !settlement_date || !net_amount) {
+            return res.status(400).json({
+                success: false,
+                message: 'Setting ID, settlement date, and net amount are required'
+            });
+        }
+        
+        // Find the RD setting
+        const rdSetting = await RecurringDepositSetting.findOne({
+            where: { id: setting_id, user_id: id }
+        });
+        
+        if (!rdSetting) {
+            return res.status(404).json({
+                success: false,
+                message: 'RD setting not found'
+            });
+        }
+        
+        // Check if setting is already closed
+        if (rdSetting.is_active === 2 || String(rdSetting.is_active) === '2') {
+            return res.status(400).json({
+                success: false,
+                message: 'This RD setting is already settled/closed'
+            });
+        }
+        
+        // Update the RD setting to closed status with the new values
+        await rdSetting.update({
+            is_active: 2, // Set status to closed
+            settlement_date: settlement_date,
+            settlement_notes: notes,
+            total_principal: total_principal || rdSetting.total_principal,
+            total_interest: total_interest || rdSetting.total_interest,
+            total_penality: total_penality || rdSetting.total_penality,
+            total_net_amount: net_amount,
+            last_updated_at: new Date()
+        }, { transaction: t });
+
+        await OverdraftDeposit.create({
+            user_id: rdSetting.user_id,
+            type: 'RD',
+            type_id: setting_id,
+            amount: total_principal,
+            interest_amount: total_interest,
+            total_amount: net_amount,
+            deposit_date: new Date(),
+            status: 'Approved'
+        }, { transaction: t });
+        
+        await RecurringDeposit.update({
+            status: 'Closed'            
+        }, { where: { setting_id: setting_id }, transaction: t });
+        
+        // Commit the transaction
+        await t.commit();
+        
+        return res.json({
+            success: true,
+            message: 'RD account settled successfully',
+            settingId: setting_id
+        });
+    } catch (error) {
+        // Rollback transaction in case of error
+        await t.rollback();
+        
+        console.error('Settle recurring deposit error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error settling recurring deposit',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while settling the account.'
+        });
+    }
+};
+
+const getUserSettingList = async (req, res) => {
+    try {
+        const { user_id } = req.query;
+
+        if (!user_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required'
+            });
+        }
+
+        const settings = await RecurringDepositSetting.findAll({
+            where: { user_id: user_id },
+            order: [['created_at', 'DESC']]
+        });
+
+        return res.json({
+            success: true,
+            settings
+        });
+    } catch (error) {
+        console.error('Get user setting list error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching user setting list',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'An error occurred while fetching the setting list.'
         });
     }
 };
 
 module.exports = {
+    addFDSetting,
+    updateFDSetting,
+    getFDBySetting,
     getFixedDeposit,
     addFixedDeposit,
     updateFixedDeposit,
     calculateFixedDeposits,
-    getFDSettings,
-    addFDSetting,
-    updateFDSetting,
-    getFDTransactions
+    getFDTransactions,
+    getFDSettings,    
+    settleFixedDeposit,
+    getUserSettingList
 };

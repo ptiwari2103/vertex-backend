@@ -97,6 +97,16 @@
         background-color: #dc3545;
         color: #fff;
     }
+    .status-closed {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    /* Style for disabled buttons */
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
     #viewDepositModal .modal-body {
         padding: 1.5rem;
     }
@@ -126,19 +136,22 @@
 <div class="main-content">
     <div class="welcome-section">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Fixed Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
+            <h2 class="mb-0">Recurring Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
             <div>
                 <a href="/members/view/<%= member.id %>" class="btn btn-secondary">
                     <i class="bx bx-arrow-back"></i> Back to Member
                 </a>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDepositModal">
+                <button type="button" class="btn btn-primary" id="addNewDepositBtn" data-bs-toggle="modal" data-bs-target="#addDepositModal">
                     <i class="bx bx-plus"></i> Add New Deposit
                 </button>
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#fdSettingsModal">
-                    <i class="bx bx-cog"></i> FD settings
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rdSettingsModal">
+                    <i class="bx bx-cog"></i> RD Settings
                 </button>
                 <button type="button" class="btn btn-success" id="calculateButton" onclick="calculateDeposits()">
                     <i class="bx bx-calculator"></i> Calculate
+                </button>
+                <button type="button" class="btn btn-warning" id="settlementButton" onclick="settlementDeposits()">
+                    <i class="bx bx-money"></i> Settlement
                 </button>
             </div>
         </div>
@@ -175,6 +188,71 @@
         </div>
     </div>
 
+    <!-- Totals Row -->
+    <div class="section-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="section-title mb-0">Totals</h4>
+            <input type="hidden" id="selected_setting_id" value="">
+
+            <% if (allSettings && allSettings.length > 0) { %>
+            <div class="form-group mb-0" style="width: 300px;">
+                <select class="form-select" id="rdSettingDropdown" onchange="loadSelectedRDSetting(this.value)">
+                    <% allSettings.forEach(function(setting) { %>
+                    <option value="<%= setting.id %>" <%= (activeSetting && activeSetting.id === setting.id) ? 'selected' : '' %>>
+                        RD<%= setting.id %> - <%= formatCurrency(setting.amount) %>/<%= setting.payment_interval %> (<%= setting.annual_rate %>%)
+                    </option>
+                    <% }); %>
+                </select>
+            </div>
+            <% } %>
+        </div>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="info-row">
+                    <div class="info-label">Total Principal</div>
+                    <div class="info-value" id="totalPrincipalValue"><%= formatCurrency(activeSetting?.total_principal || 0) %></div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-row">
+                    <div class="info-label">Total Interest</div>
+                    <div class="info-value" id="totalInterestValue"><%= formatCurrency(activeSetting?.total_interest || 0) %></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="info-row">
+                    <div class="info-label">Total Penalty</div>
+                    <div class="info-value" id="totalPenaltyValue"><%= formatCurrency(activeSetting?.total_penality || 0) %></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="info-row">
+                    <div class="info-label">Total Net</div>
+                    <div class="info-value" id="totalNetValue"><%= formatCurrency(activeSetting?.total_net_amount || 0) %></div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="info-row">
+                    <div class="info-label">Status</div>
+                    <div class="info-value" id="settingStatusValue">
+                        <% if (activeSetting) { %>
+                            <% if (activeSetting.is_active === true || activeSetting.is_active === 1 || String(activeSetting.is_active) === '1') { %>
+                                <span class="badge bg-success">Active</span>
+                            <% } else if (activeSetting.is_active === 2 || String(activeSetting.is_active) === '2') { %>
+                                <span class="badge bg-warning">Closed</span>
+                            <% } else { %>
+                                <span class="badge bg-danger">Inactive</span>
+                            <% } %>
+                        <% } else { %>
+                            N/A
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
     <!-- Deposit History -->
     <div class="section-card">
         <h4 class="section-title">Deposit History</h4>
@@ -202,23 +280,22 @@
                             <tr>
                                 <td><%= index + 1 %></td>
                                 <td><%= new Date(deposit.deposit_date).toLocaleDateString() %></td>
-                                <td>₹ <%= deposit.amount.toFixed(2) %></td>
+                                <td><%= formatCurrency(deposit.amount) %></td>
                                 <td><%= deposit.payment_method || 'N/A' %></td>
                                 <td><%= deposit.transaction_id || 'N/A' %></td>
                                 <td><%= deposit.per_day_rate || 'N/A' %></td>
                                 <td><%= deposit.payment_interval || 'N/A' %></td>
-                                <td><%= deposit.interest_amount || 'N/A' %></td>
-                                <td><%= deposit.penality_paid_amount || 'N/A' %></td>
-                                <td><%= deposit.total_amount || 'N/A' %></td>
+                                <td><%= formatCurrency(deposit.interest_amount) || 'N/A' %></td>
+                                <td><%= formatCurrency(deposit.penality_paid_amount) || 'N/A' %></td>
+                                <td><%= formatCurrency(deposit.total_amount) || 'N/A' %></td>
                                 <td>
-                                    <span class="status-badge status-<%= deposit.status.toLowerCase() %>">
-                                        <%= deposit.status %>
-                                    </span>
+                                    <span class="status-badge status-<%= deposit.status.toLowerCase() %>"><%= deposit.status %></span>
                                 </td>
                                 <td>
                                     <div class="button-group">
                                         <button class="btn btn-sm btn-warning" 
-                                            onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.comments %>', '<%= deposit.status %>')">
+                                            onclick="openEditDepositModal('<%= deposit.id %>', '<%= deposit.amount %>', '<%= deposit.payment_method %>', '<%= deposit.transaction_id %>', '<%= deposit.comments %>', '<%= deposit.status %>')" 
+                                            <%= deposit.status === 'Closed' ? 'disabled="disabled"' : '' %>>
                                             <i class="bx bx-edit"></i> Edit
                                         </button>
                                         <button class="btn btn-sm btn-info" 
@@ -354,11 +431,7 @@
                         </div>
                         <div class="col-md-4">
                             <label for="edit_payment_interval" class="form-label">Payment Interval</label>
-                            <select class="form-select" id="edit_payment_interval" name="payment_interval" required readonly disabled>
-                                <option value="Daily">Daily</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="Yearly">Yearly</option>
-                            </select>
+                            <input type="text" class="form-control" id="edit_payment_interval" name="payment_interval" required readonly disabled>
                         </div>
                     </div>
                     
@@ -370,19 +443,24 @@
                         </div>
                         <div class="col-md-4">
                             <label for="edit_penalty_paid_amount" class="form-label">Paid Penality (₹)</label>
-                            <input type="number" class="form-control" id="edit_penalty_paid_amount" name="penality_paid_amount" min="0" step="0.01">
+                            <input type="number" class="form-control" id="edit_penalty_paid_amount" name="penality_paid_amount" min="0" step="0.01" readonly disabled>
                         </div>
                         <div class="col-md-4">
-                            <label for="edit_amount" class="form-label">Total Paid Amount (₹)</label>
-                            <input type="number" class="form-control" id="edit_amount" name="amount" required min="1" step="0.01">
+                            <label for="total_interest" class="form-label">Total Interest (₹)</label>
+                            <input type="number" class="form-control" id="edit_total_interest" name="total_interest" required min="0" step="0.01" oninput="updateTotalPaidAmountFromInterest()">
                         </div>
+                        
                     </div>
                     
                     <!-- Third row: Payment Method and Transaction ID -->
                     <div class="row mb-3">
                         <div class="col-md-4">
+                            <label for="edit_amount" class="form-label">Total Paid Amount (₹)</label>
+                            <input type="number" class="form-control" id="edit_amount" name="amount" required min="1" step="0.01" readonly disabled>
+                        </div>
+                        <div class="col-md-4">
                             <label for="edit_payment_method" class="form-label">Payment Method</label>
-                            <select class="form-select" id="edit_payment_method" name="payment_method" required>
+                            <select class="form-select" id="edit_payment_method" name="payment_method" required readonly disabled>
                                 <option value="">Select Payment Method</option>
                                 <option value="Cash">Cash</option>
                                 <option value="Bank Transfer">Bank Transfer</option>
@@ -393,8 +471,12 @@
                         </div>
                         <div class="col-md-4">
                             <label for="edit_transaction_id" class="form-label">Transaction ID</label>
-                            <input type="text" class="form-control" id="edit_transaction_id" name="transaction_id">
+                            <input type="text" class="form-control" id="edit_transaction_id" name="transaction_id" readonly disabled>
                         </div>
+                    </div>
+
+                    <!-- Fourth row: Payment Method and Transaction ID -->
+                    <div class="row mb-3">
                         <div class="col-md-4">
                             <label for="edit_status" class="form-label">Status</label>
                             <select class="form-select" id="edit_status" name="status" required>
@@ -416,6 +498,7 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="submitEditDepositForm()">Update</button>
             </div>
+            <div id="editModalError" class="alert alert-danger mt-2" style="display: none;"></div>
         </div>
     </div>
 </div>
@@ -552,16 +635,16 @@
     </div>
 </div>
 
-<!-- FD settings Modal -->
-<div class="modal fade" id="fdSettingsModal" tabindex="-1" aria-labelledby="fdSettingsModalLabel" aria-hidden="true">
+<!-- RD Settings Modal -->
+<div class="modal fade" id="rdSettingsModal" tabindex="-1" aria-labelledby="rdSettingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="fdSettingsModalLabel">Fixed Deposit Settings</h5>
+                <h5 class="modal-title" id="rdSettingsModalLabel">Recurring Deposit Settings</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="fdSettingsForm">
+                <form id="rdSettingsForm">
                     <input type="hidden" id="rd_user_id" name="user_id" value="<%= member.id %>">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -576,7 +659,7 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="penality_rate" class="form-label">Penality Rate (per day) (₹)</label>
-                            <input type="number" class="form-control" id="penality_rate" name="penality_rate" required min="0.01" step="0.01" placeholder="Enter penality rate" value="1">
+                            <input type="number" class="form-control" id="penality_rate" name="penality_rate" required min="0.50" step="0.50" placeholder="Enter penality rate">
                         </div>                    
                         <div class="col-md-6">
                             <label for="duration" class="form-label">Duration</label>
@@ -599,6 +682,8 @@
                                 <option value="">Select Payment Interval</option>
                                 <option value="Daily">Daily</option>
                                 <option value="Monthly">Monthly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Half Yearly">Half Yearly</option>
                                 <option value="Yearly">Yearly</option>
                             </select>
                         </div>
@@ -607,11 +692,12 @@
                 </form>
 
                 <div class="mt-4">
-                    <h6>Current FD settings</h6>
-                    <div id="fdSettingsList" class="table-responsive">
+                    <h6>Current RD Settings</h6>
+                    <div id="rdSettingsList" class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
+                                    <th>RD ID</th>
                                     <th>Annual Rate</th>
                                     <th>Payment Interval</th>
                                     <th>Amount</th>
@@ -619,18 +705,20 @@
                                     <th>Duration</th>
                                     <th>Status</th>
                                     <th>Actions</th>
+                                    
                                 </tr>
                             </thead>
-                            <tbody id="fdSettingsTableBody">
+                            <tbody id="rdSettingsTableBody">
                                 <!-- Settings will be loaded here -->
                             </tbody>
                         </table>
                     </div>
                 </div>
+                
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="submitfdSettingsForm()">Save Settings</button>
+                <button type="button" class="btn btn-primary" onclick="submitRDSettingsForm()">Save Settings</button>
             </div>
         </div>
     </div>
@@ -638,47 +726,267 @@
 
 <%- contentFor('script') %>
 <script>
-    // Global variable to track if there are active FD settings
-    let hasActivefdSettings = false;
+    // Global variables
+    let hasActiveRDSettings = false;
+    let currentDeposits = <%- JSON.stringify(deposits || []) %>; // Store the current deposits data
     
-    // Check for FD settings on page load
+    // Add event listener to refresh page when RD Settings modal is closed
     document.addEventListener('DOMContentLoaded', function() {
-        checkfdSettings();
+        const rdSettingsModal = document.getElementById('rdSettingsModal');
+        if (rdSettingsModal) {
+            rdSettingsModal.addEventListener('hidden.bs.modal', function() {
+                // Refresh the page when the modal is closed
+                window.location.reload();
+            });
+        }
     });
     
-    // Function to check if FD settings exist and open modal if not
-    function checkfdSettings() {
+    
+    // Helper function    // Format currency helper function
+    function formatCurrency(amount) {
+        if (!amount) return '₹0.00';
+        return new Intl.NumberFormat('en-IN', { 
+            style: 'currency', 
+            currency: 'INR',
+            minimumFractionDigits: 2
+        }).format(amount);
+    }
+    
+    // Helper function to enable/disable buttons based on setting status
+    function updateButtonStates(isActive) {
+        const addNewDepositBtn = document.getElementById('addNewDepositBtn');
+        const calculateBtn = document.getElementById('calculateButton');
+        const settlementBtn = document.getElementById('settlementButton');
+        
+        if (addNewDepositBtn) {
+            if (!isActive) {
+                // Disable Add New Deposit button
+                addNewDepositBtn.disabled = true;
+                addNewDepositBtn.setAttribute('disabled', 'disabled');
+                addNewDepositBtn.removeAttribute('data-bs-toggle');
+                addNewDepositBtn.removeAttribute('data-bs-target');
+                addNewDepositBtn.classList.add('opacity-50');
+                addNewDepositBtn.title = 'Only available for active RD settings';
+            } else {
+                // Enable Add New Deposit button
+                addNewDepositBtn.disabled = false;
+                addNewDepositBtn.removeAttribute('disabled');
+                addNewDepositBtn.setAttribute('data-bs-toggle', 'modal');
+                addNewDepositBtn.setAttribute('data-bs-target', '#addDepositModal');
+                addNewDepositBtn.classList.remove('opacity-50');
+                addNewDepositBtn.title = '';
+            }
+        }
+        
+        if (calculateBtn) {
+            if (!isActive) {
+                // Disable Calculate button
+                calculateBtn.disabled = true;
+                calculateBtn.setAttribute('disabled', 'disabled');
+                calculateBtn.classList.add('opacity-50');
+                calculateBtn.title = 'Only available for active RD settings';
+            } else {
+                // Enable Calculate button
+                calculateBtn.disabled = false;
+                calculateBtn.removeAttribute('disabled');
+                calculateBtn.classList.remove('opacity-50');
+                calculateBtn.title = '';
+            }
+        }
+        
+        if (settlementBtn) {
+            if (!isActive) {
+                // Disable Settlement button
+                settlementBtn.disabled = true;
+                settlementBtn.setAttribute('disabled', 'disabled');
+                settlementBtn.classList.add('opacity-50');
+                settlementBtn.title = 'Only available for active RD settings';
+            } else {
+                // Enable Settlement button
+                settlementBtn.disabled = false;
+                settlementBtn.removeAttribute('disabled');
+                settlementBtn.classList.remove('opacity-50');
+                settlementBtn.title = '';
+            }
+        }
+    }
+    
+    // Initialize the selected setting ID with the active setting and handle button states
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if setting is active and set button states accordingly
+        let isActive = false;
+        <% if (activeSetting && (activeSetting.is_active === true || activeSetting.is_active === 1 || String(activeSetting.is_active) === '1')) { %>
+            isActive = true;
+        <% } %>
+        console.log('Setting active status:', isActive);
+        
+        // Initialize the selected setting ID if an active setting exists
+        const activeSettingId = '<%= activeSetting ? activeSetting.id : "" %>';
+        if (activeSettingId) {
+            document.getElementById('selected_setting_id').value = activeSettingId;
+        }
+        
+        // Update button states based on setting status
+        updateButtonStates(isActive);
+    });
+    
+    // Check for RD Settings on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        checkRDSettings();
+    });
+    
+    // Function to handle RD setting selection from dropdown
+    function loadSelectedRDSetting(settingId) {
+        if (!settingId) return;
+        
+        document.getElementById('selected_setting_id').value = settingId;
+        
+        // Show loading indicator
+        document.getElementById('totalPrincipalValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('totalInterestValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('totalPenaltyValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('totalNetValue').innerHTML = '<small>Loading...</small>';
+        document.getElementById('settingStatusValue').innerHTML = '<small>Loading...</small>';
+        
+        // Fetch data for the selected setting
+        fetch('/fixed-deposits/fd-deposits-by-setting?setting_id=' + settingId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the totals
+                    document.getElementById('totalPrincipalValue').textContent = formatCurrency(data.totals.totalPrincipal);
+                    document.getElementById('totalInterestValue').textContent = formatCurrency(data.totals.totalInterest);
+                    document.getElementById('totalPenaltyValue').textContent = formatCurrency(data.totals.totalPenalty);
+                    document.getElementById('totalNetValue').textContent = formatCurrency(data.totals.totalNet);
+                    
+                    // Use the setting status from the API response
+                    if (data.settingStatus) {
+                        let statusText = 'N/A';
+                        const isActive = data.settingStatus === 'Active';
+                        
+                        if (isActive) {
+                            statusText = '<span class="badge bg-success">Active</span>';
+                        } else if (data.settingStatus === 'Closed') {
+                            statusText = '<span class="badge bg-warning">Closed</span>';
+                        } else {
+                            statusText = '<span class="badge bg-danger">Inactive</span>';
+                        }
+                        
+                        // Update button states based on setting status
+                        updateButtonStates(isActive);
+                        
+                        document.getElementById('settingStatusValue').innerHTML = statusText;
+                    }
+                    // Update deposits table and store the new data
+                    currentDeposits = data.deposits;
+                    updateDepositTable(data.deposits);
+                    
+                    // Update URL without refreshing the page
+                    history.pushState(null, '', window.location.pathname + '?setting_id=' + settingId);
+                } else {
+                    console.error('Error loading data for setting:', data.message);
+                    alert('Error loading data for the selected setting2');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while loading data for the selected setting');
+            });
+    }
+    
+    // Format currency helper function
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount || 0);
+    }
+    
+    // Function to update the deposit history table
+    function updateDepositTable(deposits) {
+        const tableBody = document.querySelector('table.table-hover tbody');
+        if (!tableBody) return;
+        
+        tableBody.innerHTML = '';
+        
+        if (deposits && deposits.length > 0) {
+            deposits.forEach((deposit, index) => {
+                const row = document.createElement('tr');
+                
+                // Format the date
+                const depositDate = new Date(deposit.deposit_date);
+                const formattedDate = depositDate.toLocaleDateString('en-IN');
+                
+                // Create status badge class based on status
+                const statusClass = deposit.status === 'Approved' ? 'status-approved' : 
+                                   deposit.status === 'Rejected' ? 'status-rejected' : 'status-pending';
+                
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${formattedDate}</td>
+                    <td>${formatCurrency(deposit.required_amount)}</td>
+                    <td>${deposit.payment_method || 'N/A'}</td>
+                    <td>${deposit.transaction_id || 'N/A'}</td>
+                    <td>${parseFloat(deposit.per_day_rate).toFixed(2)}%</td>
+                    <td>${deposit.payment_interval || 'N/A'}</td>
+                    <td>${formatCurrency(deposit.interest_amount || 0)}</td>
+                    <td>${formatCurrency(deposit.penality_paid_amount || 0)}</td>
+                    <td>${formatCurrency(deposit.total_amount || 0)}</td>
+                    <td><span class="status-badge ${statusClass}">${deposit.status}</span></td>
+                    <td>
+                        <div class="button-group">
+                            <button class="btn btn-sm btn-warning" 
+                                onclick="openEditDepositModal('${deposit.id}', '${deposit.amount}', '${deposit.payment_method}', '${deposit.transaction_id}', '${deposit.comments}', '${deposit.status}')" 
+                                ${deposit.status === 'Closed' ? 'disabled="disabled"' : ''}>
+                                <i class="bx bx-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-info" 
+                                onclick="viewDepositDetails('${deposit.id}')">
+                                <i class="bx bx-info-circle"></i> View
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        } else {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="12" class="text-center">No deposits found for this RD setting</td>';
+            tableBody.appendChild(row);
+        }
+    }
+    
+    // Function to check if RD settings exist and open modal if not
+    function checkRDSettings() {
         const userId = document.getElementById('rd_user_id').value;
-        fetch('/members/fd-settings?user_id=' + userId)
+        fetch('/fixed-deposits/fd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
                     const settings = data.settings;
-                    hasActivefdSettings = settings && settings.some(function(setting) { return setting.is_active; });
+                    hasActiveRDSettings = settings && settings.some(function(setting) { return setting.is_active; });
                     
-                    if (!hasActivefdSettings) {
-                        // No active FD settings found, open the settings modal
-                        const fdSettingsModal = new bootstrap.Modal(document.getElementById('fdSettingsModal'));
-                        fdSettingsModal.show();
+                    if (!hasActiveRDSettings) {
+                        // No active RD settings found, open the settings modal
+                        const rdSettingsModal = new bootstrap.Modal(document.getElementById('rdSettingsModal'));
+                        rdSettingsModal.show();
                         
                         // Show warning message
                         const warningDiv = document.createElement('div');
                         warningDiv.className = 'alert alert-warning mb-3';
-                        warningDiv.id = 'fdSettingsWarning';
-                        warningDiv.innerHTML = '<strong>Important:</strong> You must set up Fixed Deposit settings before proceeding with any actions.';
+                        warningDiv.id = 'rdSettingsWarning';
+                        warningDiv.innerHTML = '<strong>Important:</strong> You must set up Recurring Deposit settings before proceeding with any actions.';
                         document.querySelector('.welcome-section').appendChild(warningDiv);
                         
                         // Disable all action buttons
                         disableAllActions();
+                    } else {
+                        // Enable all action buttons if there are active RD settings
+                        enableAllActions();
                     }
                 } else {
-                    // Only show alert if the backend indicates a real error
-                    alert('Error loading FD settings: ' + (data.message || 'Unknown error'));
-                    console.error('Error checking FD settings:', data.message);
+                    console.error('Error checking RD settings:', data.message);
                 }
             })
             .catch(function(error) {
-                // Only log error to console, do not show misleading alert for empty settings
                 console.error('Error:', error);
             });
     }
@@ -689,14 +997,28 @@
         const addDepositBtn = document.querySelector('button[data-bs-target="#addDepositModal"]');
         if (addDepositBtn) {
             addDepositBtn.disabled = true;
-            addDepositBtn.title = 'Please set up FD settings first';
+            addDepositBtn.title = 'Please set up RD settings first';
         }
+        
+        // Disable the Calculate button
+        const calculateBtn = document.getElementById('calculateButton');
+        if (calculateBtn) {
+            calculateBtn.disabled = true;
+            calculateBtn.title = 'Please set up RD settings first';
+        }
+        
+        // Disable all Edit buttons in the deposit history table
+        const editButtons = document.querySelectorAll('button.btn-warning');
+        editButtons.forEach(function(btn) {
+            btn.disabled = true;
+            btn.title = 'Please set up RD settings first';
+        });
         
         // Disable other action buttons if any
         const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(function(btn) {
             btn.disabled = true;
-            btn.title = 'Please set up FD settings first';
+            btn.title = 'Please set up RD settings first';
         });
     }
     
@@ -709,6 +1031,20 @@
             addDepositBtn.title = '';
         }
         
+        // Enable the Calculate button
+        const calculateBtn = document.getElementById('calculateButton');
+        if (calculateBtn) {
+            calculateBtn.disabled = false;
+            calculateBtn.title = '';
+        }
+        
+        // Enable all Edit buttons in the deposit history table
+        const editButtons = document.querySelectorAll('button.btn-warning');
+        editButtons.forEach(function(btn) {
+            btn.disabled = false;
+            btn.title = '';
+        });
+        
         // Enable other action buttons if any
         const actionButtons = document.querySelectorAll('.action-btn');
         actionButtons.forEach(function(btn) {
@@ -717,26 +1053,42 @@
         });
         
         // Remove warning message if exists
-        const warningDiv = document.getElementById('fdSettingsWarning');
+        const warningDiv = document.getElementById('rdSettingsWarning');
         if (warningDiv) {
             warningDiv.remove();
         }
     }
     
-    // Load FD settings when Add Deposit Modal is opened
+    // Load RD Settings when Add Deposit Modal is opened
     document.getElementById('addDepositModal').addEventListener('show.bs.modal', function () {
-        loadActiveFDSettingForDeposit();
+        loadActiveRDSettingForDeposit();
     });
     
-    // Function to load active FD setting for deposit
-    function loadActiveFDSettingForDeposit() {
-        const userId = '<%= member.id %>';
-        fetch('/members/fd-settings?user_id=' + userId)
+   
+
+    
+    // Function to load active RD Setting for deposit
+    function loadActiveRDSettingForDeposit() {
+        const userId = '<%= member.id %>'; 
+        let settingId = document.getElementById('selected_setting_id').value;
+        
+        // If selected_setting_id is empty, get the value from the dropdown
+        if (!settingId) {
+            const dropdown = document.getElementById('rdSettingDropdown');
+            if (dropdown && dropdown.value) {
+                settingId = dropdown.value;
+                // Update the hidden field
+                document.getElementById('selected_setting_id').value = settingId;
+            }
+        }
+        
+        fetch('/fixed-deposits/fd-settings?user_id=' + userId + '&setting_id=' + settingId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
                     // Find active setting
-                    const activeSetting = data.settings.find(setting => setting.is_active);
+                    //const activeSetting = data.settings.find(setting => setting.is_active);
+                    const activeSetting = data.settings;
                     
                     if (activeSetting) {
                         // Set the values in the form
@@ -748,24 +1100,30 @@
                         
                         // Calculate penalty amount based on grace period and days from start of month
                         calculatePenaltyAmount(activeSetting.penality_rate);
+                        
+                        // Enable all action buttons
+                        enableAllActions();
                     } else {
-                        alert('No active FD setting found. Please create an active FD setting first.');
+                        alert('No active RD Setting found. Please create an active RD Setting first.');
                         // Close the modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('addDepositModal'));
                         modal.hide();
                         
-                        // Open the FD settings modal
-                        const fdSettingsModal = new bootstrap.Modal(document.getElementById('fdSettingsModal'));
-                        fdSettingsModal.show();
+                        // Open the RD Settings modal
+                        const rdSettingsModal = new bootstrap.Modal(document.getElementById('rdSettingsModal'));
+                        rdSettingsModal.show();
+                        
+                        // Disable all action buttons
+                        disableAllActions();
                     }
                 } else {
-                    console.error('Error loading FD settings:', data.message);
-                    alert('Error loading FD settings: ' + data.message);
+                    console.error('Error loading RD settings:', data.message);
+                    alert('Error loading RD settings: ' + data.message);
                 }
             })
             .catch(function(error) {
                 console.error('Error:', error);
-                alert('An error occurred while loading FD settings.');
+                alert('An error occurred while loading RD settings.');
             });
     }
     
@@ -802,20 +1160,26 @@
     
     // Function to update the total paid amount when penalty paid amount changes
     function updateTotalPaidAmount() {
-        // Get the required amount (regular payment amount)
+        const penalityPaidAmount = parseFloat(document.getElementById('penality_paid_amount').value) || 0;
         const requiredAmount = parseFloat(document.getElementById('required_amount').value) || 0;
         
-        // Get the penalty paid amount
-        const penalityPaidAmount = parseFloat(document.getElementById('penality_paid_amount').value) || 0;
-        
-        // Calculate the total paid amount (required amount + penalty paid amount)
-        const totalPaidAmount = requiredAmount + penalityPaidAmount;
-        
-        // Update the paid amount field
-        document.getElementById('amount').value = totalPaidAmount.toFixed(2);
+        // Update the total amount field
+        document.getElementById('amount').value = (requiredAmount + penalityPaidAmount).toFixed(2);
         
         // Set the min attribute to ensure the total paid amount cannot be less than required amount
         document.getElementById('amount').setAttribute('min', requiredAmount);
+    }
+    
+    // Function to update the Total Paid Amount when Total Interest value changes in Edit form
+    function updateTotalPaidAmountFromInterest() {
+        const depositAmount = parseFloat(document.getElementById('edit_required_amount').value) || 0;
+        const totalInterest = parseFloat(document.getElementById('edit_total_interest').value) || 0;
+        
+        // Calculate the new total amount (deposit amount + interest)
+        const totalAmount = depositAmount + totalInterest;
+        
+        // Update the Total Paid Amount field
+        document.getElementById('edit_amount').value = totalAmount.toFixed(2);
     }
     
     // Add event listeners to penalty paid amount fields to update the total paid amount when they change
@@ -860,6 +1224,12 @@
             return;
         }
         
+        // Ensure we're using the selected setting ID
+        const settingId = document.getElementById('selected_setting_id').value;
+        if (settingId) {
+            document.getElementById('deposit_setting_id').value = settingId;
+        }
+        
         // Additional validation to ensure Total Paid Amount is not less than Required Amount
         const requiredAmount = parseFloat(document.getElementById('required_amount').value) || 0;
         const totalPaidAmount = parseFloat(document.getElementById('amount').value) || 0;
@@ -890,7 +1260,7 @@
         const penality_paid_amount = document.getElementById('penality_paid_amount').value;
         
         // Send request to the server
-        fetch('/members/fixed-deposit/<%= member.id %>', {
+        fetch(`/fixed-deposits/fixed-deposit/<%= member.id %>`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -944,9 +1314,11 @@
     
     // Function to handle deposit calculation
     function calculateDeposits() {
-        // Show the overlay loader
-        const loader = document.getElementById('overlayLoader');
-        loader.style.display = 'flex';
+        // Show a loader or spinner
+        const loader = document.getElementById('loader');
+        if (loader) {
+            loader.style.display = 'block';
+        }
         
         // Disable all buttons and inputs to prevent user interaction
         const buttons = document.querySelectorAll('button');
@@ -957,9 +1329,21 @@
         
         // Get the user ID
         const userId = '<%= member.id %>';
+
+        let settingId = document.getElementById('selected_setting_id').value;
+        
+        // If selected_setting_id is empty, get the value from the dropdown
+        if (!settingId) {
+            const dropdown = document.getElementById('rdSettingDropdown');
+            if (dropdown && dropdown.value) {
+                settingId = dropdown.value;
+                // Update the hidden field
+                document.getElementById('selected_setting_id').value = settingId;
+            }
+        }
         
         // Send request to the server
-        fetch(`/members/calculate-deposits/${userId}`, {
+        fetch(`/fixed-deposits/calculate-fixed-deposits/${userId}?setting_id=${settingId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -968,7 +1352,9 @@
         .then(response => response.json())
         .then(data => {
             // Hide the loader
-            loader.style.display = 'none';
+            if (loader) {
+                loader.style.display = 'none';
+            }
             
             // Re-enable all buttons and inputs
             buttons.forEach(button => button.disabled = false);
@@ -976,10 +1362,23 @@
             
             if (data.success) {
                 // Show success message
-                alert('Calculation completed successfully!');
+                alert(`Total ${data.count} records deposits calculated successfully`);
                 
-                // Reload the page to show updated data
-                window.location.reload();
+                // Update totals in the UI if they were returned
+                if (data.totals) {
+                    document.getElementById('totalPrincipalValue').innerHTML = formatCurrency(data.totals.principal);
+                    document.getElementById('totalInterestValue').innerHTML = formatCurrency(data.totals.interest);
+                    document.getElementById('totalPenaltyValue').innerHTML = formatCurrency(data.totals.penalty);
+                    document.getElementById('totalNetValue').innerHTML = formatCurrency(data.totals.netAmount);
+                    
+                    // Reload the deposits table without refreshing the page
+                    loadSelectedRDSetting(settingId);
+                } else {
+                    // Reload the page to show updated values if totals weren't returned
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }
             } else {
                 // Show error message
                 alert('Error: ' + (data.message || 'An error occurred during calculation.'));
@@ -989,7 +1388,9 @@
             console.error('Error:', error);
             
             // Hide the loader
-            loader.style.display = 'none';
+            if (loader) {
+                loader.style.display = 'none';
+            }
             
             // Re-enable all buttons and inputs
             buttons.forEach(button => button.disabled = false);
@@ -1004,21 +1405,56 @@
     
     // Edit Deposit Modal
     function openEditDepositModal(id, amount, payment_method, transaction_id, notes, status) {
-        // Find the deposit in the table to get all fields
-        const depositsData = <%- JSON.stringify(deposits || []) %>;
-        //console.log("openEditDepositModal depositsData", depositsData);
-        const deposit = depositsData.find(function(d) { 
-            return parseInt(d.id, 10) === parseInt(id, 10); 
-        });
-        //console.log("openEditDepositModal deposit", deposit);
+        console.log('openEditDepositModal called with id:', id);
         
-        // If deposit doesn't have a setting_id, fetch the latest Fixed Deposit setting
+        // Check if the deposit is closed - prevent editing
+        if (status === 'Closed') {
+            alert('Closed deposits cannot be edited.');
+            return;
+        }
+        
+        // Use the current deposits data (which may have been updated by the dropdown selection)
+        const depositsData = currentDeposits;
+        console.log('Current deposits data:', depositsData);
+        
+        const deposit = depositsData.find(function(d) { 
+            return String(d.id) === String(id); 
+        });
+        console.log('Found deposit:', deposit);
+        
+        if (!deposit) {
+            alert('Deposit details not found.');
+            return;
+        }
+        
+        // If deposit doesn't have a setting_id, use the currently selected setting ID or fetch the latest
         if(!deposit.setting_id){
-            // Get the user ID from the URL or a hidden field
-            const userId = '<%= member.id %>';
+            // First try to use the currently selected setting ID
+            const selectedSettingId = document.getElementById('selected_setting_id').value;
             
-            // Fetch the latest active setting for this user
-            fetch('/members/cd-settings?user_id=' + userId)
+            if (selectedSettingId) {
+                document.getElementById('edit_setting_id').value = selectedSettingId;
+                
+                // Get the current setting details from the dropdown
+                const dropdown = document.getElementById('rdSettingDropdown');
+                if (dropdown) {
+                    const selectedOption = dropdown.options[dropdown.selectedIndex];
+                    if (selectedOption) {
+                        // Extract rate from the option text (format: "RD1 - ₹1,000.00/Monthly (8%)")
+                        const optionText = selectedOption.text;
+                        const rateMatch = optionText.match(/(\d+(\.\d+)?)%/);
+                        if (rateMatch && rateMatch[1]) {
+                            const annualRate = parseFloat(rateMatch[1]);
+                            document.getElementById('edit_per_day_rate').value = (annualRate/365).toFixed(2);
+                        }
+                    }
+                }
+            } else {
+                // If no selected setting ID, get the user ID and fetch settings
+                const userId = '<%= member.id %>';
+                
+                // Fetch the latest active setting for this user
+                fetch('/fixed-deposits/fd-settings?user_id=' + userId)
                 .then(function(response) { return response.json(); })
                 .then(function(data) {
                     if (data.success && data.settings && data.settings.length > 0) {
@@ -1039,32 +1475,41 @@
                 .catch(function(error) {
                     console.error('Error fetching CD settings:', error);
                 });
+            }
         }
         
-        if (deposit) {
-            document.getElementById('edit_deposit_id').value = id;
-            document.getElementById('edit_setting_id').value = deposit.setting_id;
-            document.getElementById('edit_amount').value = amount;
-            document.getElementById('edit_per_day_rate').value = deposit.per_day_rate || '';
-            document.getElementById('edit_required_amount').value = deposit.required_amount || '';
-            document.getElementById('edit_payment_interval').value = deposit.payment_interval || 'Monthly';
-            document.getElementById('edit_payment_method').value = payment_method;
-            document.getElementById('edit_transaction_id').value = transaction_id;
-            document.getElementById('edit_penalty_amount').value = deposit.penality_amount || '0.00';
-            document.getElementById('edit_penalty_paid_amount').value = deposit.penality_paid_amount || '0.00';
-            document.getElementById('edit_comments').value = notes;
-            document.getElementById('edit_status').value = status;
+        // Always proceed since we already checked deposit exists
+        document.getElementById('edit_deposit_id').value = id;
+        document.getElementById('edit_setting_id').value = deposit.setting_id || document.getElementById('selected_setting_id').value || '';
+        document.getElementById('edit_amount').value = deposit.amount || deposit.total_amount || '0.00';
+        document.getElementById('edit_per_day_rate').value = deposit.per_day_rate || '';
+        document.getElementById('edit_required_amount').value = deposit.required_amount || '';
+        document.getElementById('edit_payment_interval').value = deposit.payment_interval || 'Monthly';
+        document.getElementById('edit_payment_method').value = deposit.payment_method || '';
+        document.getElementById('edit_transaction_id').value = deposit.transaction_id || '';
+        document.getElementById('edit_penalty_amount').value = deposit.penality_amount || '0.00';
+        document.getElementById('edit_penalty_paid_amount').value = deposit.penality_paid_amount || '0.00';
+        document.getElementById('edit_total_interest').value = deposit.interest_amount || '0.00';
+        document.getElementById('edit_comments').value = deposit.comments || '';
+        document.getElementById('edit_status').value = deposit.status || 'Approved';
             
-            const modal = new bootstrap.Modal(document.getElementById('editDepositModal'));
-            modal.show();
-        } else {
-            alert('Deposit details not found.');
-        }
+        // Hide any previous error messages
+        document.getElementById('editModalError').style.display = 'none';
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('editDepositModal'));
+        modal.show();
     }
     
     // Edit Deposit Form Submission
     function submitEditDepositForm() {
         const form = document.getElementById('editDepositForm');
+        
+        // Ensure we're using the selected setting ID
+        const settingId = document.getElementById('selected_setting_id').value;
+        if (settingId) {
+            document.getElementById('edit_setting_id').value = settingId;
+        }
         
         // Add custom validation for required fields
         const amountValue = document.getElementById('edit_amount').value;
@@ -1098,6 +1543,7 @@
         const transaction_id = document.getElementById('edit_transaction_id').value || '';
         const penality_amount = document.getElementById('edit_penalty_amount').value || '0';
         const penality_paid_amount = document.getElementById('edit_penalty_paid_amount').value || '0';
+        const total_interest = document.getElementById('edit_total_interest').value || '0';
         const comments = document.getElementById('edit_comments').value || '';
         
         // Get setting_id if available
@@ -1110,7 +1556,7 @@
         updateButton.textContent = 'Updating...';
         updateButton.disabled = true;
         
-        fetch(`/members/fixed-deposit/${depositId}`, {
+        fetch(`/fixed-deposits/fixed-deposit/${depositId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1124,6 +1570,7 @@
                 transaction_id,
                 penality_amount,
                 penality_paid_amount,
+                total_interest,
                 comments,
                 status: statusValue,
                 setting_id: setting_id
@@ -1161,11 +1608,16 @@
     
     // View Deposit Details
     function viewDepositDetails(depositId) {
-        // Find the deposit in the table
-        const depositsData = <%- JSON.stringify(deposits || []) %>;
+        console.log('viewDepositDetails called with id:', depositId);
+        
+        // Use the current deposits data (which may have been updated by the dropdown selection)
+        const depositsData = currentDeposits;
+        console.log('Current deposits data for view:', depositsData);
+        
         const deposit = depositsData.find(function(d) { 
-            return parseInt(d.id, 10) === parseInt(depositId, 10); 
+            return String(d.id) === String(depositId); 
         });
+        console.log('Found deposit for view:', deposit);
         
         if (deposit) {
             // Per Day Rate and Required Amount
@@ -1217,40 +1669,51 @@
         }
     }
     
-    // FD settings Functions
+    // RD Settings Functions
     
-    // Load FD settings when modal is opened
-    document.getElementById('fdSettingsModal').addEventListener('show.bs.modal', function () {
-        loadfdSettings();
+    // Load RD Settings when modal is opened
+    document.getElementById('rdSettingsModal').addEventListener('show.bs.modal', function () {
+        loadRDSettings();
     });
     
-    // Load FD settings from the server
-    function loadfdSettings() {
+    // Load RD Settings from the server
+    function loadRDSettings() {
         const userId = document.getElementById('rd_user_id').value;
-        fetch('/members/fd-settings?user_id=' + userId)
+        fetch('/fixed-deposits/fd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
-                    displayfdSettings(data.settings);
+                    displayRDSettings(data.settings);
                 } else {
-                    console.error('Error loading FD settings:', data.message);
-                    alert('Error loading FD settings: ' + data.message);
+                    console.error('Error loading RD settings:', data.message);
+                    alert('Error loading RD settings: ' + data.message);
                 }
             })
             .catch(function(error) {
                 console.error('Error:', error);
-                alert('An error occurred while loading FD settings.');
+                alert('An error occurred while loading RD settings.');
             });
     }
     
-    // Display FD settings in the table
-    function displayfdSettings(settings) {
-        const tableBody = document.getElementById('fdSettingsTableBody');
+    // Display RD Settings in the table
+    function displayRDSettings(settings) {
+        const tableBody = document.getElementById('rdSettingsTableBody');
         tableBody.innerHTML = '';
+        
+        // Update global variable for active RD settings
+        hasActiveRDSettings = settings && settings.some(function(setting) { return setting.is_active; });
+        
+
+        // Enable or disable action buttons based on active settings
+        if (hasActiveRDSettings) {
+            enableAllActions();
+        } else {
+            disableAllActions();
+        }
         
         // Check if there's an active setting to determine if we should show the Add button
         const hasActiveSetting = settings && settings.some(function(setting) { return setting.is_active; });
-        hasActivefdSettings = hasActiveSetting; // Update global variable
+        hasActiveRDSettings = hasActiveSetting; // Update global variable
         
         // If we have active settings now, enable all actions
         if (hasActiveSetting) {
@@ -1259,19 +1722,13 @@
             disableAllActions();
         }
         
-        const addButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
+        const addButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
         
         if (hasActiveSetting) {
             // If there's an active setting, disable the Add button
             addButton.textContent = 'Save Settings';
-            addButton.disabled = true;
+            // addButton.disabled = true;
             addButton.title = 'Deactivate the current active setting before adding a new one';
-            
-            // Add a message at the top of the table
-            // const messageDiv = document.createElement('div');
-            // messageDiv.className = 'alert alert-info mb-3';
-            // messageDiv.textContent = 'Only one active FD setting is allowed. Deactivate the current setting to add a new one.';
-            // document.getElementById('fdSettingsList').prepend(messageDiv);
         } else {
             // If there's no active setting, enable the Add button
             addButton.textContent = 'Save Settings';
@@ -1279,50 +1736,86 @@
             addButton.title = '';
             
             // Remove any existing message
-            const existingMessage = document.getElementById('fdSettingsList').querySelector('.alert');
+            const existingMessage = document.getElementById('rdSettingsList').querySelector('.alert');
             if (existingMessage) {
                 existingMessage.remove();
             }
         }
         
+
+        
         if (settings && settings.length > 0) {
             settings.forEach(function(setting) {
                 const row = document.createElement('tr');
                 
+                // row.innerHTML = 
+                //     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
+                //     '<td>' + setting.payment_interval + '</td>' +
+                //     '<td>₹ ' + setting.amount + '</td>' +
+                //     '<td>₹ ' + setting.penality_rate + '</td>' +
+                //     '<td>' + setting.duration/12 + ' ' + (setting.duration == 1 ? 'Year' : 'Years') + '</td>' +
+                //     '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
+                //     (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+                //     '<td><div class="button-group">' +
+                //     '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
+                //     '<i class="bx bx-edit"></i></button>' +
+                //     '<button class="btn btn-sm btn-' + (setting.is_active ? 'danger' : 'success') + '" onclick="toggleRDSettingStatus(' + setting.id + ', ' + (!setting.is_active ? 'true' : 'false') + ')">' +
+                //     '<i class="bx bx-' + (setting.is_active ? 'power-off' : 'check') + '"></i></button>' +
+                //     '</div></td>';
+
+                // Debug the is_active value
+                //console.log('Setting ID:', setting.id, 'is_active value:', setting.is_active, 'type:', typeof setting.is_active);
+                                
+                // Debug the is_active value with JSON stringification to see exact value
+                console.log('Setting ID:', setting.id, 'is_active value:', JSON.stringify(setting.is_active), 'type:', typeof setting.is_active);
+                
+                // Directly check the value and convert to string for comparison if needed
+                let statusClass = 'status-rejected';
+                let statusText = 'Inactive';
+                
+                // Convert to string for comparison to handle all possible formats
+                const isActiveStr = String(setting.is_active).toLowerCase();
+                
+                if (isActiveStr === 'true' || isActiveStr === '1') {
+                    statusClass = 'status-approved';
+                    statusText = 'Active';
+                } else if (isActiveStr === '2') {
+                    statusClass = 'status-pending';
+                    statusText = 'Closed';
+                }
+                
                 row.innerHTML = 
+                    '<td> RD' + setting.id + '</td>' +
                     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
                     '<td>' + setting.payment_interval + '</td>' +
                     '<td>₹ ' + setting.amount + '</td>' +
                     '<td>₹ ' + setting.penality_rate + '</td>' +
-                    '<td>' + setting.duration/12 + ' ' + (setting.duration == 1 ? 'Year' : 'Years') + '</td>' +
-                    '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
-                    (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
+                    '<td>' + (setting.duration/12) + ' ' + ((setting.duration/12 === 1 || setting.duration/12 === 0.5) ? 'Year' : 'Years') + '</td>' +
+                    '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span></td>' +
                     '<td><div class="button-group">' +
-                    '<button class="btn btn-sm btn-warning" onclick="editFDSetting(' + setting.id + ', ' + setting.annual_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
+                    '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ','+ setting.penality_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', \'' + setting.is_active + '\')">' +
                     '<i class="bx bx-edit"></i></button>' +
-                    '<button class="btn btn-sm btn-' + (setting.is_active ? 'danger' : 'success') + '" onclick="togglefdSettingstatus(' + setting.id + ', ' + (!setting.is_active ? 'true' : 'false') + ')">' +
-                    '<i class="bx bx-' + (setting.is_active ? 'power-off' : 'check') + '"></i></button>' +
                     '</div></td>';
                 
                 tableBody.appendChild(row);
             });
         } else {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="7" class="text-center">No FD settings found</td>';
+            row.innerHTML = '<td colspan="8" class="text-center">No RD settings found</td>';
             tableBody.appendChild(row);
         }
     }
     
-    // Submit FD settings Form
-    function submitfdSettingsForm() {
-        const form = document.getElementById('fdSettingsForm');
+    // Submit RD Settings Form
+    function submitRDSettingsForm() {
+        const form = document.getElementById('rdSettingsForm');
         
         if (!form.checkValidity()) {
             form.reportValidity();
             return;
         }
         
-        // Set a flag to indicate we're submitting FD settings
+        // Set a flag to indicate we're submitting RD settings
         
         const user_id = document.getElementById('rd_user_id').value;
         const annual_rate = document.getElementById('annual_rate').value;
@@ -1330,14 +1823,14 @@
         const amount = document.getElementById('rd_amount').value;
         const duration = document.getElementById('duration').value;
         const penality_rate = document.getElementById('penality_rate').value;
-        
+        //console.log(user_id, annual_rate, payment_interval, amount, duration, penality_rate);
         // Show loading state
-        const saveButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
+        const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
         const originalText = saveButton.textContent;
         saveButton.textContent = 'Saving...';
         saveButton.disabled = true;
         
-        fetch('/members/fd-settings', {
+        fetch('/fixed-deposits/fd-settings', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1358,22 +1851,21 @@
                 form.reset();
                 
                 // Show success message
-                alert('FD setting added successfully!');
+                alert('RD Setting added successfully!');
                 
                 // Reload settings
-                loadfdSettings();
+                loadRDSettings();
             } else {
-                // Only show alert if the backend indicates a real error (not just empty settings)
-                alert('Error saving FD settings: ' + (data.message || 'Unknown error'));
-                
-                // Reset button state
-                saveButton.textContent = originalText;
-                saveButton.disabled = false;
+                // Show error message
+                alert('Error1: ' + data.message);              
             }
+            // Reset button state
+            saveButton.textContent = originalText;
+            saveButton.disabled = false;
         })
         .catch(function(error) {
             console.error('Error2:', error);
-            alert('An error occurred while adding the FD setting.');
+            alert('An error occurred while adding the RD setting.');
             
             // Reset button state
             saveButton.textContent = originalText;
@@ -1381,16 +1873,17 @@
         });
     }
     
-    // Edit FD setting
-    function editFDSetting(id, annual_rate, payment_interval, amount, duration, is_active) {
+    // Edit RD Setting
+    function editRDSetting(id, annual_rate, penality_rate, payment_interval, amount, duration, is_active) {
         // Set form values
         document.getElementById('annual_rate').value = annual_rate;
+        document.getElementById('penality_rate').value = penality_rate;
         document.getElementById('payment_interval').value = payment_interval;
         document.getElementById('rd_amount').value = amount;
         document.getElementById('duration').value = duration;
         
         // Change button to update
-        const saveButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
+        const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
         saveButton.textContent = 'Update Setting';
         saveButton.disabled = false; // Always enable the button for editing
         
@@ -1399,7 +1892,7 @@
         
         // Set new onclick function
         saveButton.onclick = function() {
-            updateFDSetting(id);
+            updateRDSetting(id);
             
             // After updating, restore the original onclick function
             setTimeout(function() {
@@ -1408,9 +1901,9 @@
         };
     }
     
-    // Update FD setting
-    function updateFDSetting(id) {
-        const form = document.getElementById('fdSettingsForm');
+    // Update RD Setting
+    function updateRDSetting(id) {
+        const form = document.getElementById('rdSettingsForm');
         
         if (!form.checkValidity()) {
             form.reportValidity();
@@ -1419,11 +1912,12 @@
         
         const user_id = document.getElementById('rd_user_id').value;
         const annual_rate = document.getElementById('annual_rate').value;
+        const penality_rate = document.getElementById('penality_rate').value;
         const payment_interval = document.getElementById('payment_interval').value;
         const amount = document.getElementById('rd_amount').value;
         const duration = document.getElementById('duration').value;
         
-        fetch('/members/fd-settings/' + id, {
+        fetch('/fixed-deposits/fd-settings/' + id, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1431,6 +1925,7 @@
             body: JSON.stringify({
                 user_id: user_id,
                 annual_rate: annual_rate,
+                penality_rate: penality_rate,
                 payment_interval: payment_interval,
                 amount: amount,
                 duration: duration
@@ -1443,33 +1938,33 @@
                 form.reset();
                 
                 // Reset button
-                const saveButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
+                const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
                 saveButton.textContent = 'Save Settings';
-                saveButton.onclick = submitfdSettingsForm;
+                saveButton.onclick = submitRDSettingsForm;
                 
                 // Show success message
-                alert('FD setting updated successfully!');
+                alert('RD Setting updated successfully!');
                 
                 // Reload settings
-                loadfdSettings();
+                loadRDSettings();
             } else {
                 alert('Error: ' + data.message);
             }
         })
         .catch(function(error) {
             console.error('Error:', error);
-            alert('An error occurred while updating the FD setting.');
+            alert('An error occurred while updating the RD setting.');
         });
     }
     
-    // Toggle FD setting Status (Active/Inactive)
-    function togglefdSettingstatus(id, makeActive) {
-        if (!confirm('Are you sure you want to ' + (makeActive ? 'activate' : 'deactivate') + ' this FD setting?')) {
+    // Toggle RD Setting Status (Active/Inactive)
+    function toggleRDSettingStatus(id, makeActive) {
+        if (!confirm('Are you sure you want to ' + (makeActive ? 'activate' : 'deactivate') + ' this RD setting?')) {
             return;
         }
         
         // If we're deactivating the only active setting, warn the user
-        if (!makeActive && hasActivefdSettings) {
+        if (!makeActive && hasActiveRDSettings) {
             if (!confirm('Warning: Deactivating this setting will prevent any deposit actions until a new setting is activated. Continue?')) {
                 return;
             }
@@ -1481,7 +1976,7 @@
         button.innerHTML = '<i class="bx bx-loader bx-spin"></i>';
         button.disabled = true;
         
-        fetch('/members/fd-settings/' + id, {
+        fetch('/fixed-deposits/fd-settings/' + id, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -1494,10 +1989,10 @@
         .then(function(data) {
             if (data.success) {
                 // Show success message
-                alert('FD setting ' + (makeActive ? 'activated' : 'deactivated') + ' successfully!');
+                alert('RD Setting ' + (makeActive ? 'activated' : 'deactivated') + ' successfully!');
                 
                 // Reload settings
-                loadfdSettings();
+                loadRDSettings();
             } else {
                 // Show error message
                 alert('Error: ' + data.message);
@@ -1509,11 +2004,244 @@
         })
         .catch(function(error) {
             console.error('Error:', error);
-            alert('An error occurred while updating the FD setting status.');
+            alert('An error occurred while updating the RD setting status.');
             
             // Reset button state
             button.innerHTML = originalHTML;
             button.disabled = false;
         });
     }
+    
+    // Function to handle settlement process
+    function settlementDeposits() {
+        // Get the selected setting ID
+        let settingId = document.getElementById('selected_setting_id').value;
+        
+        // If no setting ID is selected, get it from the dropdown
+        if (!settingId) {
+            const dropdown = document.getElementById('rdSettingDropdown');
+            if (dropdown && dropdown.value) {
+                settingId = dropdown.value;
+                // Update the hidden field
+                document.getElementById('selected_setting_id').value = settingId;
+            } else {
+                alert('Please select an RD setting first');
+                return;
+            }
+        }
+        
+        // Set the setting ID in the settlement form
+        document.getElementById('settlement_setting_id').value = settingId;
+        
+        // Set default settlement date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('settlement_date').value = today;
+        
+        // Get the setting details to display in the modal
+        fetch(`/fixed-deposits/fd-settings?user_id=<%= member.id %>&setting_id=${settingId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.settings) {
+                    const setting = data.settings;
+                    // Format currency for display without the currency symbol
+                    const formatAmount = (amount) => {
+                        return parseFloat(amount || 0).toFixed(2);
+                    };
+                    
+                    // Update the settlement modal with setting details
+                    document.getElementById('settlement_principal').value = formatAmount(setting.total_principal);
+                    document.getElementById('settlement_interest').value = formatAmount(setting.total_interest);
+                    document.getElementById('settlement_penalty').value = formatAmount(setting.total_penality);
+                    document.getElementById('settlement_net').value = formatAmount(setting.total_net_amount);
+                    
+                    // Add event listeners to update the net amount when interest value changes
+                    const principalInput = document.getElementById('settlement_principal');
+                    const interestInput = document.getElementById('settlement_interest');
+                    const netInput = document.getElementById('settlement_net');
+                    
+                    // Store the original net amount from the setting
+                    const originalNetAmount = parseFloat(setting.total_net_amount || 0);
+                    
+                    // Display the original net amount
+                    document.getElementById('settlement_net').value = formatAmount(originalNetAmount);
+                    
+                    // Function to update net amount when interest changes
+                    const updateNetAmount = () => {
+                        // Get the original principal and penalty
+                        const principal = parseFloat(principalInput.value) || 0;
+                        const interest = parseFloat(interestInput.value) || 0;
+                        
+                        // Calculate net amount: Principal + Interest
+                        const netAmount = principal + interest;
+                        netInput.value = netAmount.toFixed(2);
+                        
+                        
+                    };
+                    
+                    // Only add event listener to the editable field (interest)
+                    interestInput.addEventListener('input', updateNetAmount);
+                    
+                    // Initial calculation
+                    updateNetAmount();
+                    
+                    // Show the settlement modal
+                    const settlementModal = new bootstrap.Modal(document.getElementById('settlementModal'));
+                    settlementModal.show();
+                } else {
+                    alert('Error loading RD setting details');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading RD setting details');
+            });
+    }
+    
+    // Function to confirm settlement
+    function confirmSettlement() {
+        // Get form data
+        const settingId = document.getElementById('settlement_setting_id').value;
+        const userId = document.getElementById('settlement_user_id').value;
+        const settlementDate = document.getElementById('settlement_date').value;
+        const principal = document.getElementById('settlement_principal').value;
+        const interest = document.getElementById('settlement_interest').value;
+        const penalty = document.getElementById('settlement_penalty').value;
+        const netAmount = document.getElementById('settlement_net').value;
+        const notes = document.getElementById('settlement_notes').value;
+        
+        // Validate form
+        if (!settlementDate) {
+            alert('Please select a settlement date');
+            return;
+        }
+        
+        if (!netAmount || parseFloat(netAmount) < 0) {
+            alert('Net amount must be a valid number');
+            return;
+        }
+        
+        // Confirm with user
+        if (!confirm('Are you sure you want to settle this RD account with a net amount of ₹' + netAmount + '? This action cannot be undone.')) {
+            return;
+        }
+        
+        // Disable the confirm button to prevent multiple submissions
+        const confirmBtn = document.getElementById('confirmSettlementBtn');
+        const originalBtnText = confirmBtn.textContent;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Processing...';
+        
+        // Send settlement request to server
+        fetch(`/fixed-deposits/fd-settlement/${userId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                setting_id: settingId,
+                settlement_date: settlementDate,
+                total_principal: principal,
+                total_interest: interest,
+                total_penality: penalty,
+                net_amount: netAmount,
+                notes: notes
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Re-enable the button
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalBtnText;
+            
+            if (data.success) {
+                // Close the modal
+                const settlementModal = bootstrap.Modal.getInstance(document.getElementById('settlementModal'));
+                settlementModal.hide();
+                
+                // Show success message
+                alert('RD account settled successfully!');
+                
+                // Reload the page to reflect changes
+                window.location.reload();
+            } else {
+                alert('Error: ' + (data.message || 'Failed to settle RD account'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error processing settlement');
+            
+            // Re-enable the button
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalBtnText;
+        });
+    }
 </script>
+
+<!-- Settlement Modal -->
+<div class="modal fade" id="settlementModal" tabindex="-1" aria-labelledby="settlementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="settlementModalLabel">RD Settlement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <p><strong>Note:</strong> Settling this RD account will mark it as closed and finalize all calculations.</p>
+                </div>
+                
+                
+                <form id="settlementForm">
+                    <input type="hidden" id="settlement_setting_id" name="setting_id">
+                    <input type="hidden" id="settlement_user_id" name="user_id" value="<%= member.id %>">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_principal" class="form-label">Total Principal</label>
+                                <input type="text" class="form-control" id="settlement_principal" name="principal" readonly disabled="disabled">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_penalty" class="form-label">Total Penalty</label>
+                                <input type="text" class="form-control" id="settlement_penalty" name="penalty" readonly disabled="disabled">
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_interest" class="form-label">Total Interest</label>
+                                <input type="text" class="form-control" id="settlement_interest" name="interest">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="settlement_net" class="form-label">Total Net</label>
+                                <input type="text" class="form-control" id="settlement_net" name="net_amount" readonly disabled="disabled">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="settlement_date" class="form-label">Settlement Date</label>
+                        <input type="date" class="form-control" id="settlement_date" name="settlement_date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="settlement_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="settlement_notes" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSettlementBtn" onclick="confirmSettlement()">Confirm Settlement</button>
+            </div>
+        </div>
+    </div>
+</div>

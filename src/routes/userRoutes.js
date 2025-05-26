@@ -76,11 +76,11 @@ router.post('/calculate-deposits/:id', userController.calculateDeposits);
 
 // Recurring deposit routes - moved to recurringDepositRoutes.js
 
-// Fixed deposit routes
-router.get('/fixed-deposit/:id', fixedDepositController.getFixedDeposit);
-router.post('/fixed-deposit/:id', fixedDepositController.addFixedDeposit);
-router.put('/fixed-deposit/:id', fixedDepositController.updateFixedDeposit);
-router.post('/calculate-fixed-deposits/:id', fixedDepositController.calculateFixedDeposits);
+// // Fixed deposit routes
+// router.get('/fixed-deposit/:id', fixedDepositController.getFixedDeposit);
+// router.post('/fixed-deposit/:id', fixedDepositController.addFixedDeposit);
+// router.put('/fixed-deposit/:id', fixedDepositController.updateFixedDeposit);
+// router.post('/calculate-fixed-deposits/:id', fixedDepositController.calculateFixedDeposits);
 
 // CD Transactions route
 router.get('/cd-transactions', userController.getCDTransactions);

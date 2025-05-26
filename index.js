@@ -16,6 +16,7 @@ const giftRoutes = require('./src/routes/giftRoutes');
 const settingRoutes = require('./src/routes/settingRoutes');
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const recurringDepositRoutes = require('./src/routes/recurringDepositRoutes');
+const fixedDepositRoutes = require('./src/routes/fixDepositRoutes');
 
 require("dotenv").config();
 
@@ -83,6 +84,7 @@ app.use('/gifts', giftRoutes);
 app.use('/settings', settingRoutes);
 app.use('/transactions', transactionRoutes);
 app.use('/recurring-deposits', recurringDepositRoutes);
+app.use('/fixed-deposits', fixedDepositRoutes);
 
 // Error handling middleware
 app.use((req, res, next) => {
