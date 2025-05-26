@@ -138,7 +138,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <h2 class="mb-0">Recurring Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
             <div>
-                <a href="/recurring-deposits/view/<%= member.id %>" class="btn btn-secondary">
+                <a href="/members/view/<%= member.id %>" class="btn btn-secondary">
                     <i class="bx bx-arrow-back"></i> Back to Member
                 </a>
                 <button type="button" class="btn btn-primary" id="addNewDepositBtn" data-bs-toggle="modal" data-bs-target="#addDepositModal">
@@ -1260,7 +1260,7 @@
         const penality_paid_amount = document.getElementById('penality_paid_amount').value;
         
         // Send request to the server
-        fetch('/recurring-deposits/rd-deposit/<%= member.id %>', {
+        fetch(`/recurring-deposits/recurring-deposit/<%= member.id %>`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1556,7 +1556,7 @@
         updateButton.textContent = 'Updating...';
         updateButton.disabled = true;
         
-        fetch(`/recurring-deposits/${depositId}`, {
+        fetch(`/recurring-deposits/recurring-deposit/${depositId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'

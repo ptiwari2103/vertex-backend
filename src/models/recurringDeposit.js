@@ -104,4 +104,12 @@ const RecurringDeposit = sequelize.define('RecurringDeposit', {
   updatedAt: 'updated_at'
 });
 
+// Define associations
+RecurringDeposit.associate = function(models) {
+  RecurringDeposit.belongsTo(models.RecurringDepositSetting, {
+    foreignKey: 'setting_id',
+    as: 'setting'
+  });
+};
+
 module.exports = RecurringDeposit;

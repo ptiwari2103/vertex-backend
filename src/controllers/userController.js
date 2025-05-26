@@ -816,19 +816,22 @@ const verifyToken = (req, res, next) => {
     }
     
     // If no session, check for JWT token in headers
-    const token = req.headers.authorization;
-    if (!token) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
         return res.status(401).json({
             success: false,
-            message: 'Unauthorized'
+            message: 'Unauthorized - No token provided'
         });
     }
 
+    // Extract token from "Bearer <token>" format
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             return res.status(401).json({
                 success: false,
-                message: 'Unauthorized'
+                message: 'Unauthorized - Invalid token'
             });
         }
         req.user = decoded;
