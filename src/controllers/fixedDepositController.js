@@ -90,8 +90,8 @@ const addFixedDeposit = async (req, res) => {
     
     try {
         const { id } = req.params;
-        const { setting_id, per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_amount, penality_paid_amount } = req.body;
-        // console.log(req.body);
+        const { setting_id, per_day_rate, required_amount, amount, payment_method, transaction_id, comments, status} = req.body;
+        console.log('Request body:', req.body);
         
         // Validate user exists
         const user = await User.findByPk(id, { transaction: t });
@@ -103,52 +103,30 @@ const addFixedDeposit = async (req, res) => {
             });
         }
 
-        // Create new deposit record
+        // Create new deposit record with default values for required fields
         const deposit = await FixedDeposit.create({
             user_id: id,
             setting_id: setting_id,
             per_day_rate,
             required_amount,
-            payment_interval,
-            amount: parseFloat(amount - penality_paid_amount),
-            total_amount: parseFloat(amount - penality_paid_amount),            
+            payment_interval: 'Yearly', // Default value
+            amount: parseFloat(amount),
+            total_amount: parseFloat(amount),            
             payment_method,
             transaction_id,
             comments,
             deposit_date: new Date(),
-            penality_amount: penality_amount || 0,
-            penality_paid_amount: penality_paid_amount || 0,
+            due_date: new Date(), // Default to current date
+            penality_amount: 0, // Default value
+            penality_paid_amount: 0, // Default value
             status: status || 'Pending' 
         }, { transaction: t });
-
-        // If penalty amount is greater than 0, create an AdminTransaction entry
-        if (penality_paid_amount > 0) {
-            // Get the latest admin transaction to calculate the new balance
-            const latestAdminTransaction = await AdminTransaction.findOne({
-                order: [['id', 'DESC']]
-            }, { transaction: t });
-
-            // Calculate new admin balance
-            let adminBalance = formatamount(penality_paid_amount);
-            if (latestAdminTransaction) {
-                adminBalance = formatamount(latestAdminTransaction.balance) + formatamount(penality_paid_amount);
-            }
-
-            // Create admin transaction entry for penalty amount
-            await AdminTransaction.create({
-                user_id: id,
-                type: 'Deposit',
-                comment: 'RD Penalty amount',
-                added: formatamount(penality_paid_amount),
-                balance: adminBalance
-            }, { transaction: t });
-        }
 
         // Commit the transaction
         await t.commit();
 
         return res.json({
-            success: true,
+            success: true,  
             message: 'Fixed deposit added successfully',
             deposit
         });
@@ -170,7 +148,7 @@ const addFixedDeposit = async (req, res) => {
 const updateFixedDeposit = async (req, res) => {
     try {
         const { id } = req.params;
-        const { per_day_rate, required_amount, payment_interval, amount, payment_method, transaction_id, comments, status, penality_paid_amount, setting_id, total_interest } = req.body;
+        const { per_day_rate, required_amount, payment_method, transaction_id, comments, status, setting_id, total_interest } = req.body;
 
         // Find the deposit
         const deposit = await FixedDeposit.findByPk(id);
@@ -192,11 +170,9 @@ const updateFixedDeposit = async (req, res) => {
             amount: parseFloat(required_amount), // Base amount is the required amount
             total_amount: totalAmount, // Total amount includes interest
             interest_amount: parseFloat(total_interest || 0), // Update interest amount
-            payment_interval,
             payment_method,
             transaction_id,
             comments,
-            penality_paid_amount,
             status,
             setting_id
         });
@@ -501,12 +477,28 @@ const getFDSettings = async (req, res) => {
 const addFDSetting = async (req, res) => {
     try {
         const { user_id,annual_rate,amount,duration,maturity_amount,indirect_referral_rate,direct_referral_rate } = req.body;
-        // console.log(req.body);
+        console.log(req.body);
         // Validate inputs
         if (!user_id || !amount || !annual_rate || !duration || !maturity_amount || !indirect_referral_rate || !direct_referral_rate) {
             return res.status(400).json({
                 success: false,
                 message: 'All fields are required'
+            });
+        }
+        
+        // Validate that maturity amount is greater than amount
+        if (parseFloat(maturity_amount) <= parseFloat(amount)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Maturity Amount must be greater than Amount'
+            });
+        }
+        
+        // Validate that annual rate is not more than 99%
+        if (parseFloat(annual_rate) > 99) {
+            return res.status(400).json({
+                success: false,
+                message: 'Annual Rate cannot be more than 99%'
             });
         }
 
@@ -546,7 +538,7 @@ const addFDSetting = async (req, res) => {
             is_active: 1,
             total_principal: 0,
             total_interest: 0,
-            total_penality: 0,
+            total_maturity_amount: 0,
             total_net_amount: 0
         });
 
@@ -571,13 +563,30 @@ const updateFDSetting = async (req, res) => {
         const { id } = req.params;
         const { user_id, amount, annual_rate, duration, maturity_amount, indirect_referral_rate, direct_referral_rate, is_active } = req.body;
 
+        // Validate that maturity amount is greater than amount (if both are provided)
+        if (amount !== undefined && maturity_amount !== undefined) {
+            if (parseFloat(maturity_amount) <= parseFloat(amount)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Maturity Amount must be greater than Amount'
+                });
+            }
+        }
+        
+        // Validate that annual rate is not more than 99%
+        if (annual_rate !== undefined && parseFloat(annual_rate) > 99) {
+            return res.status(400).json({
+                success: false,
+                message: 'Annual Rate cannot be more than 99%'
+            });
+        }
+        
         // Find the setting
         const setting = await FixedDepositSetting.findByPk(id);
-        
         if (!setting) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'FD Setting not found' 
+            return res.status(404).json({
+                success: false,
+                message: 'FD Setting not found'
             });
         }
 
@@ -649,19 +658,19 @@ const getFDBySetting = async (req, res) => {
         });
 
         // Calculate totals
-        let totalPrincipal = 0;
-        let totalInterest = 0;
-        let totalPenalty = 0;
-        let totalNet = 0;
+        let totalPrincipal = setting.amount;
+        let totalInterest = setting.total_interest;
+        let totalMaturityAmount = setting.maturity_amount;
+        let totalNet = setting.total_net_amount;
 
-        if (deposits && deposits.length > 0) {
-            deposits.forEach(deposit => {
-                totalPrincipal += parseFloat(deposit.required_amount || 0);
-                totalInterest += parseFloat(deposit.interest_amount || 0);
-                totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
-                totalNet += parseFloat(deposit.total_amount || 0);
-            });
-        }
+        // if (deposits && deposits.length > 0) {
+        //     deposits.forEach(deposit => {
+        //         totalPrincipal += parseFloat(deposit.required_amount || 0);
+        //         totalInterest += parseFloat(deposit.interest_amount || 0);
+        //         totalPenalty += parseFloat(deposit.penality_paid_amount || 0);
+        //         totalNet += parseFloat(deposit.total_amount || 0);
+        //     });
+        // }
 
         return res.json({
             success: true,
@@ -669,7 +678,7 @@ const getFDBySetting = async (req, res) => {
             totals: {
                 totalPrincipal,
                 totalInterest,
-                totalPenalty,
+                totalMaturityAmount,
                 totalNet
             },
             settingStatus: settingStatus
@@ -695,8 +704,7 @@ const settleFixedDeposit = async (req, res) => {
             settlement_date, 
             net_amount, 
             total_principal,
-            total_interest,
-            total_penality, // Using the correct field name
+            total_interest,            
             notes 
         } = req.body;
         
@@ -735,7 +743,6 @@ const settleFixedDeposit = async (req, res) => {
             settlement_notes: notes,
             total_principal: total_principal || fdSetting.total_principal,
             total_interest: total_interest || fdSetting.total_interest,
-            total_penality: total_penality || fdSetting.total_penality,
             total_net_amount: net_amount,
             last_updated_at: new Date()
         }, { transaction: t });

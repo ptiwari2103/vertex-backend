@@ -33,7 +33,8 @@ const FixedDeposit = sequelize.define('FixedDeposit', {
   },
   payment_interval: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
+    defaultValue: 'Yearly'
   },
   amount: {
     type: DataTypes.DECIMAL(10, 2),
