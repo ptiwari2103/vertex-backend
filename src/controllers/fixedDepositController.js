@@ -375,24 +375,18 @@ const getFDTransactions = async (req, res) => {
         const offset = (page - 1) * limit;
         
         // Get total count for pagination
-        const totalCount = await RecurringDeposit.count({ where: whereClause });
+        const totalCount = await FixedDeposit.count({ where: whereClause });
         
         // Log the where clause for debugging
         console.log('Final where clause:', JSON.stringify(whereClause));
         
         // Get transactions with pagination
-        const transactions = await RecurringDeposit.findAll({
+        const transactions = await FixedDeposit.findAll({
             where: whereClause,
             order: [['deposit_date', 'DESC']],
             limit: parseInt(limit),
             offset: parseInt(offset),
-            include: [
-                {
-                    model: FixedDepositSetting,
-                    as: 'setting',
-                    attributes: ['payment_interval', 'amount']
-                }
-            ]
+            
         }).catch(err => {
             console.error('Error in findAll query:', err);
             throw err;
@@ -401,18 +395,17 @@ const getFDTransactions = async (req, res) => {
         console.log(`Found ${transactions.length} transactions for the query`);
         
         // Format the transactions to include setting information
-        const formattedTransactions = transactions.map(transaction => {
-            const plainTransaction = transaction.get({ plain: true });
-            return {
-                ...plainTransaction,
-                payment_interval: plainTransaction.setting?.payment_interval || '',
-                amount: plainTransaction.setting?.amount || 0
-            };
-        });
+        // const formattedTransactions = transactions.map(transaction => {
+        //     const plainTransaction = transaction.get({ plain: true });
+        //     return {
+        //         ...plainTransaction,
+        //         amount: plainTransaction.setting?.amount || 0
+        //     };
+        // });
         
         return res.json({
             success: true,
-            transactions: formattedTransactions,
+            transactions: transactions,
             pagination: {
                 total: totalCount,
                 page: parseInt(page),
@@ -821,8 +814,8 @@ module.exports = {
     addFixedDeposit,
     updateFixedDeposit,
     calculateFixedDeposits,
-    getFDTransactions,
     getFDSettings,    
     settleFixedDeposit,
-    getUserSettingList
+    getUserSettingList,
+    getFDTransactions
 };
