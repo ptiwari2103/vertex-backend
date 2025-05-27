@@ -20,10 +20,6 @@ const FixedDepositSetting = sequelize.define('FixedDepositSetting', {
     allowNull: false,
     defaultValue: 0.00
   },
-  payment_interval: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
   amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
@@ -31,25 +27,24 @@ const FixedDepositSetting = sequelize.define('FixedDepositSetting', {
   },
   duration: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 1
+    allowNull: false    
   },
-  penality_rate: {
+  maturity_amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
     defaultValue: 0.00
   },
-  total_principal: {
-    type: DataTypes.DECIMAL(10, 2),
+  indirect_referral_rate: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: true,
+    defaultValue: 0.00
+  },
+  direct_referral_rate: {
+    type: DataTypes.DECIMAL(5, 2),
     allowNull: true,
     defaultValue: 0.00
   },
   total_interest: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00
-  },
-  total_penality: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
     defaultValue: 0.00

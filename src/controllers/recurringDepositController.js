@@ -43,19 +43,19 @@ const getRecurringDeposit = async (req, res) => {
         } else {
             // Otherwise, find the active setting
             activeSetting = await RecurringDepositSetting.findOne({
-                where: { user_id: id, is_active: 1 },
+                where: { user_id: id, is_active: { [Op.in]: [1, 2] } },
                 order: [['created_at', 'DESC']]
             });
         }
 
         // Get deposits for the active setting
-        let deposits = [];
-        if (activeSetting) {
+        // let deposits = [];
+        // if (activeSetting) {
             deposits = await RecurringDeposit.findAll({
-                where: { setting_id: activeSetting.id },
+                where: { user_id: id },
                 order: [['deposit_date', 'DESC']]
             });
-        }
+        //}
 
         // Get the formatCurrency utility
         const { formatCurrency, formatamount } = require('../utils/currencyFormatter');

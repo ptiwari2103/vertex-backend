@@ -136,7 +136,7 @@
 <div class="main-content">
     <div class="welcome-section">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 class="mb-0">Recurring Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
+            <h2 class="mb-0">Fixed Deposit - <%= member.profile ? member.profile.name : member.user_id %></h2>
             <div>
                 <a href="/members/view/<%= member.id %>" class="btn btn-secondary">
                     <i class="bx bx-arrow-back"></i> Back to Member
@@ -145,7 +145,7 @@
                     <i class="bx bx-plus"></i> Add New Deposit
                 </button>
                 <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rdSettingsModal">
-                    <i class="bx bx-cog"></i> RD Settings
+                    <i class="bx bx-cog"></i> FD Settings
                 </button>
                 <button type="button" class="btn btn-success" id="calculateButton" onclick="calculateDeposits()">
                     <i class="bx bx-calculator"></i> Calculate
@@ -338,30 +338,10 @@
                             <input type="number" class="form-control" id="required_amount" name="required_amount" required min="1" step="0.01" readonly disabled>
                         </div>
                         <div class="col-md-4">
-                            <label for="deposit_payment_interval" class="form-label">Payment Interval</label>
-                            <input type="text" class="form-control" id="deposit_payment_interval" name="payment_interval" required readonly disabled>
-                        </div>
-
-                    </div>
-                    
-                    <!-- Second row: Payment Interval and Paid Amount -->
-                    <div class="row mb-3">                        
-                        <div class="col-md-4">
-                            <label for="penality_amount" class="form-label">Required Penality (₹)</label>
-                            <input type="number" class="form-control" id="penality_amount" name="penality_amount" readonly disabled>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="penality_paid_amount" class="form-label">Paid Penality (₹)</label>
-                            <input type="number" class="form-control" id="penality_paid_amount" name="penality_paid_amount" step="0.01" min="0">
-                        </div>
-                        <div class="col-md-4">
                             <label for="amount" class="form-label">Total Paid Amount (₹)</label>
                             <input type="number" class="form-control" id="amount" name="amount" required min="1" step="0.01">
-                        </div>
+                        </div>                        
                     </div>
-
-
-                    
                     <!-- Third row: Payment Method and Transaction ID -->
                     <div class="row mb-3">
                         <div class="col-md-4">
@@ -635,12 +615,12 @@
     </div>
 </div>
 
-<!-- RD Settings Modal -->
+<!-- Fixed Deposit Settings Modal -->
 <div class="modal fade" id="rdSettingsModal" tabindex="-1" aria-labelledby="rdSettingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="rdSettingsModalLabel">Recurring Deposit Settings</h5>
+                <h5 class="modal-title" id="rdSettingsModalLabel">Fixed Deposit Settings</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -652,60 +632,57 @@
                             <input type="number" class="form-control" id="rd_amount" name="amount" required min="1" step="1" placeholder="Enter amount" value="0">
                         </div>
                         <div class="col-md-6">
+                            <label for="duration" class="form-label">Duration</label>
+                            <select class="form-select" id="duration" name="duration" required>
+                                <option value="">Select Duration</option>
+                                <option value="60">5 Years</option>
+                                <option value="72">6 Years</option>
+                                <option value="84">7 Years</option>
+                                <option value="96">8 Years</option>
+                                <option value="108">9 Years</option>
+                                <option value="120">10 Years</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="maturity_amount" class="form-label">Maturity Amount (₹)</label>
+                            <input type="number" class="form-control" id="maturity_amount" name="maturity_amount" required min="1" step="1" placeholder="Enter maturity amount" value="0">
+                        </div>                        
+                        <div class="col-md-6">
                             <label for="annual_rate" class="form-label">Annual Rate (%)</label>
                             <input type="number" class="form-control" id="annual_rate" name="annual_rate" required min="0.01" step="0.01" placeholder="Enter annual interest rate">
                         </div>
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="penality_rate" class="form-label">Penality Rate (per day) (₹)</label>
-                            <input type="number" class="form-control" id="penality_rate" name="penality_rate" required min="0.50" step="0.50" placeholder="Enter penality rate">
-                        </div>                    
-                        <div class="col-md-6">
-                            <label for="duration" class="form-label">Duration</label>
-                            <select class="form-select" id="duration" name="duration" required>
-                                <option value="">Select Duration</option>
-                                <option value="6">Half Year</option>
-                                <option value="12">1 Year</option>
-                                <option value="24">2 Years</option>
-                                <option value="36">3 Years</option>
-                                <option value="48">4 Years</option>
-                                <option value="60">5 Years</option>
-                            </select>
-                        </div>
-                    </div>
                     
-                    <div class="row mb-3">
+                    <div class="row mb-3">                       
                         <div class="col-md-6">
-                            <label for="payment_interval" class="form-label">Payment Interval</label>
-                            <select class="form-select" id="payment_interval" name="payment_interval" required>
-                                <option value="">Select Payment Interval</option>
-                                <option value="Daily">Daily</option>
-                                <option value="Monthly">Monthly</option>
-                                <option value="Quarterly">Quarterly</option>
-                                <option value="Half Yearly">Half Yearly</option>
-                                <option value="Yearly">Yearly</option>
-                            </select>
+                            <label for="indirect_referral_rate" class="form-label">Indirect Referral Percentage (%)</label>
+                            <input type="number" class="form-control" id="indirect_referral_rate" name="indirect_referral_rate" required min="0.01" step="0.01" placeholder="Enter annual interest rate">
                         </div>
+                        <div class="col-md-6">
+                            <label for="direct_referral_rate" class="form-label">Direct Referral Percentage (%)</label>
+                            <input type="number" class="form-control" id="direct_referral_rate" name="direct_referral_rate" required min="0.01" step="0.01" placeholder="Enter annual interest rate">
+                        </div>  
                     </div>
                     
                 </form>
 
                 <div class="mt-4">
-                    <h6>Current RD Settings</h6>
+                    <h6>Current Fixed Deposit Settings</h6>
                     <div id="rdSettingsList" class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
-                                    <th>RD ID</th>
+                                    <th>FD ID</th>
                                     <th>Annual Rate</th>
-                                    <th>Payment Interval</th>
-                                    <th>Amount</th>
-                                    <th>Penality Rate</th>
                                     <th>Duration</th>
+                                    <th>Amount</th>
+                                    <th>Maturity Amount</th>
+                                    <th>Indirect Referral Rate</th>
+                                    <th>Direct Referral Rate</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
-                                    
+                                    <th>Actions</th>                                    
                                 </tr>
                             </thead>
                             <tbody id="rdSettingsTableBody">
@@ -718,7 +695,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="submitRDSettingsForm()">Save Settings</button>
+                <button type="button" class="btn btn-primary" onclick="submitFDSettingsForm()">Save Settings</button>
             </div>
         </div>
     </div>
@@ -1094,17 +1071,13 @@
                         // Set the values in the form
                         document.getElementById('deposit_per_day_rate').value = parseFloat(activeSetting.annual_rate/365).toFixed(2);
                         document.getElementById('required_amount').value = activeSetting.amount;
-                        document.getElementById('deposit_payment_interval').value = activeSetting.payment_interval;
                         document.getElementById('amount').value = activeSetting.amount;
                         document.getElementById('deposit_setting_id').value = activeSetting.id;
-                        
-                        // Calculate penalty amount based on grace period and days from start of month
-                        calculatePenaltyAmount(activeSetting.penality_rate);
                         
                         // Enable all action buttons
                         enableAllActions();
                     } else {
-                        alert('No active RD Setting found. Please create an active RD Setting first.');
+                        alert('No active FD Setting found. Please create an active FD Setting first.');
                         // Close the modal
                         const modal = bootstrap.Modal.getInstance(document.getElementById('addDepositModal'));
                         modal.hide();
@@ -1123,40 +1096,11 @@
             })
             .catch(function(error) {
                 console.error('Error:', error);
-                alert('An error occurred while loading RD settings.');
+                alert('An error occurred while loading FD settings.');
             });
     }
     
-    // Function to calculate penalty amount based on grace period and days from start of month
-    function calculatePenaltyAmount(penalityRate) {
-        // Get the current date
-        const currentDate = new Date();
-        
-        // Get the first day of the current month
-        const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-        
-        // Calculate days elapsed from start of month to current date
-        const daysElapsed = Math.floor((currentDate - firstDayOfMonth) / (24 * 60 * 60 * 1000));
-        
-        // Get the grace period from environment variable (defined server-side)
-        const gracePeriod = parseInt('<%= process.env.RD_PENALTY_GRACE_PERIOD || 15 %>');
-        // Initialize penalty amount
-        let penaltyAmount = 0;
-        // Check if current date is beyond grace period
-        if (daysElapsed > gracePeriod) {
-            penaltyAmount = daysElapsed * parseFloat(penalityRate);
-        }        
-        // Set the penalty amount in the form
-        document.getElementById('penality_amount').value = penaltyAmount.toFixed(2);
-        
-        // Initialize penalty paid amount to the same value (user can adjust if needed)
-        document.getElementById('penality_paid_amount').value = penaltyAmount.toFixed(2);
-        
-        // Update the total paid amount to include the penalty paid amount
-        updateTotalPaidAmount();
-        
-        return penaltyAmount;
-    }
+    
     
     // Function to update the total paid amount when penalty paid amount changes
     function updateTotalPaidAmount() {
@@ -1671,39 +1615,38 @@
     
     // RD Settings Functions
     
-    // Load RD Settings when modal is opened
+    // Load FD Settings when modal is opened
     document.getElementById('rdSettingsModal').addEventListener('show.bs.modal', function () {
-        loadRDSettings();
+        loadFDSettings();
     });
     
-    // Load RD Settings from the server
-    function loadRDSettings() {
+    // Load FD Settings from the server
+    function loadFDSettings() {
         const userId = document.getElementById('rd_user_id').value;
         fetch('/fixed-deposits/fd-settings?user_id=' + userId)
             .then(function(response) { return response.json(); })
             .then(function(data) {
                 if (data.success) {
-                    displayRDSettings(data.settings);
+                    displayFDSettings(data.settings);
                 } else {
-                    console.error('Error loading RD settings:', data.message);
-                    alert('Error loading RD settings: ' + data.message);
+                    console.error('Error loading FD settings:', data.message);
+                    alert('Error loading FD settings: ' + data.message);
                 }
             })
             .catch(function(error) {
                 console.error('Error:', error);
-                alert('An error occurred while loading RD settings.');
+                alert('An error occurred while loading FD settings.');
             });
     }
     
-    // Display RD Settings in the table
-    function displayRDSettings(settings) {
-        const tableBody = document.getElementById('rdSettingsTableBody');
+    // Display FD Settings in the table
+    function displayFDSettings(settings) {
+        const tableBody = document.getElementById('fdSettingsTableBody');
         tableBody.innerHTML = '';
         
         // Update global variable for active RD settings
         hasActiveRDSettings = settings && settings.some(function(setting) { return setting.is_active; });
         
-
         // Enable or disable action buttons based on active settings
         if (hasActiveRDSettings) {
             enableAllActions();
@@ -1747,25 +1690,7 @@
         if (settings && settings.length > 0) {
             settings.forEach(function(setting) {
                 const row = document.createElement('tr');
-                
-                // row.innerHTML = 
-                //     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
-                //     '<td>' + setting.payment_interval + '</td>' +
-                //     '<td>₹ ' + setting.amount + '</td>' +
-                //     '<td>₹ ' + setting.penality_rate + '</td>' +
-                //     '<td>' + setting.duration/12 + ' ' + (setting.duration == 1 ? 'Year' : 'Years') + '</td>' +
-                //     '<td><span class="status-badge ' + (setting.is_active ? 'status-approved' : 'status-rejected') + '">' +
-                //     (setting.is_active ? 'Active' : 'Inactive') + '</span></td>' +
-                //     '<td><div class="button-group">' +
-                //     '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', ' + (setting.is_active ? 'true' : 'false') + ')">' +
-                //     '<i class="bx bx-edit"></i></button>' +
-                //     '<button class="btn btn-sm btn-' + (setting.is_active ? 'danger' : 'success') + '" onclick="toggleRDSettingStatus(' + setting.id + ', ' + (!setting.is_active ? 'true' : 'false') + ')">' +
-                //     '<i class="bx bx-' + (setting.is_active ? 'power-off' : 'check') + '"></i></button>' +
-                //     '</div></td>';
-
-                // Debug the is_active value
-                //console.log('Setting ID:', setting.id, 'is_active value:', setting.is_active, 'type:', typeof setting.is_active);
-                                
+                                               
                 // Debug the is_active value with JSON stringification to see exact value
                 console.log('Setting ID:', setting.id, 'is_active value:', JSON.stringify(setting.is_active), 'type:', typeof setting.is_active);
                 
@@ -1785,15 +1710,16 @@
                 }
                 
                 row.innerHTML = 
-                    '<td> RD' + setting.id + '</td>' +
+                    '<td> FD' + setting.id + '</td>' +
                     '<td>' + parseFloat(setting.annual_rate).toFixed(2) + '%</td>' +
-                    '<td>' + setting.payment_interval + '</td>' +
-                    '<td>₹ ' + setting.amount + '</td>' +
-                    '<td>₹ ' + setting.penality_rate + '</td>' +
                     '<td>' + (setting.duration/12) + ' ' + ((setting.duration/12 === 1 || setting.duration/12 === 0.5) ? 'Year' : 'Years') + '</td>' +
+                    '<td>₹ ' + setting.amount + '</td>' +
+                    '<td>₹ ' + setting.maturity_amount + '</td>' +
+                    '<td>' + parseFloat(setting.indirect_referral_rate).toFixed(2) + '%</td>' +
+                    '<td>' + parseFloat(setting.direct_referral_rate).toFixed(2) + '%</td>' +
                     '<td><span class="status-badge ' + statusClass + '">' + statusText + '</span></td>' +
                     '<td><div class="button-group">' +
-                    '<button class="btn btn-sm btn-warning" onclick="editRDSetting(' + setting.id + ', ' + setting.annual_rate + ','+ setting.penality_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', \'' + setting.is_active + '\')">' +
+                    '<button class="btn btn-sm btn-warning" onclick="editFDSetting(' + setting.id + ', ' + setting.annual_rate + ','+ setting.penality_rate + ', \'' + setting.payment_interval + '\', ' + setting.amount + ', ' + setting.duration + ', \'' + setting.is_active + '\')">' +
                     '<i class="bx bx-edit"></i></button>' +
                     '</div></td>';
                 
@@ -1801,29 +1727,22 @@
             });
         } else {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="8" class="text-center">No RD settings found</td>';
+            row.innerHTML = '<td colspan="9" class="text-center">No FD settings found</td>';
             tableBody.appendChild(row);
         }
     }
     
-    // Submit RD Settings Form
-    function submitRDSettingsForm() {
-        const form = document.getElementById('rdSettingsForm');
-        
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        
+    // Submit FD Settings Form
+    function submitFDSettingsForm() {
+               
         // Set a flag to indicate we're submitting RD settings
-        
         const user_id = document.getElementById('rd_user_id').value;
         const annual_rate = document.getElementById('annual_rate').value;
-        const payment_interval = document.getElementById('payment_interval').value;
         const amount = document.getElementById('rd_amount').value;
         const duration = document.getElementById('duration').value;
-        const penality_rate = document.getElementById('penality_rate').value;
-        //console.log(user_id, annual_rate, payment_interval, amount, duration, penality_rate);
+        const maturity_amount = document.getElementById('maturity_amount').value;
+        const indirect_referral_rate = document.getElementById('indirect_referral_rate').value;
+        const direct_referral_rate = document.getElementById('direct_referral_rate').value;
         // Show loading state
         const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
         const originalText = saveButton.textContent;
@@ -1838,10 +1757,11 @@
             body: JSON.stringify({
                 user_id: user_id,
                 annual_rate: annual_rate,
-                payment_interval: payment_interval,
                 amount: amount,
                 duration: duration,
-                penality_rate: penality_rate
+                maturity_amount: maturity_amount,
+                indirect_referral_rate: indirect_referral_rate,
+                direct_referral_rate: direct_referral_rate
             })
         })
         .then(function(response) { return response.json(); })
@@ -1851,10 +1771,10 @@
                 form.reset();
                 
                 // Show success message
-                alert('RD Setting added successfully!');
+                alert('FD Setting added successfully!');
                 
                 // Reload settings
-                loadRDSettings();
+               loadFDSettings();
             } else {
                 // Show error message
                 alert('Error1: ' + data.message);              
@@ -1865,7 +1785,7 @@
         })
         .catch(function(error) {
             console.error('Error2:', error);
-            alert('An error occurred while adding the RD setting.');
+            alert('An error occurred while adding the FD setting.');
             
             // Reset button state
             saveButton.textContent = originalText;
@@ -1873,14 +1793,15 @@
         });
     }
     
-    // Edit RD Setting
-    function editRDSetting(id, annual_rate, penality_rate, payment_interval, amount, duration, is_active) {
+    // Edit FD Setting
+    function editFDSetting(id, annual_rate, amount, duration, maturity_amount, indirect_referral_rate, direct_referral_rate) {
         // Set form values
         document.getElementById('annual_rate').value = annual_rate;
-        document.getElementById('penality_rate').value = penality_rate;
-        document.getElementById('payment_interval').value = payment_interval;
-        document.getElementById('rd_amount').value = amount;
+        document.getElementById('fd_amount').value = amount;
         document.getElementById('duration').value = duration;
+        document.getElementById('maturity_amount').value = maturity_amount;
+        document.getElementById('indirect_referral_rate').value = indirect_referral_rate;
+        document.getElementById('direct_referral_rate').value = direct_referral_rate;
         
         // Change button to update
         const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
@@ -1892,7 +1813,7 @@
         
         // Set new onclick function
         saveButton.onclick = function() {
-            updateRDSetting(id);
+            updateFDSetting(id);
             
             // After updating, restore the original onclick function
             setTimeout(function() {
@@ -1902,20 +1823,15 @@
     }
     
     // Update RD Setting
-    function updateRDSetting(id) {
-        const form = document.getElementById('rdSettingsForm');
-        
-        if (!form.checkValidity()) {
-            form.reportValidity();
-            return;
-        }
-        
+    function updateFDSetting(id) {
+                
         const user_id = document.getElementById('rd_user_id').value;
         const annual_rate = document.getElementById('annual_rate').value;
-        const penality_rate = document.getElementById('penality_rate').value;
-        const payment_interval = document.getElementById('payment_interval').value;
         const amount = document.getElementById('rd_amount').value;
         const duration = document.getElementById('duration').value;
+        const maturity_amount = document.getElementById('maturity_amount').value;
+        const indirect_referral_rate = document.getElementById('indirect_referral_rate').value;
+        const direct_referral_rate = document.getElementById('direct_referral_rate').value;
         
         fetch('/fixed-deposits/fd-settings/' + id, {
             method: 'PUT',
@@ -1925,10 +1841,11 @@
             body: JSON.stringify({
                 user_id: user_id,
                 annual_rate: annual_rate,
-                penality_rate: penality_rate,
-                payment_interval: payment_interval,
                 amount: amount,
-                duration: duration
+                duration: duration,
+                maturity_amount: maturity_amount,
+                indirect_referral_rate: indirect_referral_rate,
+                direct_referral_rate: direct_referral_rate
             })
         })
         .then(function(response) { return response.json(); })
@@ -1938,15 +1855,15 @@
                 form.reset();
                 
                 // Reset button
-                const saveButton = document.querySelector('#rdSettingsModal .modal-footer .btn-primary');
+                const saveButton = document.querySelector('#fdSettingsModal .modal-footer .btn-primary');
                 saveButton.textContent = 'Save Settings';
-                saveButton.onclick = submitRDSettingsForm;
+                saveButton.onclick = submitFDSettingsForm;
                 
                 // Show success message
-                alert('RD Setting updated successfully!');
+                alert('FD Setting updated successfully!');
                 
                 // Reload settings
-                loadRDSettings();
+                loadFDSettings();
             } else {
                 alert('Error: ' + data.message);
             }
@@ -1989,10 +1906,10 @@
         .then(function(data) {
             if (data.success) {
                 // Show success message
-                alert('RD Setting ' + (makeActive ? 'activated' : 'deactivated') + ' successfully!');
+                alert('FD Setting ' + (makeActive ? 'activated' : 'deactivated') + ' successfully!');
                 
                 // Reload settings
-                loadRDSettings();
+                loadFDSettings();
             } else {
                 // Show error message
                 alert('Error: ' + data.message);
@@ -2121,7 +2038,7 @@
         }
         
         // Confirm with user
-        if (!confirm('Are you sure you want to settle this RD account with a net amount of ₹' + netAmount + '? This action cannot be undone.')) {
+        if (!confirm('Are you sure you want to settle this FD account with a net amount of ₹' + netAmount + '? This action cannot be undone.')) {
             return;
         }
         
@@ -2132,7 +2049,7 @@
         confirmBtn.textContent = 'Processing...';
         
         // Send settlement request to server
-        fetch(`/fixed-deposits/fd-settlement/${userId}`, {
+        fetch(`/fixed-deposits/fixed-deposit-settlement/${userId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -2159,12 +2076,12 @@
                 settlementModal.hide();
                 
                 // Show success message
-                alert('RD account settled successfully!');
+                alert('FD account settled successfully!');
                 
                 // Reload the page to reflect changes
                 window.location.reload();
             } else {
-                alert('Error: ' + (data.message || 'Failed to settle RD account'));
+                alert('Error: ' + (data.message || 'Failed to settle FD account'));
             }
         })
         .catch(error => {
@@ -2183,12 +2100,12 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="settlementModalLabel">RD Settlement</h5>
+                <h5 class="modal-title" id="settlementModalLabel">FD Settlement</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="alert alert-info">
-                    <p><strong>Note:</strong> Settling this RD account will mark it as closed and finalize all calculations.</p>
+                    <p><strong>Note:</strong> Settling this FD account will mark it as closed and finalize all calculations.</p>
                 </div>
                 
                 
